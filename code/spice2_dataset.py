@@ -57,10 +57,14 @@ class SPICE2Dataset(InMemoryDataset):
         data_list = []
         mol_count = 0
 
+        if not os.path.exists(self.hdf5_path):
+            raise FileNotFoundError(f"HDF5 file not found: {self.hdf5_path}")
+
         with h5py.File(self.hdf5_path, "r") as f:
             for grp_name in f.keys():
                 grp = f[grp_name]
-                if grp.attrs.get("subset", "") != self.SUBSET_NAME:
+                grp_subset = grp.attrs.get("subset", "")
+                if grp_subset != self.SUBSET_NAME:
                     continue
 
                 atomic_numbers = grp["atomic_numbers"][:]
@@ -114,6 +118,22 @@ class SPICE2Dataset(InMemoryDataset):
                 mol_count += 1
                 if self.max_molecules is not None and mol_count >= self.max_molecules:
                     break
+
+        if len(data_list) == 0:
+            diag = [f"WARNING: No data loaded from {self.hdf5_path}"]
+            diag.append(f"  Subset filter: '{self.SUBSET_NAME}'")
+            with h5py.File(self.hdf5_path, "r") as f2:
+                grps = list(f2.keys())
+                diag.append(f"  Groups in file ({len(grps)}):")
+                for gn in grps:
+                    g = f2[gn]
+                    diag.append(f"    {gn}: subset='{g.attrs.get('subset', '')}'")
+            for line in diag:
+                print(line)
+            raise RuntimeError(
+                f"No molecules matched subset '{self.SUBSET_NAME}'. "
+                f"Check the 'subset' attribute in the HDF5 groups printed above."
+            )
 
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.processed_paths[0])
