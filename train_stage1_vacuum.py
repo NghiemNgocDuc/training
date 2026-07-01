@@ -144,16 +144,14 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
             for data in val_loader:
                 data = data.to(device)
                 data.pos.requires_grad_()
-
                 x = data.z.float().view(-1, 1)
                 energy_pred = model(x, data.pos, data.batch)
                 forces_pred = -torch.autograd.grad(
                     outputs=energy_pred,
                     inputs=data.pos,
                     grad_outputs=torch.ones_like(energy_pred),
-                    create_graph=True,
+                    create_graph=False,
                 )[0]
-
                 loss = combined_loss(
                     energy_pred.view(-1), data.y_energy,
                     forces_pred, data.y_forces,
