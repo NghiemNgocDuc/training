@@ -13,6 +13,7 @@ from DimeModels import DimeNetPlus
 import argparse
 import time
 import numpy as np
+from torch.cuda.amp import autocast, GradScaler
 
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
@@ -23,7 +24,7 @@ torch.manual_seed(seed)
 parser = argparse.ArgumentParser(description="Stage 1: Train Vacuum DimeNetPlus on AQM-gas")
 parser.add_argument("--hdf5", type=str, default="../aqm_data/AQM-gas.hdf5",
                     help="Path to AQM-gas.hdf5")
-parser.add_argument("--batchsize", "-b", type=int, default=16)
+parser.add_argument("--batchsize", "-b", type=int, default=32)
 parser.add_argument("--lr", "-l", type=float, default=0.001)
 parser.add_argument("--epochs", "-e", type=int, default=200)
 parser.add_argument("--radius", "-ra", type=float, default=5.0)
@@ -102,6 +103,7 @@ def build_model():
 def train_one_fold(train_loader, val_loader, fold_idx):
     model = build_model()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    scaler = GradScaler(enabled=(device.type == "cuda"))
 
     best_val_loss = float("inf")
     patience = 20
@@ -118,7 +120,10 @@ def train_one_fold(train_loader, val_loader, fold_idx):
             optimizer.zero_grad()
 
             x = data.z.float().view(-1, 1)
-            energy_pred = model(x, data.pos, data.batch)
+            with autocast(enabled=(device.type == "cuda")):
+                energy_pred = model(x, data.pos, data.batch)
+
+            energy_pred = energy_pred.float()
             forces_pred = -torch.autograd.grad(
                 outputs=energy_pred,
                 inputs=data.pos,
@@ -131,8 +136,9 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 forces_pred, data.y_forces,
                 args.lambda_force,
             )
-            loss.backward()
-            optimizer.step()
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
             train_loss += loss.item() * data.num_graphs
         train_loss /= len(train_loader.dataset)
 
@@ -143,7 +149,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 data = data.to(device)
                 data.pos.requires_grad_()
                 x = data.z.float().view(-1, 1)
-                energy_pred = model(x, data.pos, data.batch)
+                energy_pred = model(x, data.pos, data.batch).float()
                 forces_pred = -torch.autograd.grad(
                     outputs=energy_pred,
                     inputs=data.pos,
@@ -157,6 +163,8 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 )
                 val_loss += loss.item() * data.num_graphs
         val_loss /= len(val_loader.dataset)
+
+        torch.cuda.empty_cache()
 
         elapsed = time.time() - t0
         print(f"  Epoch {epoch:3d}/{args.epochs} | Train: {train_loss:.6f} | Val: {val_loss:.6f} | {elapsed:.2f}s")
