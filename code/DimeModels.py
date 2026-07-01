@@ -13,7 +13,7 @@ from torch.nn import Embedding, Linear
 from torch_geometric.data import Dataset, download_url
 from torch_geometric.nn.inits import glorot_orthogonal
 from torch_geometric.nn.resolver import activation_resolver
-from torch_geometric.typing import OptTensor, SparseTensor
+from torch_geometric.typing import OptTensor
 from torch_geometric.utils import scatter
 
 def radius_graph(pos, r, batch=None, max_num_neighbors=32, loop=False, **kwargs):
@@ -530,26 +530,53 @@ def triplets(
     edge_index: Tensor,
     num_nodes: int,
 ) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
-    row, col = edge_index  # j->i
+    row, col = edge_index  # j -> i
+    E = row.size(0)
 
-    value = torch.arange(row.size(0), device=row.device)
-    adj_t = SparseTensor(row=col, col=row, value=value,
-                         sparse_sizes=(num_nodes, num_nodes))
-    adj_t_row = adj_t[row]
-    num_triplets = adj_t_row.set_value(None).sum(dim=1).to(torch.long)
+    # Group edges by target: for each node, list its inbound (source, edge_idx)
+    perm = torch.argsort(col, stable=True)
+    row_p, col_p = row[perm], col[perm]
+    edge_idx_p = torch.arange(E, device=row.device)[perm]
 
-    # Node indices (k->j->i) for triplets.
-    idx_i = col.repeat_interleave(num_triplets)
-    idx_j = row.repeat_interleave(num_triplets)
-    idx_k = adj_t_row.storage.col()
-    mask = idx_i != idx_k  # Remove i == k triplets.
-    idx_i, idx_j, idx_k = idx_i[mask], idx_j[mask], idx_k[mask]
+    uniq, counts = torch.unique(col_p, return_counts=True)
+    start = torch.zeros(num_nodes, dtype=torch.long, device=row.device)
+    start[uniq] = torch.cat([torch.zeros(1, dtype=torch.long, device=row.device),
+                             counts[:-1].cumsum(0)])
 
-    # Edge indices (k-j, j->i) for triplets.
-    idx_kj = adj_t_row.storage.value()[mask]
-    idx_ji = adj_t_row.storage.row()[mask]
+    # For each edge j->i, how many edges point to j?
+    cnt = torch.zeros(num_nodes, dtype=torch.long, device=row.device)
+    cnt[uniq] = counts
+    num_triplets = cnt[row]  # per source j, number of k that connect to j
 
-    return col, row, idx_i, idx_j, idx_k, idx_kj, idx_ji
+    total = num_triplets.sum().item()
+    if total == 0:
+        empty = torch.empty(0, dtype=torch.long, device=row.device)
+        return row, col, empty, empty, empty, empty, empty
+
+    # Expand each edge by its triplet count
+    idx_ji = torch.arange(E, device=row.device).repeat_interleave(num_triplets)
+    i_exp = col.repeat_interleave(num_triplets)
+    j_exp = row.repeat_interleave(num_triplets)
+
+    # Local offset within each edge's triplets using a simple loop over edges
+    # (E is typically a few thousand — fine)
+    offset = torch.zeros(total, dtype=torch.long, device=row.device)
+    pos = 0
+    for e in range(E):
+        n = num_triplets[e].item()
+        if n > 0:
+            offset[pos:pos + n] = torch.arange(n, device=row.device)
+            pos += n
+
+    # Position in sorted adjacency array
+    adj_pos = start[j_exp] + offset
+    k = row_p[adj_pos]
+    kj_edge = edge_idx_p[adj_pos]
+
+    mask = i_exp != k
+    return (col, row,
+            i_exp[mask], j_exp[mask], k[mask],
+            kj_edge[mask], idx_ji[mask])
 
 
 class DimeNet(torch.nn.Module):
