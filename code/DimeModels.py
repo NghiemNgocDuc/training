@@ -16,29 +16,47 @@ from torch_geometric.nn.resolver import activation_resolver
 from torch_geometric.typing import OptTensor, SparseTensor
 from torch_geometric.utils import scatter
 
-try:
-    from torch_geometric.nn import radius_graph as _radius_graph
-    def radius_graph(pos, r, batch=None, max_num_neighbors=32, loop=False, **kwargs):
-        try:
-            return _radius_graph(pos, r, batch=batch,
-                                 max_num_neighbors=max_num_neighbors, loop=loop)
-        except (ImportError, RuntimeError):
-            from torch_cluster import radius
-            row, col = radius(pos, pos, r, batch_x=batch, batch_y=batch,
-                              max_num_neighbors=max_num_neighbors)
-            if not loop:
-                mask = row != col
-                row, col = row[mask], col[mask]
-            return torch.stack([row, col], dim=0)
-except ImportError:
-    from torch_cluster import radius
-    def radius_graph(pos, r, batch=None, max_num_neighbors=32, loop=False):
-        row, col = radius(pos, pos, r, batch_x=batch, batch_y=batch,
-                          max_num_neighbors=max_num_neighbors)
+def radius_graph(pos, r, batch=None, max_num_neighbors=32, loop=False, **kwargs):
+    if batch is None:
+        batch = pos.new_zeros(pos.size(0), dtype=torch.long)
+
+    rows, cols = [], []
+    base = 0
+    for b in range(batch.max().item() + 1):
+        mask = batch == b
+        p = pos[mask]
+        dist = torch.cdist(p, p)
+        adj = dist <= r
         if not loop:
-            mask = row != col
-            row, col = row[mask], col[mask]
-        return torch.stack([row, col], dim=0)
+            adj.fill_diagonal_(False)
+
+        i, j = adj.nonzero(as_tuple=True)
+        if i.numel() > 0 and max_num_neighbors > 0:
+            dist_vals = dist[i, j]
+            order = torch.argsort(dist_vals, stable=True)
+            i_sorted, j_sorted = i[order], j[order]
+            # Keep closest max_num_neighbors per source node
+            uniq, counts = torch.unique(i_sorted, return_counts=True)
+            # Build a mask: for each source, keep first max_num_neighbors edges
+            keep = []
+            start = 0
+            for c in counts.tolist():
+                end = start + c
+                k = min(c, max_num_neighbors)
+                keep.append(torch.ones(k, dtype=torch.bool, device=pos.device))
+                if c > k:
+                    keep.append(torch.zeros(c - k, dtype=torch.bool, device=pos.device))
+                start = end
+            keep = torch.cat(keep)
+            i, j = i_sorted[keep], j_sorted[keep]
+
+        rows.append(i + base)
+        cols.append(j + base)
+        base += p.size(0)
+
+    if len(rows) == 0:
+        return torch.empty((2, 0), dtype=torch.long, device=pos.device)
+    return torch.stack([torch.cat(rows), torch.cat(cols)], dim=0)
 if torch.backends.mps.is_available():
     device = torch.device('mps')
 elif torch.cuda.is_available():
