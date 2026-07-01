@@ -26,8 +26,6 @@ def _find_water_start(atomic_numbers: np.ndarray) -> int:
 
 
 class SPICE2Dataset(InMemoryDataset):
-    SUBSET_NAME = "Solvated PubChem Molecules"
-
     def __init__(
         self,
         root: str,
@@ -63,9 +61,6 @@ class SPICE2Dataset(InMemoryDataset):
         with h5py.File(self.hdf5_path, "r") as f:
             for grp_name in f.keys():
                 grp = f[grp_name]
-                grp_subset = grp.attrs.get("subset", "")
-                if grp_subset != self.SUBSET_NAME:
-                    continue
 
                 atomic_numbers = grp["atomic_numbers"][:]
                 conformations = grp["conformations"][:]
@@ -120,20 +115,7 @@ class SPICE2Dataset(InMemoryDataset):
                     break
 
         if len(data_list) == 0:
-            diag = [f"WARNING: No data loaded from {self.hdf5_path}"]
-            diag.append(f"  Subset filter: '{self.SUBSET_NAME}'")
-            with h5py.File(self.hdf5_path, "r") as f2:
-                grps = list(f2.keys())
-                diag.append(f"  Groups in file ({len(grps)}):")
-                for gn in grps:
-                    g = f2[gn]
-                    diag.append(f"    {gn}: subset='{g.attrs.get('subset', '')}'")
-            for line in diag:
-                print(line)
-            raise RuntimeError(
-                f"No molecules matched subset '{self.SUBSET_NAME}'. "
-                f"Check the 'subset' attribute in the HDF5 groups printed above."
-            )
+            raise RuntimeError(f"No data loaded from {self.hdf5_path} — file appears empty or unreadable.")
 
         data, slices = self.collate(data_list)
         torch.save((data, slices), self.processed_paths[0])
