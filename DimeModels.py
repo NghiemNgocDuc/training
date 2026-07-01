@@ -11,11 +11,22 @@ from torch import Tensor
 from torch.nn import Embedding, Linear
 
 from torch_geometric.data import Dataset, download_url
-from torch_geometric.nn import radius_graph
 from torch_geometric.nn.inits import glorot_orthogonal
 from torch_geometric.nn.resolver import activation_resolver
 from torch_geometric.typing import OptTensor, SparseTensor
 from torch_geometric.utils import scatter
+
+try:
+    from torch_geometric.nn import radius_graph
+except ImportError:
+    from torch_cluster import radius
+    def radius_graph(pos, r, batch=None, max_num_neighbors=32, loop=False):
+        row, col = radius(pos, pos, r, batch_x=batch, batch_y=batch,
+                          max_num_neighbors=max_num_neighbors)
+        if not loop:
+            mask = row != col
+            row, col = row[mask], col[mask]
+        return torch.stack([row, col], dim=0)
 if torch.backends.mps.is_available():
     device = torch.device('mps')
 elif torch.cuda.is_available():
