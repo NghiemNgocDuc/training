@@ -137,7 +137,6 @@ def predict_energy_and_forces(m, data_batch):
                              create_graph=True)[0]
     return e, f
 
-@torch.no_grad()
 def predict_energy_and_forces_eval(m, data_batch):
     x = data_batch.z.float().view(-1, 1)
     data_batch.pos.requires_grad_(True)
