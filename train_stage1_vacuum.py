@@ -6,7 +6,7 @@ sys.path.append(os.path.join(_root, "aqm_data"))
 
 import torch
 import torch.optim as optim
-from torch.utils.data import Subset
+from torch.utils.data import Subset, random_split
 from sklearn.model_selection import KFold
 from torch_geometric.loader import DataLoader
 from DimeModels import DimeNetPlus
@@ -20,7 +20,7 @@ from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
 seed = 42
 torch.manual_seed(seed)
 
-parser = argparse.ArgumentParser(description="Stage 1: Train Vacuum DimeNetPlus on AQM-gas (5-fold CV)")
+parser = argparse.ArgumentParser(description="Stage 1: Train Vacuum DimeNetPlus on AQM-gas")
 parser.add_argument("--hdf5", type=str, default="../aqm_data/AQM-gas.hdf5",
                     help="Path to AQM-gas.hdf5")
 parser.add_argument("--batchsize", "-b", type=int, default=16)
@@ -41,6 +41,7 @@ parser.add_argument("--num_output_layers", type=int, default=3)
 parser.add_argument("--max_neighbors", type=int, default=32)
 parser.add_argument("--lambda_force", type=float, default=1000.0)
 parser.add_argument("--k_folds", type=int, default=5)
+parser.add_argument("--val_split", type=float, default=0.1)
 parser.add_argument("--max_structures", type=int, default=None)
 parser.add_argument("--output_dir", type=str, default="results")
 parser.add_argument("--device", type=str, default=None)
@@ -68,18 +69,17 @@ print(f"Dataset: {len(dataset)} samples")
 
 os.makedirs(args.output_dir, exist_ok=True)
 
-kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=seed)
-fold_results = []
+mse = torch.nn.MSELoss()
 
-for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
-    print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}")
 
-    train_subset = Subset(dataset, train_idx)
-    val_subset = Subset(dataset, val_idx)
-    train_loader = DataLoader(train_subset, batch_size=args.batchsize, shuffle=True)
-    val_loader = DataLoader(val_subset, batch_size=args.batchsize, shuffle=False)
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force):
+    loss_e = mse(energy_pred, energy_true)
+    loss_f = mse(forces_pred, forces_true)
+    return loss_e + lambda_force * loss_f
 
-    model = DimeNetPlus(
+
+def build_model():
+    return DimeNetPlus(
         in_channels=1,
         hidden_channels=args.hidden,
         out_channels=1,
@@ -98,17 +98,15 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
         is_energy=True,
     ).to(device)
 
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    mse = torch.nn.MSELoss()
 
-    def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force):
-        loss_e = mse(energy_pred, energy_true)
-        loss_f = mse(forces_pred, forces_true)
-        return loss_e + lambda_force * loss_f
+def train_one_fold(train_loader, val_loader, fold_idx):
+    model = build_model()
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
 
     best_val_loss = float("inf")
     patience = 20
     epochs_no_improve = 0
+    ckpt_path = os.path.join(args.output_dir, f"stage1_fold_{fold_idx}.pt")
 
     for epoch in range(1, args.epochs + 1):
         model.train()
@@ -166,7 +164,6 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
-            ckpt_path = os.path.join(args.output_dir, f"stage1_fold_{fold + 1}.pt")
             torch.save(model.state_dict(), ckpt_path)
             print(f"    -> Saved best model to {ckpt_path}")
         else:
@@ -175,10 +172,37 @@ for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
                 print(f"    Early stopping after {epoch} epochs")
                 break
 
-    model.load_state_dict(torch.load(ckpt_path, weights_only=True))
-    fold_results.append(best_val_loss)
-    print(f"Fold {fold + 1} best val loss: {best_val_loss:.6f}")
+    return best_val_loss
+
+
+fold_results = []
+
+if args.k_folds <= 1:
+    n_total = len(dataset)
+    n_val = int(n_total * args.val_split)
+    n_train = n_total - n_val
+    train_ds, val_ds = random_split(
+        dataset, [n_train, n_val],
+        generator=torch.Generator().manual_seed(seed),
+    )
+    train_loader = DataLoader(train_ds, batch_size=args.batchsize, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=args.batchsize, shuffle=False)
+    print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}")
+    best_loss = train_one_fold(train_loader, val_loader, 1)
+    fold_results.append(best_loss)
+else:
+    kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=seed)
+    for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
+        print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}")
+        train_loader = DataLoader(Subset(dataset, train_idx), batch_size=args.batchsize, shuffle=True)
+        val_loader = DataLoader(Subset(dataset, val_idx), batch_size=args.batchsize, shuffle=False)
+        best_loss = train_one_fold(train_loader, val_loader, fold + 1)
+        fold_results.append(best_loss)
+        print(f"Fold {fold + 1} best val loss: {best_loss:.6f}")
 
 print(f"\n{'='*60}")
-print(f"5-Fold CV complete. Best val losses: {[f'{l:.6f}' for l in fold_results]}")
-print(f"Mean val loss: {np.mean(fold_results):.6f} +/- {np.std(fold_results):.6f}")
+if len(fold_results) > 1:
+    print(f"CV complete. Best val losses: {[f'{l:.6f}' for l in fold_results]}")
+    print(f"Mean val loss: {np.mean(fold_results):.6f} +/- {np.std(fold_results):.6f}")
+else:
+    print(f"Training complete. Best val loss: {fold_results[0]:.6f}")
