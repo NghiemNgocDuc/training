@@ -1,0 +1,14 @@
+*.hdf5
+*.h5
+*.pth
+*.pt
+__pycache__/
+*.pyc
+.DS_Store
+__MACOSX/
+GluLys/
+results_nogbforce_earlystopping/
+Data/
+aqm_data/*.hdf5
+aqm_data/*.h5
+*.log
