@@ -62,17 +62,18 @@ class SPICE2Dataset(InMemoryDataset):
             for grp_name in f.keys():
                 grp = f[grp_name]
 
-                atomic_numbers = grp["atomic_numbers"][:]
-                conformations = grp["conformations"][:]
-                formation_energy = grp["formation_energy"][:]
-                gradients = grp["dft_total_gradient"][:]
+                atomic_numbers = np.asarray(grp["atomic_numbers"][:]).ravel()
+                conformations = np.asarray(grp["conformations"][:])
+                formation_energy = np.asarray(grp["formation_energy"][:])
+                gradients = np.asarray(grp["dft_total_gradient"][:])
 
                 has_charges = "mbis_charges" in grp
                 if has_charges:
-                    mbis_all = grp["mbis_charges"][:]
+                    mbis_all = np.asarray(grp["mbis_charges"][:]).ravel()
 
-                n_atoms_total = len(atomic_numbers)
                 water_start = _find_water_start(atomic_numbers)
+                if water_start <= 0:
+                    continue
 
                 solute_z = torch.tensor(atomic_numbers[:water_start], dtype=torch.long)
                 n_solute = len(solute_z)
@@ -85,13 +86,13 @@ class SPICE2Dataset(InMemoryDataset):
                     n_conf = min(n_conf, self.max_conformers_per_mol)
 
                 for c in range(n_conf):
-                    pos_bohr = conformations[c]
+                    pos_bohr = np.asarray(conformations[c])
                     solute_pos = torch.tensor(pos_bohr[:water_start] * BOHR_TO_ANG, dtype=torch.float)
 
-                    energy_hartree = formation_energy[c]
-                    energy_ev = float(torch.tensor(energy_hartree * HARTREE_TO_EV))
+                    energy_hartree = float(formation_energy[c])
+                    energy_ev = energy_hartree * HARTREE_TO_EV
 
-                    grad = gradients[c]
+                    grad = np.asarray(gradients[c])
                     solute_forces = torch.tensor(
                         -grad[:water_start] * HARTREE_PER_BOHR_TO_EV_PER_ANG,
                         dtype=torch.float,
@@ -117,5 +118,15 @@ class SPICE2Dataset(InMemoryDataset):
         if len(data_list) == 0:
             raise RuntimeError(f"No data loaded from {self.hdf5_path} — file appears empty or unreadable.")
 
-        data, slices = self.collate(data_list)
+        try:
+            data, slices = self.collate(data_list)
+        except RuntimeError as e:
+            print(f"Collation failed with {len(data_list)} samples. Diagnosing...")
+            for i, d in enumerate(data_list):
+                for k, v in d:
+                    if hasattr(v, 'shape'):
+                        print(f"  [{i}] {k}: {v.shape}")
+                    else:
+                        print(f"  [{i}] {k}: {type(v).__name__} = {v}")
+            raise
         torch.save((data, slices), self.processed_paths[0])
