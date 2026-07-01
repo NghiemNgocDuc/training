@@ -13,7 +13,6 @@ from DimeModels import DimeNetPlus
 import argparse
 import time
 import numpy as np
-from torch.cuda.amp import autocast, GradScaler
 
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
@@ -103,7 +102,6 @@ def build_model():
 def train_one_fold(train_loader, val_loader, fold_idx):
     model = build_model()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    scaler = GradScaler(enabled=(device.type == "cuda"))
 
     best_val_loss = float("inf")
     patience = 20
@@ -120,10 +118,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
             optimizer.zero_grad()
 
             x = data.z.float().view(-1, 1)
-            with autocast(enabled=(device.type == "cuda")):
-                energy_pred = model(x, data.pos, data.batch)
-
-            energy_pred = energy_pred.float()
+            energy_pred = model(x, data.pos, data.batch)
             forces_pred = -torch.autograd.grad(
                 outputs=energy_pred,
                 inputs=data.pos,
@@ -136,9 +131,10 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 forces_pred, data.y_forces,
                 args.lambda_force,
             )
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
+            loss.backward()
+
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
+            optimizer.step()
             train_loss += loss.item() * data.num_graphs
         train_loss /= len(train_loader.dataset)
 
@@ -149,7 +145,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 data = data.to(device)
                 data.pos.requires_grad_()
                 x = data.z.float().view(-1, 1)
-                energy_pred = model(x, data.pos, data.batch).float()
+                energy_pred = model(x, data.pos, data.batch)
                 forces_pred = -torch.autograd.grad(
                     outputs=energy_pred,
                     inputs=data.pos,
