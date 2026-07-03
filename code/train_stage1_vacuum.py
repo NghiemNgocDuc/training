@@ -72,10 +72,15 @@ os.makedirs(args.output_dir, exist_ok=True)
 mse = torch.nn.MSELoss()
 
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force):
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force=None):
     loss_e = mse(energy_pred, energy_true)
     loss_f = mse(forces_pred, forces_true)
-    return loss_e + lambda_force * loss_f
+    el_val = loss_e.item()
+    fl_val = loss_f.item()
+    denom = el_val + fl_val
+    loss_e_weighted = (fl_val / denom) * loss_e * 1 / 4
+    loss_f_weighted = (el_val / denom) * loss_f * 3 / 4
+    return loss_e_weighted + loss_f_weighted
 
 
 def build_model():
@@ -102,6 +107,9 @@ def build_model():
 def train_one_fold(train_loader, val_loader, fold_idx):
     model = build_model()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, patience=10, factor=0.5, min_lr=1e-6
+    )
 
     best_val_loss = float("inf")
     patience = 20
@@ -129,7 +137,6 @@ def train_one_fold(train_loader, val_loader, fold_idx):
             loss = combined_loss(
                 energy_pred.view(-1), data.y_energy,
                 forces_pred, data.y_forces,
-                args.lambda_force,
             )
             loss.backward()
 
@@ -155,7 +162,6 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 loss = combined_loss(
                     energy_pred.view(-1), data.y_energy,
                     forces_pred, data.y_forces,
-                    args.lambda_force,
                 )
                 val_loss += loss.item() * data.num_graphs
         val_loss /= len(val_loader.dataset)
@@ -163,7 +169,10 @@ def train_one_fold(train_loader, val_loader, fold_idx):
         torch.cuda.empty_cache()
 
         elapsed = time.time() - t0
-        print(f"  Epoch {epoch:3d}/{args.epochs} | Train: {train_loss:.6f} | Val: {val_loss:.6f} | {elapsed:.2f}s")
+        current_lr = optimizer.param_groups[0]['lr']
+        print(f"  Epoch {epoch:3d}/{args.epochs} | Train: {train_loss:.6f} | Val: {val_loss:.6f} | LR: {current_lr:.2e} | {elapsed:.2f}s")
+
+        scheduler.step(val_loss)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss

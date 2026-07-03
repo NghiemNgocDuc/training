@@ -127,13 +127,21 @@ print(f"Correction model: {sum(p.numel() for p in correction_model.parameters())
 
 # Optimizer only sees correction model params (second safeguard)
 optimizer = optim.Adam(correction_model.parameters(), lr=args.lr)
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, patience=10, factor=0.5, min_lr=1e-6
+)
 mse = torch.nn.MSELoss()
 
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force):
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force=None):
     loss_e = mse(energy_pred, energy_true)
     loss_f = mse(forces_pred, forces_true)
-    return loss_e + lambda_force * loss_f
+    el_val = loss_e.item()
+    fl_val = loss_f.item()
+    denom = el_val + fl_val
+    loss_e_weighted = (fl_val / denom) * loss_e * 1 / 4
+    loss_f_weighted = (el_val / denom) * loss_f * 3 / 4
+    return loss_e_weighted + loss_f_weighted
 
 
 def train_epoch(loader):
@@ -163,9 +171,9 @@ def train_epoch(loader):
         loss = combined_loss(
             total_energy.view(-1), data.y_energy,
             forces_pred, data.y_forces,
-            args.lambda_force,
         )
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(correction_model.parameters(), 10.0)
         optimizer.step()
         total_loss += loss.item() * data.num_graphs
 
@@ -208,9 +216,9 @@ def validate_epoch(loader):
         loss = combined_loss(
             total_energy.view(-1), data.y_energy,
             forces_pred, data.y_forces,
-            args.lambda_force,
         )
         total_loss += loss.item() * data.num_graphs
+
 
         if hasattr(data, 'y_esolv') and data.y_esolv is not None:
             esolv_loss = mse(correction_energy.view(-1), data.y_esolv.view(-1))
@@ -251,6 +259,8 @@ for epoch in range(1, args.epochs + 1):
         frozen_sum = sum(p.sum().item() for p in vacuum_model.parameters())
         diff = abs(frozen_sum - frozen_params_init_sum)
         print(f"  [Sanity] Frozen params sum: {frozen_sum:.6e}  (delta from init: {diff:.6e})")
+
+    scheduler.step(val_loss)
 
     if val_loss < best_val_loss:
         best_val_loss = val_loss

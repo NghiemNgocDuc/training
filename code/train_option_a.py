@@ -126,8 +126,15 @@ print(f"Option A model: {sum(p.numel() for p in model.parameters()):,} params")
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 mse = torch.nn.MSELoss()
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force):
-    return mse(energy_pred, energy_true) + lambda_force * mse(forces_pred, forces_true)
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force=None):
+    loss_e = mse(energy_pred, energy_true)
+    loss_f = mse(forces_pred, forces_true)
+    el_val = loss_e.item()
+    fl_val = loss_f.item()
+    denom = el_val + fl_val
+    loss_e_weighted = (fl_val / denom) * loss_e * 1 / 4
+    loss_f_weighted = (el_val / denom) * loss_f * 3 / 4
+    return loss_e_weighted + loss_f_weighted
 
 def predict_energy_and_forces(m, data_batch):
     x = data_batch.z.float().view(-1, 1)
@@ -178,7 +185,7 @@ for epoch in range(1, args.epochs + 1):
         optimizer.zero_grad()
         e_pred, f_pred = predict_energy_and_forces(model, data)
         loss = combined_loss(e_pred.view(-1), data.y_energy,
-                             f_pred, data.y_forces, args.lambda_force)
+                             f_pred, data.y_forces)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
         optimizer.step()
@@ -193,7 +200,7 @@ for epoch in range(1, args.epochs + 1):
             data.pos.requires_grad_()
             e_pred, f_pred = predict_energy_and_forces_eval(model, data)
             loss = combined_loss(e_pred.view(-1), data.y_energy,
-                                 f_pred, data.y_forces, args.lambda_force)
+                                 f_pred, data.y_forces)
             val_loss += loss.item() * data.num_graphs
     val_loss /= len(val_loader.dataset)
 
