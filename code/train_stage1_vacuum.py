@@ -104,7 +104,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
     model = build_model()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=20, factor=0.5, min_lr=1e-6, verbose=True
+        optimizer, patience=20, factor=0.5, min_lr=1e-6
     )
 
     best_val_loss = float("inf")

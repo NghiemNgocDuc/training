@@ -270,7 +270,7 @@ class Trainer:
         assert self._model != None
         self._optimizer = torch.optim.Adam(self._model.parameters(), lr=lr)
         if schedule == 'Plateau':
-            self._scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, verbose=True,factor=0.8)
+            self._scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self._optimizer, factor=0.8)
         elif schedule == 'Exponential':
             self._scheduler = torch.optim.lr_scheduler.ExponentialLR(self._optimizer,gamma=0.01**(1/1000))
         elif schedule == 'Exponential100':
