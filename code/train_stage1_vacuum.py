@@ -16,6 +16,7 @@ import numpy as np
 
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
+from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 
 seed = 42
 torch.manual_seed(seed)
@@ -72,20 +73,15 @@ os.makedirs(args.output_dir, exist_ok=True)
 mse = torch.nn.MSELoss()
 
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force=None):
-    loss_e = mse(energy_pred, energy_true)
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, n_atoms, lambda_force):
+    loss_e = mse(energy_pred / n_atoms, energy_true / n_atoms)
     loss_f = mse(forces_pred, forces_true)
-    el_val = loss_e.item()
-    fl_val = loss_f.item()
-    denom = el_val + fl_val
-    loss_e_weighted = (fl_val / denom) * loss_e * 1 / 4
-    loss_f_weighted = (el_val / denom) * loss_f * 3 / 4
-    return loss_e_weighted + loss_f_weighted
+    return loss_e + lambda_force * loss_f
 
 
 def build_model():
     return DimeNetPlus(
-        in_channels=1,
+        in_channels=NUM_ELEMENTS,
         hidden_channels=args.hidden,
         out_channels=1,
         num_blocks=args.num_blocks,
@@ -108,11 +104,11 @@ def train_one_fold(train_loader, val_loader, fold_idx):
     model = build_model()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, patience=10, factor=0.5, min_lr=1e-6
+        optimizer, patience=20, factor=0.5, min_lr=1e-6, verbose=True
     )
 
     best_val_loss = float("inf")
-    patience = 20
+    patience = 50
     epochs_no_improve = 0
     ckpt_path = os.path.join(args.output_dir, f"stage1_fold_{fold_idx}.pt")
 
@@ -125,7 +121,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
             data.pos.requires_grad_()
             optimizer.zero_grad()
 
-            x = data.z.float().view(-1, 1)
+            x = build_one_hot(data, device)
             energy_pred = model(x, data.pos, data.batch)
             forces_pred = -torch.autograd.grad(
                 outputs=energy_pred,
@@ -134,9 +130,12 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 create_graph=True,
             )[0]
 
+            n_atoms = torch.bincount(data.batch).float()
             loss = combined_loss(
                 energy_pred.view(-1), data.y_energy,
                 forces_pred, data.y_forces,
+                n_atoms=n_atoms,
+                lambda_force=args.lambda_force,
             )
             loss.backward()
 
@@ -151,7 +150,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
             for data in val_loader:
                 data = data.to(device)
                 data.pos.requires_grad_()
-                x = data.z.float().view(-1, 1)
+                x = build_one_hot(data, device)
                 energy_pred = model(x, data.pos, data.batch)
                 forces_pred = -torch.autograd.grad(
                     outputs=energy_pred,
@@ -159,9 +158,12 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                     grad_outputs=torch.ones_like(energy_pred),
                     create_graph=False,
                 )[0]
+                n_atoms = torch.bincount(data.batch).float()
                 loss = combined_loss(
                     energy_pred.view(-1), data.y_energy,
                     forces_pred, data.y_forces,
+                    n_atoms=n_atoms,
+                    lambda_force=args.lambda_force,
                 )
                 val_loss += loss.item() * data.num_graphs
         val_loss /= len(val_loader.dataset)

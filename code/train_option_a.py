@@ -16,6 +16,7 @@ import numpy as np
 
 from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
+from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 
 seed = 42
 torch.manual_seed(seed)
@@ -71,7 +72,7 @@ print(f"Using device: {device}")
 
 def build_model():
     return DimeNetPlus(
-        in_channels=1,
+        in_channels=NUM_ELEMENTS,
         hidden_channels=args.hidden,
         out_channels=1,
         num_blocks=args.num_blocks,
@@ -126,18 +127,13 @@ print(f"Option A model: {sum(p.numel() for p in model.parameters()):,} params")
 optimizer = optim.Adam(model.parameters(), lr=args.lr)
 mse = torch.nn.MSELoss()
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force=None):
-    loss_e = mse(energy_pred, energy_true)
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, n_atoms, lambda_force):
+    loss_e = mse(energy_pred / n_atoms, energy_true / n_atoms)
     loss_f = mse(forces_pred, forces_true)
-    el_val = loss_e.item()
-    fl_val = loss_f.item()
-    denom = el_val + fl_val
-    loss_e_weighted = (fl_val / denom) * loss_e * 1 / 4
-    loss_f_weighted = (el_val / denom) * loss_f * 3 / 4
-    return loss_e_weighted + loss_f_weighted
+    return loss_e + lambda_force * loss_f
 
 def predict_energy_and_forces(m, data_batch):
-    x = data_batch.z.float().view(-1, 1)
+    x = build_one_hot(data_batch, device)
     pos = data_batch.pos
     e = m(x, pos, data_batch.batch)
     f = -torch.autograd.grad(e, pos, grad_outputs=torch.ones_like(e),
@@ -145,7 +141,7 @@ def predict_energy_and_forces(m, data_batch):
     return e, f
 
 def predict_energy_and_forces_eval(m, data_batch):
-    x = data_batch.z.float().view(-1, 1)
+    x = build_one_hot(data_batch, device)
     data_batch.pos.requires_grad_(True)
     e = m(x, data_batch.pos, data_batch.batch)
     f = -torch.autograd.grad(e, data_batch.pos, grad_outputs=torch.ones_like(e),
@@ -160,7 +156,6 @@ def compute_esolv_mae(m, loader):
         data = data.to(device)
         e_pred, _ = predict_energy_and_forces_eval(m, data)
         for i in range(data.num_graphs):
-            mask = data.batch == i
             if hasattr(data, 'gas_energy'):
                 gas_e = data.gas_energy[i].item() if data.gas_energy.dim() > 0 else data.gas_energy.item()
                 esolv_pred = e_pred[i].item() - gas_e
@@ -184,8 +179,10 @@ for epoch in range(1, args.epochs + 1):
         data.pos.requires_grad_()
         optimizer.zero_grad()
         e_pred, f_pred = predict_energy_and_forces(model, data)
+        n_atoms = torch.bincount(data.batch).float()
         loss = combined_loss(e_pred.view(-1), data.y_energy,
-                             f_pred, data.y_forces)
+                             f_pred, data.y_forces,
+                             n_atoms=n_atoms, lambda_force=args.lambda_force)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
         optimizer.step()
@@ -199,8 +196,10 @@ for epoch in range(1, args.epochs + 1):
             data = data.to(device)
             data.pos.requires_grad_()
             e_pred, f_pred = predict_energy_and_forces_eval(model, data)
+            n_atoms = torch.bincount(data.batch).float()
             loss = combined_loss(e_pred.view(-1), data.y_energy,
-                                 f_pred, data.y_forces)
+                                 f_pred, data.y_forces,
+                                 n_atoms=n_atoms, lambda_force=args.lambda_force)
             val_loss += loss.item() * data.num_graphs
     val_loss /= len(val_loader.dataset)
 
@@ -234,7 +233,7 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
 
     # Build vacuum model (+1 block) and correction model
     vacuum_model = DimeNetPlus(
-        in_channels=1, hidden_channels=args.hidden, out_channels=1,
+        in_channels=NUM_ELEMENTS, hidden_channels=args.hidden, out_channels=1,
         num_blocks=args.num_blocks + 1,
         int_emb_size=args.int_emb_size, basis_emb_size=args.basis_emb_size,
         out_emb_channels=args.out_emb_channels,
@@ -251,7 +250,7 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
     vacuum_model.eval()
 
     correction_model = DimeNetPlus(
-        in_channels=1, hidden_channels=args.hidden, out_channels=1,
+        in_channels=NUM_ELEMENTS, hidden_channels=args.hidden, out_channels=1,
         num_blocks=args.num_blocks,
         int_emb_size=args.int_emb_size, basis_emb_size=args.basis_emb_size,
         out_emb_channels=args.out_emb_channels,
@@ -270,7 +269,7 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
     count = 0
     for data in val_loader:
         data = data.to(device)
-        x = data.z.float().view(-1, 1)
+        x = build_one_hot(data, device)
         with torch.no_grad():
             vacuum_e = vacuum_model(x, data.pos, data.batch)
             correction_e = correction_model(x, data.pos, data.batch)

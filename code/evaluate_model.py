@@ -11,14 +11,15 @@ from torch_geometric.loader import DataLoader
 from DimeModels import DimeNetPlus
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
+from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 import argparse
 
 # Standard atomic masses (amu) keyed by atomic number
 ATOMIC_MASSES = {
-    1: 1.008,   6: 12.011,  7: 14.007,  8: 15.999,
-    9: 18.998,  16: 32.065, 17: 35.453, 35: 79.904,
+    1: 1.008, 3: 6.941, 5: 10.811, 6: 12.011, 7: 14.007, 8: 15.999,
+    9: 18.998, 11: 22.990, 12: 24.305, 14: 28.086, 15: 30.974,
+    16: 32.065, 17: 35.453, 19: 39.098, 20: 40.078, 35: 79.904, 53: 126.904,
 }
-DEFAULT_MASS = 12.0  # fallback
 
 CONV = 0.0096485  # (eV/A) / amu -> A/fs^2
 
@@ -42,6 +43,19 @@ parser.add_argument("--force_threshold", type=float, default=50.0,
                     help="Force threshold for stability (eV/A)")
 parser.add_argument("--md_temp_K", type=float, default=300.0,
                     help="Initial temperature for MD (K)")
+parser.add_argument("--hidden", type=int, default=128)
+parser.add_argument("--num_blocks", type=int, default=4)
+parser.add_argument("--int_emb_size", type=int, default=64)
+parser.add_argument("--basis_emb_size", type=int, default=8)
+parser.add_argument("--out_emb_channels", type=int, default=256)
+parser.add_argument("--num_spherical", type=int, default=7)
+parser.add_argument("--num_radial", type=int, default=6)
+parser.add_argument("--radius", type=float, default=5.0)
+parser.add_argument("--max_neighbors", type=int, default=32)
+parser.add_argument("--envelope_exponent", type=int, default=5)
+parser.add_argument("--num_before_skip", type=int, default=1)
+parser.add_argument("--num_after_skip", type=int, default=2)
+parser.add_argument("--num_output_layers", type=int, default=3)
 args = parser.parse_args()
 
 if args.device is None:
@@ -55,13 +69,15 @@ os.makedirs(args.output_dir, exist_ok=True)
 # ---- Build model with same architecture as stage 1 ----
 def build_vacuum_model():
     return DimeNetPlus(
-        in_channels=1,
-        hidden_channels=128, out_channels=1, num_blocks=4,
-        int_emb_size=64, basis_emb_size=8, out_emb_channels=256,
-        num_spherical=7, num_radial=6, cutoff=5.0,
-        max_num_neighbors=32, envelope_exponent=5,
-        num_before_skip=1, num_after_skip=2,
-        num_output_layers=3, is_energy=True,
+        in_channels=NUM_ELEMENTS,
+        hidden_channels=args.hidden, out_channels=1, num_blocks=args.num_blocks,
+        int_emb_size=args.int_emb_size, basis_emb_size=args.basis_emb_size,
+        out_emb_channels=args.out_emb_channels,
+        num_spherical=args.num_spherical, num_radial=args.num_radial,
+        cutoff=args.radius, max_num_neighbors=args.max_neighbors,
+        envelope_exponent=args.envelope_exponent,
+        num_before_skip=args.num_before_skip, num_after_skip=args.num_after_skip,
+        num_output_layers=args.num_output_layers, is_energy=True,
     ).to(device)
 
 model = build_vacuum_model()
@@ -97,7 +113,7 @@ all_energies = []
 
 for data in test_loader:
     data = data.to(device)
-    x = data.z.float().view(-1, 1)
+    x = build_one_hot(data, device)
     data.pos.requires_grad_(True)
     energy_pred = model(x, data.pos, data.batch)
     forces_pred = -torch.autograd.grad(
@@ -144,8 +160,13 @@ print(f"--- Energy Conservation Check (dt={args.md_dt} fs) ---")
 boltzmann_k = 8.617333262e-5  # eV/K
 
 def get_mass(z):
-    return torch.tensor([ATOMIC_MASSES.get(int(zn), DEFAULT_MASS) for zn in z],
-                        dtype=torch.float, device=device)
+    masses = []
+    for zn in z:
+        zn_int = int(zn)
+        if zn_int not in ATOMIC_MASSES:
+            raise ValueError(f"No atomic mass defined for element Z={zn_int}")
+        masses.append(ATOMIC_MASSES[zn_int])
+    return torch.tensor(masses, dtype=torch.float, device=device)
 
 stable_count = 0
 total_md = 0
@@ -157,7 +178,7 @@ for idx in range(len(test_dataset)):
     n_atoms = data.z.size(0)
     masses = get_mass(data.z)
 
-    x = data.z.float().view(-1, 1)
+    x = build_one_hot(data, device)
     pos = data.pos.clone().to(device).requires_grad_(True)
 
     # Initialize velocities from Maxwell-Boltzmann at args.md_temp_K

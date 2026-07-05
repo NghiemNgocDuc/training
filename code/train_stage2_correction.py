@@ -15,6 +15,7 @@ import numpy as np
 
 from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
+from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 
 seed = 42
 torch.manual_seed(seed)
@@ -67,7 +68,7 @@ print(f"Using device: {device}")
 def build_dimenet(num_blocks=None):
     n_blocks = num_blocks if num_blocks is not None else args.num_blocks
     return DimeNetPlus(
-        in_channels=1,
+        in_channels=NUM_ELEMENTS,
         hidden_channels=args.hidden,
         out_channels=1,
         num_blocks=n_blocks,
@@ -133,15 +134,10 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 mse = torch.nn.MSELoss()
 
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, lambda_force=None):
-    loss_e = mse(energy_pred, energy_true)
+def combined_loss(energy_pred, energy_true, forces_pred, forces_true, n_atoms, lambda_force=None):
+    loss_e = mse(energy_pred / n_atoms, energy_true / n_atoms)
     loss_f = mse(forces_pred, forces_true)
-    el_val = loss_e.item()
-    fl_val = loss_f.item()
-    denom = el_val + fl_val
-    loss_e_weighted = (fl_val / denom) * loss_e * 1 / 4
-    loss_f_weighted = (el_val / denom) * loss_f * 3 / 4
-    return loss_e_weighted + loss_f_weighted
+    return loss_e + lambda_force * loss_f
 
 
 def train_epoch(loader):
@@ -154,10 +150,8 @@ def train_epoch(loader):
         data.pos.requires_grad_()
         optimizer.zero_grad()
 
-        x = data.z.float().view(-1, 1)
-        with torch.no_grad():
-            vacuum_energy = vacuum_model(x, data.pos, data.batch)
-
+        x = build_one_hot(data, device)
+        vacuum_energy = vacuum_model(x, data.pos, data.batch)
         correction_energy = correction_model(x, data.pos, data.batch)
         total_energy = vacuum_energy + correction_energy
 
@@ -168,9 +162,12 @@ def train_epoch(loader):
             create_graph=True,
         )[0]
 
+        n_atoms = torch.bincount(data.batch).float()
         loss = combined_loss(
             total_energy.view(-1), data.y_energy,
             forces_pred, data.y_forces,
+            n_atoms=n_atoms,
+            lambda_force=args.lambda_force,
         )
         loss.backward()
         torch.nn.utils.clip_grad_norm_(correction_model.parameters(), 10.0)
@@ -199,10 +196,8 @@ def validate_epoch(loader):
         data = data.to(device)
         data.pos.requires_grad_()
 
-        x = data.z.float().view(-1, 1)
-        with torch.no_grad():
-            vacuum_energy = vacuum_model(x, data.pos, data.batch)
-
+        x = build_one_hot(data, device)
+        vacuum_energy = vacuum_model(x, data.pos, data.batch)
         correction_energy = correction_model(x, data.pos, data.batch)
         total_energy = vacuum_energy + correction_energy
 
@@ -213,9 +208,12 @@ def validate_epoch(loader):
             create_graph=False,
         )[0]
 
+        n_atoms = torch.bincount(data.batch).float()
         loss = combined_loss(
             total_energy.view(-1), data.y_energy,
             forces_pred, data.y_forces,
+            n_atoms=n_atoms,
+            lambda_force=args.lambda_force,
         )
         total_loss += loss.item() * data.num_graphs
 

@@ -15,6 +15,7 @@ import time
 import numpy as np
 
 from spice2_dataset import SPICE2Dataset
+from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 
 seed = 42
 torch.manual_seed(seed)
@@ -72,7 +73,7 @@ print(f"Using device: {device}")
 # ---- Helper to build models ----
 def build_model(num_blocks):
     return DimeNetPlus(
-        in_channels=1, hidden_channels=args.hidden, out_channels=1,
+        in_channels=NUM_ELEMENTS, hidden_channels=args.hidden, out_channels=1,
         num_blocks=num_blocks,
         int_emb_size=args.int_emb_size, basis_emb_size=args.basis_emb_size,
         out_emb_channels=args.out_emb_channels,
@@ -155,11 +156,9 @@ for epoch in range(1, args.epochs + 1):
         data.pos.requires_grad_()
         optimizer.zero_grad()
 
-        x = data.z.float().view(-1, 1)
-        with torch.no_grad():
-            vacuum_e = vacuum_model(x, data.pos, data.batch)
-            implicit_e = implicit_model(x, data.pos, data.batch)
-
+        x = build_one_hot(data, device)
+        vacuum_e = vacuum_model(x, data.pos, data.batch)
+        implicit_e = implicit_model(x, data.pos, data.batch)
         explicit_e = explicit_model(x, data.pos, data.batch)
         total_e = vacuum_e + implicit_e + explicit_e
 
@@ -184,11 +183,9 @@ for epoch in range(1, args.epochs + 1):
             data = data.to(device)
             data.pos.requires_grad_()
 
-            x = data.z.float().view(-1, 1)
-            with torch.no_grad():
-                vacuum_e = vacuum_model(x, data.pos, data.batch)
-                implicit_e = implicit_model(x, data.pos, data.batch)
-
+            x = build_one_hot(data, device)
+            vacuum_e = vacuum_model(x, data.pos, data.batch)
+            implicit_e = implicit_model(x, data.pos, data.batch)
             explicit_e = explicit_model(x, data.pos, data.batch)
             total_e = vacuum_e + implicit_e + explicit_e
 
