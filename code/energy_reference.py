@@ -4,30 +4,36 @@ from torch_scatter import scatter
 
 
 def fit_atomic_references(dataset, element_to_idx, num_elements):
-    num_samples = len(dataset)
-    A = torch.zeros(num_samples, num_elements)
-    b = torch.zeros(num_samples)
+    n = len(dataset)
+    A = torch.zeros(n, num_elements)
+    b = torch.zeros(n)
 
-    for i in range(num_samples):
-        data = dataset[i]
-        z = data.z  # atomic numbers
-        for zn in z:
-            idx = element_to_idx.get(zn.item(), None)
-            if idx is not None:
-                A[i, idx] += 1.0
-        b[i] = data.y_energy.item()
+    for i in range(n):
+        d = dataset[i]
+        for z in d.z:
+            A[i, element_to_idx[z.item()]] += 1
+        b[i] = d.y_energy.item()
 
-    solution = torch.linalg.lstsq(A, b).solution  # [num_elements]
-    ref_energies = solution.float()
+    # Only fit elements that actually appear — avoids rank deficiency from all-zero columns
+    present_mask = (A.sum(dim=0) > 0)
+    A_present = A[:, present_mask]
 
-    pred = A @ ref_energies
-    residual = b - pred
+    # Ridge regression for numerical stability: (A^T A + λI) x = A^T b
+    lambda_reg = 1e-6
+    AtA = A_present.T @ A_present + lambda_reg * torch.eye(A_present.shape[1])
+    Atb = A_present.T @ b
+    ref_present = torch.linalg.solve(AtA, Atb)
+
+    ref_energies = torch.zeros(num_elements)
+    ref_energies[present_mask] = ref_present
+
+    residuals = b - (A @ ref_energies)
+    rmse = residuals.pow(2).mean().sqrt().item()
     raw_std = b.std().item()
-    residual_std = residual.std().item()
-    rmse = torch.sqrt((residual ** 2).mean()).item()
+    residual_std = residuals.std().item()
     print(f"  Atomic reference fit: RMSE={rmse:.4f}, raw E std={raw_std:.4f}, residual std={residual_std:.4f}")
-    for atomic_num, idx in sorted(element_to_idx.items(), key=lambda kv: kv[1]):
-        print(f"    Z={atomic_num:3d} (idx={idx}): ref_energy = {ref_energies[idx]:.4f}")
+    for z, idx in sorted(element_to_idx.items(), key=lambda kv: kv[1]):
+        print(f"    Z={z:3d} (idx={idx}): ref_energy = {ref_energies[idx]:.4f}")
 
     return ref_energies
 
