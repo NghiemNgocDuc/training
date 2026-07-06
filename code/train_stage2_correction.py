@@ -16,6 +16,7 @@ import numpy as np
 from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
+from energy_reference import load_reference_energies, compute_molecular_reference
 
 seed = 42
 torch.manual_seed(seed)
@@ -98,6 +99,16 @@ dataset = AQMDataset(
 )
 print(f"Dataset: {len(dataset)} samples")
 
+ref_path = os.path.join(os.path.dirname(args.vacuum_ckpt), "atomic_references.json")
+if not os.path.exists(ref_path):
+    raise FileNotFoundError(
+        f"Atomic reference file not found at {ref_path}. "
+        f"Train Stage 1 first to generate it."
+    )
+print(f"Loading atomic reference energies from {ref_path}")
+ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+print(f"Reference energies: {ref_energies.cpu().tolist()}")
+
 n_total = len(dataset)
 n_val = int(n_total * args.val_split)
 n_train = n_total - n_val
@@ -151,6 +162,8 @@ def train_epoch(loader):
         optimizer.zero_grad()
 
         x = build_one_hot(data, device)
+        mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+        y_energy_shifted = data.y_energy - mol_ref
         vacuum_energy = vacuum_model(x, data.pos, data.batch)
         correction_energy = correction_model(x, data.pos, data.batch)
         total_energy = vacuum_energy + correction_energy
@@ -164,7 +177,7 @@ def train_epoch(loader):
 
         n_atoms = torch.bincount(data.batch).float()
         loss = combined_loss(
-            total_energy.view(-1), data.y_energy,
+            total_energy.view(-1), y_energy_shifted,
             forces_pred, data.y_forces,
             n_atoms=n_atoms,
             lambda_force=args.lambda_force,
@@ -197,6 +210,8 @@ def validate_epoch(loader):
         data.pos.requires_grad_()
 
         x = build_one_hot(data, device)
+        mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+        y_energy_shifted = data.y_energy - mol_ref
         vacuum_energy = vacuum_model(x, data.pos, data.batch)
         correction_energy = correction_model(x, data.pos, data.batch)
         total_energy = vacuum_energy + correction_energy
@@ -210,7 +225,7 @@ def validate_epoch(loader):
 
         n_atoms = torch.bincount(data.batch).float()
         loss = combined_loss(
-            total_energy.view(-1), data.y_energy,
+            total_energy.view(-1), y_energy_shifted,
             forces_pred, data.y_forces,
             n_atoms=n_atoms,
             lambda_force=args.lambda_force,

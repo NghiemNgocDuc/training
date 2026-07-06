@@ -17,6 +17,7 @@ import numpy as np
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
+from energy_reference import fit_atomic_references, save_reference_energies, load_reference_energies, compute_molecular_reference
 
 seed = 42
 torch.manual_seed(seed)
@@ -70,6 +71,17 @@ print(f"Dataset: {len(dataset)} samples")
 
 os.makedirs(args.output_dir, exist_ok=True)
 
+ref_path = os.path.join(args.output_dir, "atomic_references.json")
+if os.path.exists(ref_path):
+    print(f"Loading atomic reference energies from {ref_path}")
+    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+else:
+    print("Fitting atomic reference energies on full dataset...")
+    ref_energies = fit_atomic_references(dataset, ELEMENT_TO_IDX, NUM_ELEMENTS)
+    ref_energies = ref_energies.to(device)
+    save_reference_energies(ref_energies, ELEMENT_TO_IDX, ref_path)
+print(f"Reference energies tensor ({NUM_ELEMENTS} elements): {ref_energies.cpu().tolist()}")
+
 mse = torch.nn.MSELoss()
 
 
@@ -100,7 +112,7 @@ def build_model():
     ).to(device)
 
 
-def train_one_fold(train_loader, val_loader, fold_idx):
+def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
     model = build_model()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -122,6 +134,8 @@ def train_one_fold(train_loader, val_loader, fold_idx):
             optimizer.zero_grad()
 
             x = build_one_hot(data, device)
+            mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+            y_energy_shifted = data.y_energy - mol_ref
             energy_pred = model(x, data.pos, data.batch)
             forces_pred = -torch.autograd.grad(
                 outputs=energy_pred,
@@ -132,7 +146,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
 
             n_atoms = torch.bincount(data.batch).float()
             loss = combined_loss(
-                energy_pred.view(-1), data.y_energy,
+                energy_pred.view(-1), y_energy_shifted,
                 forces_pred, data.y_forces,
                 n_atoms=n_atoms,
                 lambda_force=args.lambda_force,
@@ -151,6 +165,8 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 data = data.to(device)
                 data.pos.requires_grad_()
                 x = build_one_hot(data, device)
+                mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+                y_energy_shifted = data.y_energy - mol_ref
                 energy_pred = model(x, data.pos, data.batch)
                 forces_pred = -torch.autograd.grad(
                     outputs=energy_pred,
@@ -160,7 +176,7 @@ def train_one_fold(train_loader, val_loader, fold_idx):
                 )[0]
                 n_atoms = torch.bincount(data.batch).float()
                 loss = combined_loss(
-                    energy_pred.view(-1), data.y_energy,
+                    energy_pred.view(-1), y_energy_shifted,
                     forces_pred, data.y_forces,
                     n_atoms=n_atoms,
                     lambda_force=args.lambda_force,
@@ -203,7 +219,7 @@ if args.k_folds <= 1:
     train_loader = DataLoader(train_ds, batch_size=args.batchsize, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=args.batchsize, shuffle=False)
     print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}")
-    best_loss = train_one_fold(train_loader, val_loader, 1)
+    best_loss = train_one_fold(train_loader, val_loader, 1, ref_energies)
     fold_results.append(best_loss)
 else:
     kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=seed)
@@ -211,7 +227,7 @@ else:
         print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}")
         train_loader = DataLoader(Subset(dataset, train_idx), batch_size=args.batchsize, shuffle=True)
         val_loader = DataLoader(Subset(dataset, val_idx), batch_size=args.batchsize, shuffle=False)
-        best_loss = train_one_fold(train_loader, val_loader, fold + 1)
+        best_loss = train_one_fold(train_loader, val_loader, fold + 1, ref_energies)
         fold_results.append(best_loss)
         print(f"Fold {fold + 1} best val loss: {best_loss:.6f}")
 

@@ -12,6 +12,7 @@ from DimeModels import DimeNetPlus
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
+from energy_reference import load_reference_energies, compute_molecular_reference
 import argparse
 
 # Standard atomic masses (amu) keyed by atomic number
@@ -86,6 +87,17 @@ model.load_state_dict(state)
 model.eval()
 print(f"Loaded checkpoint: {args.checkpoint}")
 print(f"Model parameters: {sum(p.numel() for p in model.parameters()):,}")
+
+# ---- Load atomic reference energies ----
+ref_path = os.path.join(os.path.dirname(args.checkpoint), "atomic_references.json")
+if os.path.exists(ref_path):
+    print(f"Loading atomic reference energies from {ref_path}")
+    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+    print(f"Reference energies: {ref_energies.cpu().tolist()}")
+else:
+    print(f"Note: no atomic_references.json found at {ref_path}. "
+          f"Energy predictions used as-is (no reference shift correction).")
+    ref_energies = None
 
 # ---- Load dataset ----
 dataset = AQMDataset(
@@ -189,6 +201,9 @@ for idx in range(len(test_dataset)):
     def compute_energy_and_forces(p):
         p = p.requires_grad_(True)
         e = model(x, p, None)
+        if ref_energies is not None:
+            mol_ref = compute_molecular_reference(x, None, ref_energies, 1)
+            e = e + mol_ref  # restore absolute energy from shifted prediction
         f = -torch.autograd.grad(e, p, grad_outputs=torch.ones_like(e),
                                  create_graph=False)[0]
         return e, f

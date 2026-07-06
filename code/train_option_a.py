@@ -17,6 +17,7 @@ import numpy as np
 from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
+from energy_reference import load_reference_energies, compute_molecular_reference
 
 seed = 42
 torch.manual_seed(seed)
@@ -55,6 +56,8 @@ parser.add_argument("--option_b_checkpoint", type=str, default=None,
                     help="Path to Option B correction checkpoint for comparison")
 parser.add_argument("--option_b_vacuum_ckpt", type=str, default=None,
                     help="Path to Option B vacuum checkpoint for comparison")
+parser.add_argument("--reference_ckpt", type=str, default=None,
+                    help="Path to atomic_references.json (default: look beside --option_b_vacuum_ckpt)")
 args = parser.parse_args()
 
 os.makedirs(args.output_dir, exist_ok=True)
@@ -101,6 +104,25 @@ dataset = AQMDataset(
 )
 print(f"Dataset: {len(dataset)} samples")
 
+# Load atomic reference energies
+if args.reference_ckpt is not None:
+    ref_path = args.reference_ckpt
+elif args.option_b_vacuum_ckpt is not None:
+    ref_path = os.path.join(os.path.dirname(args.option_b_vacuum_ckpt), "atomic_references.json")
+else:
+    ref_path = None
+
+if ref_path is not None and os.path.exists(ref_path):
+    print(f"Loading atomic reference energies from {ref_path}")
+    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+    print(f"Reference energies: {ref_energies.cpu().tolist()}")
+else:
+    if ref_path is not None and not os.path.exists(ref_path):
+        print(f"Warning: reference file not found at {ref_path}. Training without energy reference shift.")
+    else:
+        print("No reference checkpoint provided. Training without energy reference shift.")
+    ref_energies = None
+
 # Only keep samples that have gas_energy for eSOLV computation
 if args.gas_hdf5 is not None:
     valid_indices = [i for i in range(len(dataset)) if hasattr(dataset[i], 'gas_energy')]
@@ -138,7 +160,11 @@ def predict_energy_and_forces(m, data_batch):
     e = m(x, pos, data_batch.batch)
     f = -torch.autograd.grad(e, pos, grad_outputs=torch.ones_like(e),
                              create_graph=True)[0]
-    return e, f
+    if ref_energies is not None:
+        mol_ref = compute_molecular_reference(x, data_batch.batch, ref_energies, data_batch.num_graphs)
+    else:
+        mol_ref = None
+    return e, f, mol_ref
 
 def predict_energy_and_forces_eval(m, data_batch):
     x = build_one_hot(data_batch, device)
@@ -146,7 +172,11 @@ def predict_energy_and_forces_eval(m, data_batch):
     e = m(x, data_batch.pos, data_batch.batch)
     f = -torch.autograd.grad(e, data_batch.pos, grad_outputs=torch.ones_like(e),
                              create_graph=False)[0]
-    return e, f
+    if ref_energies is not None:
+        mol_ref = compute_molecular_reference(x, data_batch.batch, ref_energies, data_batch.num_graphs)
+    else:
+        mol_ref = None
+    return e, f, mol_ref
 
 def compute_esolv_mae(m, loader):
     m.eval()
@@ -154,11 +184,20 @@ def compute_esolv_mae(m, loader):
     count = 0
     for data in loader:
         data = data.to(device)
-        e_pred, _ = predict_energy_and_forces_eval(m, data)
+        e_pred, _, mol_ref = predict_energy_and_forces_eval(m, data)
         for i in range(data.num_graphs):
             if hasattr(data, 'gas_energy'):
                 gas_e = data.gas_energy[i].item() if data.gas_energy.dim() > 0 else data.gas_energy.item()
-                esolv_pred = e_pred[i].item() - gas_e
+                if ref_energies is not None and mol_ref is not None:
+                    # Model predicts shifted energy (residual). Add reference back
+                    # to get absolute predicted energy before subtracting gas energy.
+                    # NOTE: gas_energy is a raw DFT energy from AQM-gas.hdf5 and includes
+                    # the same atomic reference. For the same molecule (same composition),
+                    # mol_ref for the solvated conformer equals the gas-phase mol_ref,
+                    # so adding mol_ref here and subtracting unshifted gas_e is correct.
+                    esolv_pred = (e_pred[i].item() + mol_ref[i].item()) - gas_e
+                else:
+                    esolv_pred = e_pred[i].item() - gas_e
                 esolv_true = data.y_esolv[i].item() if hasattr(data, 'y_esolv') and data.y_esolv is not None else 0.0
                 total_mae += abs(esolv_pred - esolv_true)
                 count += 1
@@ -178,9 +217,10 @@ for epoch in range(1, args.epochs + 1):
         data = data.to(device)
         data.pos.requires_grad_()
         optimizer.zero_grad()
-        e_pred, f_pred = predict_energy_and_forces(model, data)
+        e_pred, f_pred, mol_ref = predict_energy_and_forces(model, data)
         n_atoms = torch.bincount(data.batch).float()
-        loss = combined_loss(e_pred.view(-1), data.y_energy,
+        y_energy_shifted = data.y_energy - mol_ref if mol_ref is not None else data.y_energy
+        loss = combined_loss(e_pred.view(-1), y_energy_shifted,
                              f_pred, data.y_forces,
                              n_atoms=n_atoms, lambda_force=args.lambda_force)
         loss.backward()
@@ -195,9 +235,10 @@ for epoch in range(1, args.epochs + 1):
         for data in val_loader:
             data = data.to(device)
             data.pos.requires_grad_()
-            e_pred, f_pred = predict_energy_and_forces_eval(model, data)
+            e_pred, f_pred, mol_ref = predict_energy_and_forces_eval(model, data)
             n_atoms = torch.bincount(data.batch).float()
-            loss = combined_loss(e_pred.view(-1), data.y_energy,
+            y_energy_shifted = data.y_energy - mol_ref if mol_ref is not None else data.y_energy
+            loss = combined_loss(e_pred.view(-1), y_energy_shifted,
                                  f_pred, data.y_forces,
                                  n_atoms=n_atoms, lambda_force=args.lambda_force)
             val_loss += loss.item() * data.num_graphs
