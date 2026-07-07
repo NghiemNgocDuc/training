@@ -15,6 +15,7 @@ class AQMDataset(InMemoryDataset):
     ENERGY_KEY = "ePBE0+MBD"
     FORCES_KEY = "totFOR"
     ESOLV_KEY = "eSOLV"
+    FORCE_THRESHOLD = 52.0  # eV/Å — skip highly strained conformations
 
     def __init__(
         self,
@@ -105,6 +106,9 @@ class AQMDataset(InMemoryDataset):
             pos = src["pos"].clone()
             energy = src["energy"].clone()
             forces = src["forces"].clone()
+
+            if forces.abs().max() > self.FORCE_THRESHOLD:
+                continue
 
             # Parse molecule/conformer index from Geom-mr-ct
             parts = conf_id.replace("Geom-", "").split("-c")

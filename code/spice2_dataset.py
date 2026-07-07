@@ -11,6 +11,7 @@ from torch_geometric.data import InMemoryDataset, Data
 BOHR_TO_ANG = 0.529177
 HARTREE_TO_EV = 27.2114
 HARTREE_PER_BOHR_TO_EV_PER_ANG = HARTREE_TO_EV / BOHR_TO_ANG  # 51.422
+FORCE_THRESHOLD_EV_PER_ANG = 52.0  # ~1 hartree/bohr — SPICE filter
 
 WATER_TRIPLE = [8, 1, 1]  # O, H, H
 
@@ -97,6 +98,9 @@ class SPICE2Dataset(InMemoryDataset):
                         -grad[:water_start] * HARTREE_PER_BOHR_TO_EV_PER_ANG,
                         dtype=torch.float,
                     )
+
+                    if solute_forces.abs().max() > FORCE_THRESHOLD_EV_PER_ANG:
+                        continue
 
                     data = Data(
                         z=solute_z.clone(),

@@ -31,7 +31,7 @@ parser.add_argument("--vacuum_ckpt", type=str, default="results/stage1_fold_1.pt
 parser.add_argument("--batchsize", "-b", type=int, default=16)
 parser.add_argument("--lr", "-l", type=float, default=0.001)
 parser.add_argument("--epochs", "-e", type=int, default=200)
-parser.add_argument("--radius", "-ra", type=float, default=5.0)
+parser.add_argument("--radius", "-ra", type=float, default=6.0)
 parser.add_argument("--hidden", type=int, default=128)
 parser.add_argument("--num_blocks", type=int, default=3,
                     help="Fewer blocks for correction model (smaller than vacuum)")

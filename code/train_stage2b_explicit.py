@@ -34,7 +34,7 @@ parser.add_argument("--implicit_ckpt", type=str, required=True,
 parser.add_argument("--batchsize", "-b", type=int, default=8)
 parser.add_argument("--lr", "-l", type=float, default=0.001)
 parser.add_argument("--epochs", "-e", type=int, default=200)
-parser.add_argument("--radius", "-ra", type=float, default=5.0)
+parser.add_argument("--radius", "-ra", type=float, default=6.0)
 parser.add_argument("--hidden", type=int, default=128)
 parser.add_argument("--num_blocks_vacuum", type=int, default=4)
 parser.add_argument("--num_blocks_implicit", type=int, default=3)

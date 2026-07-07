@@ -26,7 +26,7 @@ parser.add_argument('-b','--batchsize',default=5,type=int,help='Batchsize')
 parser.add_argument('-p','--per',default=0.8,type=float,help='fraction of training')
 parser.add_argument('-f','--fra',default=0.1,type=float,help='scaling parameter')
 parser.add_argument('-r','--random',default=161311,type=int,help='random seed')
-parser.add_argument('-ra','--radius',default=2.0,type=float,help='radius')
+parser.add_argument('-ra','--radius',default=6.0,type=float,help='radius')
 parser.add_argument('-l','--lr',default=0.001,type=float,help='learning rate')
 parser.add_argument('-e','--epochs',default=50,type=int,help='epochs to train for')
 
