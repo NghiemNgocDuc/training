@@ -250,10 +250,11 @@ for epoch in range(1, args.epochs + 1):
     val_energy_loss /= len(val_loader.dataset)
 
     elapsed = time.time() - t0
-    print(f"Epoch {epoch:3d}/{args.epochs} | "
-          f"Train: {train_loss:.6f} (F: {train_force_loss:.6f} E: {train_energy_loss:.6f}) | "
-          f"Val: {val_loss:.6f} (F: {val_force_loss:.6f} E: {val_energy_loss:.6f}) | "
+    print(f"  Epoch {epoch:3d}/{args.epochs}  |  "
+          f"Train: {train_loss:.6f}  (F: {train_force_loss:.6f}  E: {train_energy_loss:.6f})  |  "
+          f"Val: {val_loss:.6f}  (F: {val_force_loss:.6f}  E: {val_energy_loss:.6f})  |  "
           f"{elapsed:.2f}s")
+    print()
 
     # Sanity check every 5 epochs
     if epoch % 5 == 0:
@@ -261,7 +262,8 @@ for epoch in range(1, args.epochs + 1):
         i_sum = sum(p.sum().item() for p in implicit_model.parameters())
         v_delta = abs(v_sum - vacuum_init_sum)
         i_delta = abs(i_sum - implicit_init_sum)
-        print(f"  [Sanity] Vacuum delta: {v_delta:.6e}  | Implicit delta: {i_delta:.6e}")
+        print(f"    [Sanity] Vacuum delta: {v_delta:.6e}  |  Implicit delta: {i_delta:.6e}")
+        print()
 
     if val_loss < best_val_loss:
         best_val_loss = val_loss
@@ -270,11 +272,13 @@ for epoch in range(1, args.epochs + 1):
         epochs_no_improve = 0
         ckpt_path = os.path.join(args.output_dir, "stage2b.pt")
         torch.save(explicit_model.state_dict(), ckpt_path)
-        print(f"  -> Saved best explicit model to {ckpt_path}")
+        print(f"    ✔ Saved best explicit model → {ckpt_path}")
+        print()
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
-            print(f"  Early stopping after {epoch} epochs")
+            print(f"    ✗ Early stopping after {epoch} epochs")
+            print()
             break
 
 # ---- Save results ----

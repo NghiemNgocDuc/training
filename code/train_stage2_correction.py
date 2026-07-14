@@ -259,19 +259,21 @@ for epoch in range(1, args.epochs + 1):
 
     esolv_str = ""
     if val_esolv is not None:
-        esolv_str = f" | eSOLV Train: {train_esolv:.6f} Val: {val_esolv:.6f}"
+        esolv_str = f"  |  eSOLV: {train_esolv:.6f} / {val_esolv:.6f}"
 
     print(
-        f"Epoch {epoch:3d}/{args.epochs} | "
-        f"Train: {train_loss:.6f} | Val: {val_loss:.6f}{esolv_str} | "
-        f"Time: {elapsed:.2f}s"
+        f"  Epoch {epoch:3d}/{args.epochs}  |  "
+        f"Train: {train_loss:.6f}  |  Val: {val_loss:.6f}{esolv_str}  |  "
+        f"{elapsed:.2f}s"
     )
+    print()
 
     # Every 5 epochs: sanity check frozen params haven't moved
     if epoch % 5 == 0:
         frozen_sum = sum(p.sum().item() for p in vacuum_model.parameters())
         diff = abs(frozen_sum - frozen_params_init_sum)
-        print(f"  [Sanity] Frozen params sum: {frozen_sum:.6e}  (delta from init: {diff:.6e})")
+        print(f"    [Sanity] Frozen params sum: {frozen_sum:.6e}  (delta: {diff:.6e})")
+        print()
 
     scheduler.step(val_loss)
 
@@ -280,11 +282,15 @@ for epoch in range(1, args.epochs + 1):
         epochs_no_improve = 0
         ckpt_path = os.path.join(args.output_dir, "stage2_correction.pt")
         torch.save(correction_model.state_dict(), ckpt_path)
-        print(f"  -> Saved best correction model to {ckpt_path}")
+        print(f"    ✔ Saved best correction model → {ckpt_path}")
+        print()
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
-            print(f"  Early stopping after {epoch} epochs")
+            print(f"    ✗ Early stopping after {epoch} epochs")
+            print()
             break
 
-print(f"\nTraining complete. Best val loss: {best_val_loss:.6f}")
+print(f"\n{'='*60}")
+print(f"  Training complete. Best val loss: {best_val_loss:.6f}")
+print(f"{'='*60}\n")

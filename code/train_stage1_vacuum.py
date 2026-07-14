@@ -188,7 +188,8 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
 
         elapsed = time.time() - t0
         current_lr = optimizer.param_groups[0]['lr']
-        print(f"  Epoch {epoch:3d}/{args.epochs} | Train: {train_loss:.6f} | Val: {val_loss:.6f} | LR: {current_lr:.2e} | {elapsed:.2f}s")
+        print(f"  Epoch {epoch:3d}/{args.epochs}  |  Train: {train_loss:.6f}  |  Val: {val_loss:.6f}  |  LR: {current_lr:.2e}  |  {elapsed:.2f}s")
+        print()
 
         scheduler.step(val_loss)
 
@@ -196,11 +197,13 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
             best_val_loss = val_loss
             epochs_no_improve = 0
             torch.save(model.state_dict(), ckpt_path)
-            print(f"    -> Saved best model to {ckpt_path}")
+            print(f"    ✔ Saved best model → {ckpt_path}")
+            print()
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
-                print(f"    Early stopping after {epoch} epochs")
+                print(f"    ✗ Early stopping after {epoch} epochs")
+                print()
                 break
 
     return best_val_loss
@@ -218,22 +221,23 @@ if args.k_folds <= 1:
     )
     train_loader = DataLoader(train_ds, batch_size=args.batchsize, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=args.batchsize, shuffle=False)
-    print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}")
+    print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}\n")
     best_loss = train_one_fold(train_loader, val_loader, 1, ref_energies)
     fold_results.append(best_loss)
 else:
     kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=seed)
     for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
-        print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}")
+        print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}\n")
         train_loader = DataLoader(Subset(dataset, train_idx), batch_size=args.batchsize, shuffle=True)
         val_loader = DataLoader(Subset(dataset, val_idx), batch_size=args.batchsize, shuffle=False)
         best_loss = train_one_fold(train_loader, val_loader, fold + 1, ref_energies)
         fold_results.append(best_loss)
-        print(f"Fold {fold + 1} best val loss: {best_loss:.6f}")
+        print(f"Fold {fold + 1} best val loss: {best_loss:.6f}\n")
 
 print(f"\n{'='*60}")
 if len(fold_results) > 1:
-    print(f"CV complete. Best val losses: {[f'{l:.6f}' for l in fold_results]}")
+    print(f"\nCV complete. Best val losses: {[f'{l:.6f}' for l in fold_results]}")
     print(f"Mean val loss: {np.mean(fold_results):.6f} +/- {np.std(fold_results):.6f}")
 else:
-    print(f"Training complete. Best val loss: {fold_results[0]:.6f}")
+    print(f"\nTraining complete. Best val loss: {fold_results[0]:.6f}")
+print(f"{'='*60}\n")
