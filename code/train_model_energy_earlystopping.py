@@ -38,6 +38,9 @@ parser.add_argument('-n','--name',default='',type=str,help='name of model')
 parser.add_argument('-c','--clip',default=0,type=float,help='norm clipping')
 
 parser.add_argument('--use_energy', action='store_true')
+parser.add_argument('--noise_std', default=0.0, type=float, help='Std of Gaussian noise added to positions during training (PES smoothing)')
+parser.add_argument('--weight_decay', default=0.0, type=float, help='L2 weight decay for optimizer')
+parser.add_argument('--lambda_lap', default=0.0, type=float, help='Laplacian smoothness penalty weight ||div F||^2')
 args = parser.parse_args()
 
 output_folder = "results_nogbforce_earlystopping"
@@ -131,22 +134,33 @@ def train(loader, optimizer):
             data = [d.to(device) for d in data]
         else:
             data = data.to(device)
-        data.pos.requires_grad_()
         optimizer.zero_grad()
-        # Forces predicted from energy gradients
-        energies = model(data.x, data.pos, data.batch)
+
+        pos = data.pos.clone()
+        if args.noise_std > 0:
+            pos = pos + torch.randn_like(pos) * args.noise_std
+        pos.requires_grad_()
+
+        energies = model(data.x, pos, data.batch)
         forces_pred = -torch.autograd.grad(
             outputs=energies,
-            inputs=data.pos,
+            inputs=pos,
             grad_outputs=torch.ones_like(energies),
             create_graph=True
         )[0]
 
+        loss = criterion(forces_pred, data.y)
 
-        #Forces predicted directly from GNN
-        # forces_pred = model(data.x, data.pos, data.batch)
+        if args.lambda_lap > 0:
+            lap = torch.zeros(pos.shape[0], device=pos.device)
+            for d in range(3):
+                g = torch.autograd.grad(
+                    forces_pred[:, d].sum(), pos,
+                    create_graph=True, retain_graph=(d < 2)
+                )[0]
+                lap = lap + g[:, d]
+            loss = loss + args.lambda_lap * lap.pow(2).mean()
 
-        loss = criterion(forces_pred, data.y)  # Compare predicted vs. ground-truth forces
         loss.backward()
         optimizer.step()
         total_loss += loss.item()
@@ -285,7 +299,7 @@ for fold, (train_idx, test_idx) in enumerate(kf.split(dataset)):
         num_output_layers=2,
         is_energy=True
         ).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
 
     # Train the model

@@ -16,6 +16,7 @@ import numpy as np
 
 from spice2_dataset import SPICE2Dataset
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
+from energy_reference import load_reference_energies, compute_molecular_reference
 
 seed = 42
 torch.manual_seed(seed)
@@ -53,6 +54,10 @@ parser.add_argument("--max_neighbors", type=int, default=32)
 parser.add_argument("--val_split", type=float, default=0.1)
 parser.add_argument("--max_molecules", type=int, default=None)
 parser.add_argument("--max_conformers", type=int, default=None)
+parser.add_argument("--lambda_energy", type=float, default=1.0,
+                    help="Energy loss weight")
+parser.add_argument("--ref_path", type=str, default=None,
+                    help="Path to atomic_references.json (default: beside vacuum_ckpt)")
 parser.add_argument("--output_dir", type=str, default="results")
 parser.add_argument("--device", type=str, default=None)
 args = parser.parse_args()
@@ -69,6 +74,19 @@ if args.device is None:
 else:
     device = torch.device(args.device)
 print(f"Using device: {device}")
+
+# ---- Load atomic reference energies ----
+ref_path = args.ref_path
+if ref_path is None:
+    ref_path = os.path.join(os.path.dirname(args.vacuum_ckpt), "atomic_references.json")
+
+if os.path.exists(ref_path):
+    print(f"Loading atomic reference energies from {ref_path}")
+    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+    print(f"Reference energies: {ref_energies.cpu().tolist()}")
+else:
+    print(f"Warning: {ref_path} not found. Training energy loss without reference shift.")
+    ref_energies = None
 
 # ---- Helper to build models ----
 def build_model(num_blocks):
@@ -151,12 +169,21 @@ for epoch in range(1, args.epochs + 1):
     # --- Train ---
     explicit_model.train()
     train_loss = 0.0
+    train_force_loss = 0.0
+    train_energy_loss = 0.0
     for data in train_loader:
         data = data.to(device)
         data.pos.requires_grad_()
         optimizer.zero_grad()
 
         x = build_one_hot(data, device)
+
+        if ref_energies is not None:
+            mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+            y_energy_shifted = data.y_energy - mol_ref
+        else:
+            y_energy_shifted = data.y_energy
+
         vacuum_e = vacuum_model(x, data.pos, data.batch)
         implicit_e = implicit_model(x, data.pos, data.batch)
         explicit_e = explicit_model(x, data.pos, data.batch)
@@ -168,22 +195,38 @@ for epoch in range(1, args.epochs + 1):
             create_graph=True,
         )[0]
 
-        loss = mse(forces_pred, data.y_forces)
+        n_atoms = torch.bincount(data.batch).float()
+        loss_e = mse(total_e.view(-1) / n_atoms, y_energy_shifted.view(-1) / n_atoms)
+        loss_f = mse(forces_pred, data.y_forces)
+        loss = args.lambda_energy * loss_e + args.lambda_force * loss_f
         loss.backward()
         torch.nn.utils.clip_grad_norm_(explicit_model.parameters(), 10.0)
         optimizer.step()
         train_loss += loss.item() * data.num_graphs
+        train_force_loss += loss_f.item() * data.num_graphs
+        train_energy_loss += loss_e.item() * data.num_graphs
     train_loss /= len(train_loader.dataset)
+    train_force_loss /= len(train_loader.dataset)
+    train_energy_loss /= len(train_loader.dataset)
 
     # --- Validate ---
     explicit_model.eval()
     val_loss = 0.0
+    val_force_loss = 0.0
+    val_energy_loss = 0.0
     with torch.enable_grad():
         for data in val_loader:
             data = data.to(device)
             data.pos.requires_grad_()
 
             x = build_one_hot(data, device)
+
+            if ref_energies is not None:
+                mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+                y_energy_shifted = data.y_energy - mol_ref
+            else:
+                y_energy_shifted = data.y_energy
+
             vacuum_e = vacuum_model(x, data.pos, data.batch)
             implicit_e = implicit_model(x, data.pos, data.batch)
             explicit_e = explicit_model(x, data.pos, data.batch)
@@ -195,12 +238,22 @@ for epoch in range(1, args.epochs + 1):
                 create_graph=False,
             )[0]
 
-            loss = mse(forces_pred, data.y_forces)
+            n_atoms = torch.bincount(data.batch).float()
+            loss_e = mse(total_e.view(-1) / n_atoms, y_energy_shifted.view(-1) / n_atoms)
+            loss_f = mse(forces_pred, data.y_forces)
+            loss = args.lambda_energy * loss_e + args.lambda_force * loss_f
             val_loss += loss.item() * data.num_graphs
+            val_force_loss += loss_f.item() * data.num_graphs
+            val_energy_loss += loss_e.item() * data.num_graphs
     val_loss /= len(val_loader.dataset)
+    val_force_loss /= len(val_loader.dataset)
+    val_energy_loss /= len(val_loader.dataset)
 
     elapsed = time.time() - t0
-    print(f"Epoch {epoch:3d}/{args.epochs} | Train: {train_loss:.6f} | Val: {val_loss:.6f} | {elapsed:.2f}s")
+    print(f"Epoch {epoch:3d}/{args.epochs} | "
+          f"Train: {train_loss:.6f} (F: {train_force_loss:.6f} E: {train_energy_loss:.6f}) | "
+          f"Val: {val_loss:.6f} (F: {val_force_loss:.6f} E: {val_energy_loss:.6f}) | "
+          f"{elapsed:.2f}s")
 
     # Sanity check every 5 epochs
     if epoch % 5 == 0:
@@ -212,6 +265,8 @@ for epoch in range(1, args.epochs + 1):
 
     if val_loss < best_val_loss:
         best_val_loss = val_loss
+        best_val_force_loss = val_force_loss
+        best_val_energy_loss = val_energy_loss
         epochs_no_improve = 0
         ckpt_path = os.path.join(args.output_dir, "stage2b.pt")
         torch.save(explicit_model.state_dict(), ckpt_path)
@@ -224,8 +279,10 @@ for epoch in range(1, args.epochs + 1):
 
 # ---- Save results ----
 results = {
-    "best_val_force_mse": best_val_loss,
-    "best_val_force_mae": float(np.sqrt(best_val_loss)),
+    "best_val_total_loss": best_val_loss,
+    "best_val_force_mse": best_val_force_loss,
+    "best_val_energy_mse": best_val_energy_loss,
+    "best_val_force_rmse": float(np.sqrt(best_val_force_loss)),
     "config": {
         "vacuum_ckpt": args.vacuum_ckpt,
         "implicit_ckpt": args.implicit_ckpt,
@@ -235,7 +292,9 @@ results = {
         "epochs": args.epochs,
         "batchsize": args.batchsize,
         "lr": args.lr,
-        "loss": "force_mse_only",
+        "loss": "lambda_energy*energy_mse + lambda_force*force_mse",
+        "lambda_energy": args.lambda_energy,
+        "lambda_force": args.lambda_force,
     },
     "params": {
         "vacuum": sum(p.numel() for p in vacuum_model.parameters()),
