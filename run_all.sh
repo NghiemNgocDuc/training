@@ -1,0 +1,70 @@
+#!/bin/bash
+set -e
+
+echo "===== 1. Clone repo ====="
+REPO="https://github.com/NghiemNgocDuc/training.git"
+if [ ! -d "training" ]; then
+    git clone "$REPO"
+    cd training
+else
+    cd training
+    git pull
+fi
+
+echo "===== 2. Check GPU ====="
+python -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.version.cuda); torch.cuda.empty_cache()"
+
+echo "===== 3. Install deps ====="
+pip install torch_geometric h5py
+pip install pyg_lib torch_scatter torch_sparse torch_cluster \
+    -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+
+echo "===== 4. Download data ====="
+wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5
+wget -nc https://zenodo.org/records/10208010/files/AQM-sol.hdf5
+wget -nc https://zenodo.org/records/10975225/files/SPICE-2.0.1.hdf5
+
+RESULTS="solvation-gnn/results"
+mkdir -p "$RESULTS"
+
+echo "===== 5. Stage 1: Vacuum (RTX 5090 optimized) ====="
+python solvation-gnn/train_stage1_vacuum.py \
+    --hdf5 AQM-gas.hdf5 \
+    --max_structures 100000 --epochs 100 --batchsize 256 \
+    --lr 0.001 --k_folds 1 \
+    --output_dir "$RESULTS"
+
+echo "===== 6. Stage 2a: Implicit correction ====="
+python solvation-gnn/train_stage2_correction.py \
+    --hdf5 AQM-sol.hdf5 \
+    --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
+    --max_structures 50000 --epochs 100 --batchsize 128 \
+    --lr 0.001 \
+    --output_dir "$RESULTS"
+
+echo "===== 7. Option A: Scratch baseline ====="
+python solvation-gnn/train_option_a.py \
+    --hdf5 AQM-sol.hdf5 \
+    --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
+    --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
+    --max_structures 50000 --epochs 100 --batchsize 128 \
+    --lr 0.001 \
+    --output_dir "$RESULTS"
+
+echo "===== 8. Stage 2b: Explicit water ====="
+python solvation-gnn/train_stage2b_explicit.py \
+    --hdf5 SPICE-2.0.1.hdf5 \
+    --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
+    --implicit_ckpt "$RESULTS/stage2_correction.pt" \
+    --max_molecules 500 --max_conformers 20 --epochs 50 \
+    --batchsize 128 --lr 0.001 \
+    --output_dir "$RESULTS"
+
+echo "===== 9. Evaluate ====="
+python solvation-gnn/evaluate_model.py \
+    --checkpoint "$RESULTS/stage1_fold_1.pt" \
+    --hdf5 AQM-gas.hdf5 \
+    --max_structures 500 --md_steps 500 \
+    --output_dir "$RESULTS"
+
+echo "===== DONE ====="

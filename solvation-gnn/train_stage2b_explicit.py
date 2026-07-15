@@ -56,6 +56,8 @@ parser.add_argument("--max_molecules", type=int, default=None)
 parser.add_argument("--max_conformers", type=int, default=None)
 parser.add_argument("--lambda_energy", type=float, default=1.0,
                     help="Energy loss weight")
+parser.add_argument("--lambda_force", type=float, default=1000.0,
+                    help="Force loss weight (default=1000 to match stages 1/2)")
 parser.add_argument("--ref_path", type=str, default=None,
                     help="Path to atomic_references.json (default: beside vacuum_ckpt)")
 parser.add_argument("--output_dir", type=str, default="results")

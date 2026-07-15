@@ -1,7 +1,6 @@
 import sys
 import os
 sys.path.append('../')
-sys.path.append('../multistage')
 import pandas as pd
 
 from util import *
