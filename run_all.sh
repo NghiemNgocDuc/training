@@ -14,13 +14,13 @@ if [ ! -f "solvation-gnn/train_stage1_vacuum.py" ]; then
     fi
 fi
 
-echo "===== 2. Check GPU ====="
-$PYTHON -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.version.cuda, '| gpus:', torch.cuda.device_count()); torch.cuda.empty_cache()"
-
-echo "===== 3. Install deps ====="
-pip install torch_geometric h5py
+echo "===== 2. Install deps ====="
+pip install torch torch_geometric h5py
 pip install pyg_lib torch_scatter torch_sparse torch_cluster \
     -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
+
+echo "===== 3. Check GPU ====="
+$PYTHON -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.version.cuda, '| gpus:', torch.cuda.device_count()); torch.cuda.empty_cache()"
 
 echo "===== 4. Download data ====="
 # wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5
