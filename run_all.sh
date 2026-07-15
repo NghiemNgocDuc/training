@@ -23,43 +23,43 @@ pip install pyg_lib torch_scatter torch_sparse torch_cluster \
     -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
 echo "===== 4. Download data ====="
-wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5
-wget -nc https://zenodo.org/records/10208010/files/AQM-sol.hdf5
+# wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5
+# wget -nc https://zenodo.org/records/10208010/files/AQM-sol.hdf5
 wget -nc https://zenodo.org/records/10975225/files/SPICE-2.0.1.hdf5
 
 RESULTS="solvation-gnn/results"
 mkdir -p "$RESULTS"
 
-echo "===== 5. Stage 1: Vacuum ====="
+echo "===== 5. Stage 1: Vacuum (quick) ====="
 $PYTHON train.py train_stage1_vacuum.py \
     --hdf5 AQM-gas.hdf5 \
-    --max_structures 100000 --epochs 100 --batchsize 256 \
+    --max_structures 10000 --epochs 30 --batchsize 256 \
     --lr 0.001 --k_folds 1 \
     --output_dir "$RESULTS"
 
-echo "===== 6. Stage 2a: Implicit correction ====="
+echo "===== 6. Stage 2a: Implicit correction (quick) ====="
 $PYTHON train.py train_stage2_correction.py \
     --hdf5 AQM-sol.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 50000 --epochs 100 --batchsize 128 \
+    --max_structures 10000 --epochs 30 --batchsize 128 \
     --lr 0.001 \
     --output_dir "$RESULTS"
 
-echo "===== 7. Option A: Scratch baseline ====="
+echo "===== 7. Option A: Scratch baseline (quick) ====="
 $PYTHON train.py train_option_a.py \
     --hdf5 AQM-sol.hdf5 \
     --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
     --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 50000 --epochs 100 --batchsize 128 \
+    --max_structures 10000 --epochs 30 --batchsize 128 \
     --lr 0.001 \
     --output_dir "$RESULTS"
 
-echo "===== 8. Stage 2b: Explicit water ====="
+echo "===== 8. Stage 2b: Explicit water (quick) ====="
 $PYTHON train.py train_stage2b_explicit.py \
     --hdf5 SPICE-2.0.1.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
     --implicit_ckpt "$RESULTS/stage2_correction.pt" \
-    --max_molecules 500 --max_conformers 20 --epochs 50 \
+    --max_molecules 100 --max_conformers 5 --epochs 15 \
     --batchsize 128 --lr 0.001 \
     --output_dir "$RESULTS"
 
