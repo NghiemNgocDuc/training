@@ -18,9 +18,9 @@ from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 from energy_reference import fit_atomic_references, save_reference_energies, load_reference_energies, compute_molecular_reference
+from ddp_utils import init_ddp, is_main, cleanup, sync_barrier
 
 seed = 42
-torch.manual_seed(seed)
 
 parser = argparse.ArgumentParser(description="Stage 1: Train Vacuum DimeNetPlus on AQM-gas")
 parser.add_argument("--hdf5", type=str, default="../aqm_data/AQM-gas.hdf5",
@@ -47,18 +47,13 @@ parser.add_argument("--val_split", type=float, default=0.1)
 parser.add_argument("--max_structures", type=int, default=None)
 parser.add_argument("--output_dir", type=str, default="results")
 parser.add_argument("--device", type=str, default=None)
+parser.add_argument("--local_rank", type=int, default=-1,
+                    help="Local rank (set by torchrun)")
 args = parser.parse_args()
 
-if args.device is None:
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    else:
-        device = torch.device("cpu")
-else:
-    device = torch.device(args.device)
-print(f"Using device: {device}")
+local_rank, world_size, is_ddp, device = init_ddp()
+if is_main(local_rank):
+    print(f"Using device: {device}  |  GPUs: {world_size}")
 
 dataset = AQMDataset(
     root="../Data/AQM-gas",
@@ -112,9 +107,13 @@ def build_model():
     ).to(device)
 
 
-def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
-    model = build_model()
-    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+def train_one_fold(train_loader, val_loader, fold_idx, ref_energies, sampler=None):
+    raw_model = build_model()
+    if is_ddp:
+        model = torch.nn.parallel.DistributedDataParallel(raw_model, device_ids=[local_rank])
+    else:
+        model = raw_model
+    optimizer = optim.Adam(raw_model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, patience=20, factor=0.5, min_lr=1e-6
     )
@@ -125,6 +124,8 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
     ckpt_path = os.path.join(args.output_dir, f"stage1_fold_{fold_idx}.pt")
 
     for epoch in range(1, args.epochs + 1):
+        if sampler is not None:
+            sampler.set_epoch(epoch)
         model.train()
         train_loss = 0
         t0 = time.time()
@@ -153,7 +154,7 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
             )
             loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
+            torch.nn.utils.clip_grad_norm_(raw_model.parameters(), 10.0)
             optimizer.step()
             train_loss += loss.item() * data.num_graphs
         train_loss /= len(train_loader.dataset)
@@ -186,25 +187,29 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies):
 
         torch.cuda.empty_cache()
 
-        elapsed = time.time() - t0
-        current_lr = optimizer.param_groups[0]['lr']
-        print(f"  Epoch {epoch:3d}/{args.epochs}  |  Train: {train_loss:.6f}  |  Val: {val_loss:.6f}  |  LR: {current_lr:.2e}  |  {elapsed:.2f}s")
-        print()
+        if is_main(local_rank):
+            elapsed = time.time() - t0
+            current_lr = optimizer.param_groups[0]['lr']
+            print(f"  Epoch {epoch:3d}/{args.epochs}  |  Train: {train_loss:.6f}  |  Val: {val_loss:.6f}  |  LR: {current_lr:.2e}  |  {elapsed:.2f}s")
+            print()
 
         scheduler.step(val_loss)
 
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             epochs_no_improve = 0
-            torch.save(model.state_dict(), ckpt_path)
-            print(f"    ✔ Saved best model → {ckpt_path}")
-            print()
+            if is_main(local_rank):
+                torch.save(raw_model.state_dict(), ckpt_path)
+                print(f"    ✔ Saved best model → {ckpt_path}")
+                print()
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
-                print(f"    ✗ Early stopping after {epoch} epochs")
-                print()
+                if is_main(local_rank):
+                    print(f"    ✗ Early stopping after {epoch} epochs")
+                    print()
                 break
+        sync_barrier(is_ddp)
 
     return best_val_loss
 
@@ -219,25 +224,44 @@ if args.k_folds <= 1:
         dataset, [n_train, n_val],
         generator=torch.Generator().manual_seed(seed),
     )
-    train_loader = DataLoader(train_ds, batch_size=args.batchsize, shuffle=True)
+    if is_ddp:
+        train_sampler = torch.utils.data.distributed.DistributedSampler(
+            train_ds, shuffle=True)
+        train_loader = DataLoader(train_ds, batch_size=args.batchsize, sampler=train_sampler)
+    else:
+        train_loader = DataLoader(train_ds, batch_size=args.batchsize, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=args.batchsize, shuffle=False)
-    print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}\n")
-    best_loss = train_one_fold(train_loader, val_loader, 1, ref_energies)
+    if is_main(local_rank):
+        print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}\n")
+    best_loss = train_one_fold(train_loader, val_loader, 1, ref_energies,
+                                sampler=train_sampler if is_ddp else None)
     fold_results.append(best_loss)
 else:
     kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=seed)
     for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
-        print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}\n")
-        train_loader = DataLoader(Subset(dataset, train_idx), batch_size=args.batchsize, shuffle=True)
+        if is_main(local_rank):
+            print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}\n")
+        train_subset = Subset(dataset, train_idx)
+        if is_ddp:
+            train_sampler = torch.utils.data.distributed.DistributedSampler(
+                train_subset, shuffle=True)
+            train_loader = DataLoader(train_subset, batch_size=args.batchsize, sampler=train_sampler)
+        else:
+            train_loader = DataLoader(train_subset, batch_size=args.batchsize, shuffle=True)
         val_loader = DataLoader(Subset(dataset, val_idx), batch_size=args.batchsize, shuffle=False)
-        best_loss = train_one_fold(train_loader, val_loader, fold + 1, ref_energies)
+        best_loss = train_one_fold(train_loader, val_loader, fold + 1, ref_energies,
+                                    sampler=train_sampler if (is_ddp and fold == 0) else (train_sampler if is_ddp else None))
         fold_results.append(best_loss)
-        print(f"Fold {fold + 1} best val loss: {best_loss:.6f}\n")
+        if is_main(local_rank):
+            print(f"Fold {fold + 1} best val loss: {best_loss:.6f}\n")
 
-print(f"\n{'='*60}")
-if len(fold_results) > 1:
-    print(f"\nCV complete. Best val losses: {[f'{l:.6f}' for l in fold_results]}")
-    print(f"Mean val loss: {np.mean(fold_results):.6f} +/- {np.std(fold_results):.6f}")
-else:
-    print(f"\nTraining complete. Best val loss: {fold_results[0]:.6f}")
-print(f"{'='*60}\n")
+cleanup(is_ddp)
+
+if is_main(local_rank):
+    print(f"\n{'='*60}")
+    if len(fold_results) > 1:
+        print(f"\nCV complete. Best val losses: {[f'{l:.6f}' for l in fold_results]}")
+        print(f"Mean val loss: {np.mean(fold_results):.6f} +/- {np.std(fold_results):.6f}")
+    else:
+        print(f"\nTraining complete. Best val loss: {fold_results[0]:.6f}")
+    print(f"{'='*60}\n")

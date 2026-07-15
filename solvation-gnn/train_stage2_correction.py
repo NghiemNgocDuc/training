@@ -17,9 +17,9 @@ from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 from energy_reference import load_reference_energies, compute_molecular_reference
+from ddp_utils import init_ddp, is_main, cleanup, sync_barrier
 
 seed = 42
-torch.manual_seed(seed)
 
 parser = argparse.ArgumentParser(
     description="Stage 2 (Option B): Train Correction DimeNetPlus on AQM-sol with frozen vacuum model"
@@ -50,20 +50,15 @@ parser.add_argument("--val_split", type=float, default=0.1)
 parser.add_argument("--max_structures", type=int, default=None)
 parser.add_argument("--output_dir", type=str, default="results")
 parser.add_argument("--device", type=str, default=None)
+parser.add_argument("--local_rank", type=int, default=-1,
+                    help="Local rank (set by torchrun)")
 args = parser.parse_args()
 
 os.makedirs(args.output_dir, exist_ok=True)
 
-if args.device is None:
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    else:
-        device = torch.device("cpu")
-else:
-    device = torch.device(args.device)
-print(f"Using device: {device}")
+local_rank, world_size, is_ddp, device = init_ddp()
+if is_main(local_rank):
+    print(f"Using device: {device}  |  GPUs: {world_size}")
 
 
 def build_dimenet(num_blocks=None):
@@ -116,9 +111,15 @@ train_dataset, val_dataset = random_split(
     dataset, [n_train, n_val],
     generator=torch.Generator().manual_seed(seed),
 )
-print(f"  Train: {n_train}  Val: {n_val}")
+if is_main(local_rank):
+    print(f"  Train: {n_train}  Val: {n_val}")
 
-train_loader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True)
+if is_ddp:
+    train_sampler = torch.utils.data.distributed.DistributedSampler(
+        train_dataset, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=args.batchsize, sampler=train_sampler)
+else:
+    train_loader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=args.batchsize, shuffle=False)
 
 # ---- Build models ----
@@ -131,14 +132,20 @@ for p in vacuum_model.parameters():
 vacuum_model.eval()
 
 # Correction: smaller
-correction_model = build_dimenet(num_blocks=args.num_blocks)
-correction_model.train()
+raw_correction_model = build_dimenet(num_blocks=args.num_blocks)
+raw_correction_model.train()
+if is_ddp:
+    correction_model = torch.nn.parallel.DistributedDataParallel(
+        raw_correction_model, device_ids=[local_rank])
+else:
+    correction_model = raw_correction_model
 
-print(f"Vacuum model:     {sum(p.numel() for p in vacuum_model.parameters()):,} params (frozen)")
-print(f"Correction model: {sum(p.numel() for p in correction_model.parameters()):,} params (trainable)")
+if is_main(local_rank):
+    print(f"Vacuum model:     {sum(p.numel() for p in vacuum_model.parameters()):,} params (frozen)")
+    print(f"Correction model: {sum(p.numel() for p in raw_correction_model.parameters()):,} params (trainable)")
 
 # Optimizer only sees correction model params (second safeguard)
-optimizer = optim.Adam(correction_model.parameters(), lr=args.lr)
+optimizer = optim.Adam(raw_correction_model.parameters(), lr=args.lr)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer, patience=10, factor=0.5, min_lr=1e-6
 )
@@ -252,45 +259,53 @@ epochs_no_improve = 0
 frozen_params_init_sum = sum(p.sum().item() for p in vacuum_model.parameters())
 
 for epoch in range(1, args.epochs + 1):
+    if is_ddp:
+        train_sampler.set_epoch(epoch)
     t0 = time.time()
     train_loss, train_esolv = train_epoch(train_loader)
     val_loss, val_esolv = validate_epoch(val_loader)
     elapsed = time.time() - t0
 
-    esolv_str = ""
-    if val_esolv is not None:
-        esolv_str = f"  |  eSOLV: {train_esolv:.6f} / {val_esolv:.6f}"
-
-    print(
-        f"  Epoch {epoch:3d}/{args.epochs}  |  "
-        f"Train: {train_loss:.6f}  |  Val: {val_loss:.6f}{esolv_str}  |  "
-        f"{elapsed:.2f}s"
-    )
-    print()
-
-    # Every 5 epochs: sanity check frozen params haven't moved
-    if epoch % 5 == 0:
-        frozen_sum = sum(p.sum().item() for p in vacuum_model.parameters())
-        diff = abs(frozen_sum - frozen_params_init_sum)
-        print(f"    [Sanity] Frozen params sum: {frozen_sum:.6e}  (delta: {diff:.6e})")
+    if is_main(local_rank):
+        esolv_str = ""
+        if val_esolv is not None:
+            esolv_str = f"  |  eSOLV: {train_esolv:.6f} / {val_esolv:.6f}"
+        print(
+            f"  Epoch {epoch:3d}/{args.epochs}  |  "
+            f"Train: {train_loss:.6f}  |  Val: {val_loss:.6f}{esolv_str}  |  "
+            f"{elapsed:.2f}s"
+        )
         print()
+
+        # Every 5 epochs: sanity check frozen params haven't moved
+        if epoch % 5 == 0:
+            frozen_sum = sum(p.sum().item() for p in vacuum_model.parameters())
+            diff = abs(frozen_sum - frozen_params_init_sum)
+            print(f"    [Sanity] Frozen params sum: {frozen_sum:.6e}  (delta: {diff:.6e})")
+            print()
 
     scheduler.step(val_loss)
 
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         epochs_no_improve = 0
-        ckpt_path = os.path.join(args.output_dir, "stage2_correction.pt")
-        torch.save(correction_model.state_dict(), ckpt_path)
-        print(f"    ✔ Saved best correction model → {ckpt_path}")
-        print()
+        if is_main(local_rank):
+            ckpt_path = os.path.join(args.output_dir, "stage2_correction.pt")
+            torch.save(raw_correction_model.state_dict(), ckpt_path)
+            print(f"    ✔ Saved best correction model → {ckpt_path}")
+            print()
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
-            print(f"    ✗ Early stopping after {epoch} epochs")
-            print()
+            if is_main(local_rank):
+                print(f"    ✗ Early stopping after {epoch} epochs")
+                print()
             break
+    sync_barrier(is_ddp)
 
-print(f"\n{'='*60}")
-print(f"  Training complete. Best val loss: {best_val_loss:.6f}")
-print(f"{'='*60}\n")
+cleanup(is_ddp)
+
+if is_main(local_rank):
+    print(f"\n{'='*60}")
+    print(f"  Training complete. Best val loss: {best_val_loss:.6f}")
+    print(f"{'='*60}\n")

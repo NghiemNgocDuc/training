@@ -18,9 +18,9 @@ from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 from energy_reference import load_reference_energies, compute_molecular_reference
+from ddp_utils import init_ddp, is_main, cleanup, sync_barrier
 
 seed = 42
-torch.manual_seed(seed)
 
 parser = argparse.ArgumentParser(
     description="Option A: Train single DimeNetPlus from scratch on AQM-sol to predict total solvated energy"
@@ -50,6 +50,8 @@ parser.add_argument("--val_split", type=float, default=0.1)
 parser.add_argument("--max_structures", type=int, default=None)
 parser.add_argument("--output_dir", type=str, default="results")
 parser.add_argument("--device", type=str, default=None)
+parser.add_argument("--local_rank", type=int, default=-1,
+                    help="Local rank (set by torchrun)")
 
 # Option B paths for comparison
 parser.add_argument("--option_b_checkpoint", type=str, default=None,
@@ -62,16 +64,9 @@ args = parser.parse_args()
 
 os.makedirs(args.output_dir, exist_ok=True)
 
-if args.device is None:
-    if torch.cuda.is_available():
-        device = torch.device("cuda")
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-    else:
-        device = torch.device("cpu")
-else:
-    device = torch.device(args.device)
-print(f"Using device: {device}")
+local_rank, world_size, is_ddp, device = init_ddp()
+if is_main(local_rank):
+    print(f"Using device: {device}  |  GPUs: {world_size}")
 
 def build_model():
     return DimeNetPlus(
@@ -136,17 +131,28 @@ train_dataset, val_dataset = random_split(
     dataset, [n_train, n_val],
     generator=torch.Generator().manual_seed(seed),
 )
-print(f"  Train: {n_train}  Val: {n_val}")
+if is_main(local_rank):
+    print(f"  Train: {n_train}  Val: {n_val}")
 
-train_loader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True)
+if is_ddp:
+    train_sampler = torch.utils.data.distributed.DistributedSampler(
+        train_dataset, shuffle=True)
+    train_loader = DataLoader(train_dataset, batch_size=args.batchsize, sampler=train_sampler)
+else:
+    train_loader = DataLoader(train_dataset, batch_size=args.batchsize, shuffle=True)
 val_loader = DataLoader(val_dataset, batch_size=args.batchsize, shuffle=False)
 
 # ---- Model ----
-model = build_model()
-model.train()
-print(f"Option A model: {sum(p.numel() for p in model.parameters()):,} params")
+raw_model = build_model()
+raw_model.train()
+if is_ddp:
+    model = torch.nn.parallel.DistributedDataParallel(raw_model, device_ids=[local_rank])
+else:
+    model = raw_model
+if is_main(local_rank):
+    print(f"Option A model: {sum(p.numel() for p in raw_model.parameters()):,} params")
 
-optimizer = optim.Adam(model.parameters(), lr=args.lr)
+optimizer = optim.Adam(raw_model.parameters(), lr=args.lr)
 mse = torch.nn.MSELoss()
 
 def combined_loss(energy_pred, energy_true, forces_pred, forces_true, n_atoms, lambda_force):
@@ -210,6 +216,8 @@ patience = 20
 epochs_no_improve = 0
 
 for epoch in range(1, args.epochs + 1):
+    if is_ddp:
+        train_sampler.set_epoch(epoch)
     t0 = time.time()
     model.train()
     train_loss = 0.0
@@ -224,7 +232,7 @@ for epoch in range(1, args.epochs + 1):
                              f_pred, data.y_forces,
                              n_atoms=n_atoms, lambda_force=args.lambda_force)
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
+        torch.nn.utils.clip_grad_norm_(raw_model.parameters(), 10.0)
         optimizer.step()
         train_loss += loss.item() * data.num_graphs
     train_loss /= len(train_loader.dataset)
@@ -246,30 +254,37 @@ for epoch in range(1, args.epochs + 1):
 
     val_esolv_mae = compute_esolv_mae(model, val_loader)
 
-    elapsed = time.time() - t0
-    print(
-        f"Epoch {epoch:3d}/{args.epochs} | "
-        f"Train: {train_loss:.6f} | Val: {val_loss:.6f} | "
-        f"eSOLV MAE: {val_esolv_mae:.6f} | {elapsed:.2f}s"
-    )
+    if is_main(local_rank):
+        elapsed = time.time() - t0
+        print(
+            f"Epoch {epoch:3d}/{args.epochs} | "
+            f"Train: {train_loss:.6f} | Val: {val_loss:.6f} | "
+            f"eSOLV MAE: {val_esolv_mae:.6f} | {elapsed:.2f}s"
+        )
 
     if val_loss < best_val_loss:
         best_val_loss = val_loss
         best_esolv_mae = val_esolv_mae
         epochs_no_improve = 0
-        ckpt_path = os.path.join(args.output_dir, "option_a.pt")
-        torch.save(model.state_dict(), ckpt_path)
-        print(f"  -> Saved best model to {ckpt_path}")
+        if is_main(local_rank):
+            ckpt_path = os.path.join(args.output_dir, "option_a.pt")
+            torch.save(raw_model.state_dict(), ckpt_path)
+            print(f"  -> Saved best model to {ckpt_path}")
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
-            print(f"  Early stopping after {epoch} epochs")
+            if is_main(local_rank):
+                print(f"  Early stopping after {epoch} epochs")
             break
+    sync_barrier(is_ddp)
+
+cleanup(is_ddp)
 
 # ---- Evaluate Option B on same validation set for comparison ----
 option_b_esolv_mae = None
 if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
-    print("\n--- Evaluating Option B on same validation set ---")
+    if is_main(local_rank):
+        print("\n--- Evaluating Option B on same validation set ---")
     from DimeModels import DimeNetPlus
 
     # Build vacuum model (+1 block) and correction model
@@ -322,48 +337,50 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
                 total_esolv_mae += abs(esolv_pred - esolv_true)
                 count += 1
     option_b_esolv_mae = total_esolv_mae / count if count > 0 else None
-    if option_b_esolv_mae is not None:
-        print(f"  Option B eSOLV MAE: {option_b_esolv_mae:.6f} eV")
-    else:
-        print("  Could not compute Option B eSOLV MAE (no y_esolv in data)")
+    if is_main(local_rank):
+        if option_b_esolv_mae is not None:
+            print(f"  Option B eSOLV MAE: {option_b_esolv_mae:.6f} eV")
+        else:
+            print("  Could not compute Option B eSOLV MAE (no y_esolv in data)")
 
-# ---- Save results ----
-results = {
-    "best_val_loss": best_val_loss,
-    "best_esolv_mae": best_esolv_mae,
-    "option_a_esolv_mae": best_esolv_mae,
-    "option_b_esolv_mae": option_b_esolv_mae,
-    "config": {
-        "model": "DimeNetPlus (single, from scratch)",
-        "dataset": args.hdf5,
-        "gas_dataset": args.gas_hdf5,
-        "num_blocks": args.num_blocks,
-        "epochs": args.epochs,
-        "batchsize": args.batchsize,
-        "lambda_force": args.lambda_force,
-    },
-}
-out_path = os.path.join(args.output_dir, "option_a_results.json")
-with open(out_path, "w") as f:
-    json.dump(results, f, indent=2)
-print(f"\nSaved results to {out_path}")
+if is_main(local_rank):
+    # ---- Save results ----
+    results = {
+        "best_val_loss": best_val_loss,
+        "best_esolv_mae": best_esolv_mae,
+        "option_a_esolv_mae": best_esolv_mae,
+        "option_b_esolv_mae": option_b_esolv_mae,
+        "config": {
+            "model": "DimeNetPlus (single, from scratch)",
+            "dataset": args.hdf5,
+            "gas_dataset": args.gas_hdf5,
+            "num_blocks": args.num_blocks,
+            "epochs": args.epochs,
+            "batchsize": args.batchsize,
+            "lambda_force": args.lambda_force,
+        },
+    }
+    out_path = os.path.join(args.output_dir, "option_a_results.json")
+    with open(out_path, "w") as f:
+        json.dump(results, f, indent=2)
+    print(f"\nSaved results to {out_path}")
 
-# ---- Comparison table ----
-print(f"\n{'='*60}")
-print("  COMPARISON: Option A vs Option B")
-print(f"{'='*60}")
-print(f"  {'Metric':<40} {'Option A':>12} {'Option B':>12}")
-print(f"  {'-'*40} {'-'*12} {'-'*12}")
-print(f"  {'Best val loss (total energy)':<40} {best_val_loss:>12.6f} {'N/A':>12}")
-if best_esolv_mae is not None:
-    b_str = f"{option_b_esolv_mae:.6f}" if option_b_esolv_mae is not None else "N/A"
-    print(f"  {'eSOLV MAE (eV)':<40} {best_esolv_mae:>12.6f} {b_str:>12}")
-print(f"  {'Trainable params':<40} {sum(p.numel() for p in model.parameters()):>12,}")
-if option_b_esolv_mae is not None and best_esolv_mae > 0:
-    ratio = best_esolv_mae / option_b_esolv_mae
-    print(f"  {'Option A / Option B ratio':<40} {ratio:>12.3f}")
-    if ratio < 1:
-        print(f"  >>> Option A (direct) beats Option B (delta-learning)!")
-    else:
-        print(f"  >>> Option B (delta-learning) beats Option A (direct)!")
-print(f"{'='*60}")
+    # ---- Comparison table ----
+    print(f"\n{'='*60}")
+    print("  COMPARISON: Option A vs Option B")
+    print(f"{'='*60}")
+    print(f"  {'Metric':<40} {'Option A':>12} {'Option B':>12}")
+    print(f"  {'-'*40} {'-'*12} {'-'*12}")
+    print(f"  {'Best val loss (total energy)':<40} {best_val_loss:>12.6f} {'N/A':>12}")
+    if best_esolv_mae is not None:
+        b_str = f"{option_b_esolv_mae:.6f}" if option_b_esolv_mae is not None else "N/A"
+        print(f"  {'eSOLV MAE (eV)':<40} {best_esolv_mae:>12.6f} {b_str:>12}")
+    print(f"  {'Trainable params':<40} {sum(p.numel() for p in raw_model.parameters()):>12,}")
+    if option_b_esolv_mae is not None and best_esolv_mae > 0:
+        ratio = best_esolv_mae / option_b_esolv_mae
+        print(f"  {'Option A / Option B ratio':<40} {ratio:>12.3f}")
+        if ratio < 1:
+            print(f"  >>> Option A (direct) beats Option B (delta-learning)!")
+        else:
+            print(f"  >>> Option B (delta-learning) beats Option A (direct)!")
+    print(f"{'='*60}")

@@ -15,7 +15,7 @@ if [ ! -f "solvation-gnn/train_stage1_vacuum.py" ]; then
 fi
 
 echo "===== 2. Check GPU ====="
-$PYTHON -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.version.cuda); torch.cuda.empty_cache()"
+$PYTHON -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.version.cuda, '| gpus:', torch.cuda.device_count()); torch.cuda.empty_cache()"
 
 echo "===== 3. Install deps ====="
 pip install torch_geometric h5py
@@ -31,14 +31,14 @@ RESULTS="solvation-gnn/results"
 mkdir -p "$RESULTS"
 
 echo "===== 5. Stage 1: Vacuum ====="
-$PYTHON solvation-gnn/train_stage1_vacuum.py \
+$PYTHON train.py train_stage1_vacuum.py \
     --hdf5 AQM-gas.hdf5 \
     --max_structures 100000 --epochs 100 --batchsize 256 \
     --lr 0.001 --k_folds 1 \
     --output_dir "$RESULTS"
 
 echo "===== 6. Stage 2a: Implicit correction ====="
-$PYTHON solvation-gnn/train_stage2_correction.py \
+$PYTHON train.py train_stage2_correction.py \
     --hdf5 AQM-sol.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
     --max_structures 50000 --epochs 100 --batchsize 128 \
@@ -46,7 +46,7 @@ $PYTHON solvation-gnn/train_stage2_correction.py \
     --output_dir "$RESULTS"
 
 echo "===== 7. Option A: Scratch baseline ====="
-$PYTHON solvation-gnn/train_option_a.py \
+$PYTHON train.py train_option_a.py \
     --hdf5 AQM-sol.hdf5 \
     --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
     --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
@@ -55,7 +55,7 @@ $PYTHON solvation-gnn/train_option_a.py \
     --output_dir "$RESULTS"
 
 echo "===== 8. Stage 2b: Explicit water ====="
-$PYTHON solvation-gnn/train_stage2b_explicit.py \
+$PYTHON train.py train_stage2b_explicit.py \
     --hdf5 SPICE-2.0.1.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
     --implicit_ckpt "$RESULTS/stage2_correction.pt" \
