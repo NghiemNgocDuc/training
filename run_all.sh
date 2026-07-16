@@ -30,36 +30,40 @@ RESULTS="solvation-gnn/results"
 mkdir -p "$RESULTS"
 
 echo "===== 5. Stage 1: Vacuum (quick) ====="
+$PYTHON -c "import torch; torch.cuda.empty_cache()"
 $PYTHON train.py train_stage1_vacuum.py \
     --hdf5 AQM-gas.hdf5 \
-    --max_structures 4000 --epochs 30 --batchsize 32 \
+    --max_structures 4000 --epochs 30 --batchsize 8 \
     --lr 0.001 --k_folds 1 \
     --output_dir "$RESULTS"
 
 echo "===== 6. Stage 2a: Implicit correction (quick) ====="
+$PYTHON -c "import torch; torch.cuda.empty_cache()"
 $PYTHON train.py train_stage2_correction.py \
     --hdf5 AQM-sol.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 4000 --epochs 30 --batchsize 32 \
+    --max_structures 4000 --epochs 30 --batchsize 8 \
     --lr 0.001 \
     --output_dir "$RESULTS"
 
 echo "===== 7. Option A: Scratch baseline (quick) ====="
+$PYTHON -c "import torch; torch.cuda.empty_cache()"
 $PYTHON train.py train_option_a.py \
     --hdf5 AQM-sol.hdf5 \
     --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
     --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 4000 --epochs 30 --batchsize 32 \
+    --max_structures 4000 --epochs 30 --batchsize 8 \
     --lr 0.001 \
     --output_dir "$RESULTS"
 
 echo "===== 8. Stage 2b: Explicit water (quick) ====="
+$PYTHON -c "import torch; torch.cuda.empty_cache()"
 $PYTHON train.py train_stage2b_explicit.py \
     --hdf5 SPICE-2.0.1.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
     --implicit_ckpt "$RESULTS/stage2_correction.pt" \
     --max_molecules 100 --max_conformers 5 --epochs 15 \
-    --batchsize 16 --lr 0.001 \
+    --batchsize 8 --lr 0.001 \
     --output_dir "$RESULTS"
 
 echo "===== 9. Evaluate ====="
