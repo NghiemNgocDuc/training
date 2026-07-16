@@ -120,7 +120,7 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies, sampler=Non
     )
 
     best_val_loss = float("inf")
-    patience = 50
+    patience = 10
     epochs_no_improve = 0
     ckpt_path = os.path.join(args.output_dir, f"stage1_fold_{fold_idx}.pt")
 

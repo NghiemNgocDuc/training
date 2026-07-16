@@ -174,7 +174,7 @@ implicit_init_sum = sum(p.sum().item() for p in implicit_model.parameters())
 
 # ---- Training loop ----
 best_val_loss = float("inf")
-patience = 20
+patience = 10
 epochs_no_improve = 0
 
 for epoch in range(1, args.epochs + 1):

@@ -213,7 +213,7 @@ def compute_esolv_mae(m, loader):
 # ---- Training loop ----
 best_val_loss = float("inf")
 best_esolv_mae = float("inf")
-patience = 20
+patience = 10
 epochs_no_improve = 0
 
 for epoch in range(1, args.epochs + 1):

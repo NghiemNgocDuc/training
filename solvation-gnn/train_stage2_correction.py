@@ -253,7 +253,7 @@ def validate_epoch(loader):
 
 # ---- Training loop ----
 best_val_loss = float("inf")
-patience = 20
+patience = 10
 epochs_no_improve = 0
 
 # Sanity: snapshot of frozen params sum at start
