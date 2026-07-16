@@ -15,7 +15,7 @@ if [ ! -f "solvation-gnn/train_stage1_vacuum.py" ]; then
 fi
 
 echo "===== 2. Install deps ====="
-pip install torch torch_geometric h5py
+pip install torch torch_geometric h5py scikit-learn
 pip install pyg_lib torch_scatter torch_sparse torch_cluster \
     -f https://data.pyg.org/whl/torch-2.11.0+cu128.html
 
