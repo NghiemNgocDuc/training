@@ -2,6 +2,7 @@
 set -e
 
 PYTHON=$(command -v python3 || command -v python)
+export PYTHONUNBUFFERED=1
 
 echo "===== 1. Clone repo ====="
 if [ ! -f "solvation-gnn/train_stage1_vacuum.py" ]; then
