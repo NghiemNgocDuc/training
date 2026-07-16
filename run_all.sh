@@ -32,7 +32,7 @@ mkdir -p "$RESULTS"
 echo "===== 5. Stage 1: Vacuum (quick) ====="
 $PYTHON train.py train_stage1_vacuum.py \
     --hdf5 AQM-gas.hdf5 \
-    --max_structures 10000 --epochs 30 --batchsize 256 \
+    --max_structures 4000 --epochs 30 --batchsize 32 \
     --lr 0.001 --k_folds 1 \
     --output_dir "$RESULTS"
 
@@ -40,7 +40,7 @@ echo "===== 6. Stage 2a: Implicit correction (quick) ====="
 $PYTHON train.py train_stage2_correction.py \
     --hdf5 AQM-sol.hdf5 \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 10000 --epochs 30 --batchsize 128 \
+    --max_structures 4000 --epochs 30 --batchsize 32 \
     --lr 0.001 \
     --output_dir "$RESULTS"
 
@@ -49,7 +49,7 @@ $PYTHON train.py train_option_a.py \
     --hdf5 AQM-sol.hdf5 \
     --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
     --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 10000 --epochs 30 --batchsize 128 \
+    --max_structures 4000 --epochs 30 --batchsize 32 \
     --lr 0.001 \
     --output_dir "$RESULTS"
 
@@ -59,7 +59,7 @@ $PYTHON train.py train_stage2b_explicit.py \
     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
     --implicit_ckpt "$RESULTS/stage2_correction.pt" \
     --max_molecules 100 --max_conformers 5 --epochs 15 \
-    --batchsize 128 --lr 0.001 \
+    --batchsize 16 --lr 0.001 \
     --output_dir "$RESULTS"
 
 echo "===== 9. Evaluate ====="
