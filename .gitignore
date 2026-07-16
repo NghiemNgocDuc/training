@@ -1,9 +1,10 @@
 Data/
 __MACOSX/
-*.hdf5
 results/
 __pycache__/
 *.pyc
 .opencode/
 vast_setup.txt
 download_data.txt
+AQM-gas.hdf5
+AQM-sol.hdf5

@@ -25,7 +25,7 @@ $PYTHON -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.ve
 echo "===== 4. Download data ====="
 # wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5
 # wget -nc https://zenodo.org/records/10208010/files/AQM-sol.hdf5
-wget -nc https://zenodo.org/records/10975225/files/SPICE-2.0.1.hdf5
+# wget -nc https://zenodo.org/records/10975225/files/SPICE-2.0.1.hdf5
 
 RESULTS="solvation-gnn/results"
 mkdir -p "$RESULTS"

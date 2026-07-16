@@ -8,10 +8,17 @@ import numpy as np
 from typing import Optional, List
 from torch_geometric.data import InMemoryDataset, Data
 
+# --- Raw Zenodo SPICE 2.0.1 constants ---
 BOHR_TO_ANG = 0.529177
 HARTREE_TO_EV = 27.2114
 HARTREE_PER_BOHR_TO_EV_PER_ANG = HARTREE_TO_EV / BOHR_TO_ANG  # 51.422
-FORCE_THRESHOLD_EV_PER_ANG = 52.0  # ~1 hartree/bohr — SPICE filter
+
+# --- Modelforge curated SPICE 2 constants ---
+NM_TO_ANG = 10.0
+KJ_PER_MOL_TO_EV = 1.0 / 96.485  # ~0.010364
+KJ_PER_MOL_PER_NM_TO_EV_PER_ANG = KJ_PER_MOL_TO_EV / NM_TO_ANG  # ~0.0010364
+
+FORCE_THRESHOLD_EV_PER_ANG = 52.0
 
 WATER_TRIPLE = [8, 1, 1]  # O, H, H
 
@@ -52,6 +59,15 @@ class SPICE2Dataset(InMemoryDataset):
             suffix += f"_conf{self.max_conformers_per_mol}"
         return [f"{name}{suffix}.pt"]
 
+    @staticmethod
+    def _detect_format(grp: h5py.Group) -> str:
+        """Auto-detect: 'raw' for direct Zenodo, 'modelforge' for curated."""
+        if "conformations" in grp:
+            return "raw"
+        if "positions" in grp:
+            return "modelforge"
+        return "unknown"
+
     def process(self):
         data_list = []
         mol_count = 0
@@ -60,17 +76,54 @@ class SPICE2Dataset(InMemoryDataset):
             raise FileNotFoundError(f"HDF5 file not found: {self.hdf5_path}")
 
         with h5py.File(self.hdf5_path, "r") as f:
+            # Auto-detect format from the first non-trivial group
+            fmt = None
+            for grp_name in f.keys():
+                probe = f[grp_name]
+                if "atomic_numbers" in probe:
+                    fmt = self._detect_format(probe)
+                    break
+            if fmt is None or fmt == "unknown":
+                raise RuntimeError(
+                    "Cannot detect SPICE2 format: expected 'conformations' (raw) "
+                    "or 'positions' (modelforge) in dataset groups."
+                )
+
             for grp_name in f.keys():
                 grp = f[grp_name]
 
-                atomic_numbers = np.asarray(grp["atomic_numbers"][:]).ravel()
-                conformations = np.asarray(grp["conformations"][:])
-                formation_energy = np.asarray(grp["formation_energy"][:])
-                gradients = np.asarray(grp["dft_total_gradient"][:])
+                if "atomic_numbers" not in grp:
+                    continue  # skip metadata-only entries (modelforge)
 
-                has_charges = "mbis_charges" in grp
-                if has_charges:
-                    mbis_all = np.asarray(grp["mbis_charges"][:]).ravel()
+                atomic_numbers = np.asarray(grp["atomic_numbers"][:]).ravel()
+
+                if fmt == "raw":
+                    conformations = np.asarray(grp["conformations"][:])
+                    formation_energy = np.asarray(grp["formation_energy"][:])
+                    gradients = np.asarray(grp["dft_total_gradient"][:])
+
+                    has_charges = "mbis_charges" in grp
+                    if has_charges:
+                        mbis_all = np.asarray(grp["mbis_charges"][:]).ravel()
+
+                    # Raw format: bohr -> angstrom, hartree -> eV, hartree/bohr -> eV/ang
+                    pos_scale = BOHR_TO_ANG
+                    ene_scale = HARTREE_TO_EV
+                    force_scale = HARTREE_PER_BOHR_TO_EV_PER_ANG
+
+                else:
+                    conformations = np.asarray(grp["positions"][:])
+                    formation_energy = np.asarray(grp["formation_energy"][:])
+                    gradients = np.asarray(grp["dft_total_force"][:])
+
+                    has_charges = "mbis_charges" in grp
+                    if has_charges:
+                        mbis_all = np.asarray(grp["mbis_charges"][:]).ravel()
+
+                    # Modelforge: nm -> angstrom, kJ/mol -> eV, kJ/mol/nm -> eV/ang
+                    pos_scale = NM_TO_ANG
+                    ene_scale = KJ_PER_MOL_TO_EV
+                    force_scale = KJ_PER_MOL_PER_NM_TO_EV_PER_ANG
 
                 water_start = _find_water_start(atomic_numbers)
                 if water_start <= 0:
@@ -88,14 +141,14 @@ class SPICE2Dataset(InMemoryDataset):
 
                 for c in range(n_conf):
                     pos_bohr = np.asarray(conformations[c])
-                    solute_pos = torch.tensor(pos_bohr[:water_start] * BOHR_TO_ANG, dtype=torch.float)
+                    solute_pos = torch.tensor(pos_bohr[:water_start] * pos_scale, dtype=torch.float)
 
                     energy_hartree = float(formation_energy[c])
-                    energy_ev = energy_hartree * HARTREE_TO_EV
+                    energy_ev = energy_hartree * ene_scale
 
                     grad = np.asarray(gradients[c])
                     solute_forces = torch.tensor(
-                        -grad[:water_start] * HARTREE_PER_BOHR_TO_EV_PER_ANG,
+                        -grad[:water_start] * force_scale,
                         dtype=torch.float,
                     )
 
@@ -120,7 +173,10 @@ class SPICE2Dataset(InMemoryDataset):
                     break
 
         if len(data_list) == 0:
-            raise RuntimeError(f"No data loaded from {self.hdf5_path} — file appears empty or unreadable.")
+            raise RuntimeError(
+                f"No data loaded from {self.hdf5_path} "
+                f"({fmt} format) — file appears empty or unreadable."
+            )
 
         try:
             data, slices = self.collate(data_list)
