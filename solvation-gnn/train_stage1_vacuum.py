@@ -3,6 +3,7 @@ import os
 _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(_root)
 sys.path.append(os.path.join(_root, "aqm_data"))
+sys.stdout.reconfigure(line_buffering=True)
 
 import torch
 import torch.optim as optim
