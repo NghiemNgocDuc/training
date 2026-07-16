@@ -1,6 +1,6 @@
 import json
 import torch
-from torch_scatter import scatter
+from torch_geometric.utils import scatter
 
 
 def fit_atomic_references(dataset, element_to_idx, num_elements):
