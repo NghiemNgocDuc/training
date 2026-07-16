@@ -6,5 +6,4 @@ __pycache__/
 .opencode/
 vast_setup.txt
 download_data.txt
-AQM-gas.hdf5
-AQM-sol.hdf5
+*-full.hdf5
