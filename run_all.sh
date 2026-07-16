@@ -23,9 +23,10 @@ echo "===== 3. Check GPU ====="
 $PYTHON -c "import torch; print('torch:', torch.__version__, '| cuda:', torch.version.cuda, '| gpus:', torch.cuda.device_count()); torch.cuda.empty_cache()"
 
 echo "===== 4. Download data ====="
-# wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5
-# wget -nc https://zenodo.org/records/10208010/files/AQM-sol.hdf5
-# wget -nc https://zenodo.org/records/10975225/files/SPICE-2.0.1.hdf5
+# AQM files (~1.5 GB each) — download if missing
+wget -nc https://zenodo.org/records/10208010/files/AQM-gas.hdf5 2>/dev/null || true
+wget -nc https://zenodo.org/records/10208010/files/AQM-sol.hdf5 2>/dev/null || true
+# SPICE2 test set is bundled in the repo (modelforge format, 26 MB)
 
 RESULTS="solvation-gnn/results"
 mkdir -p "$RESULTS"
