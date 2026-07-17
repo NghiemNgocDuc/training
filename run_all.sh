@@ -30,22 +30,22 @@ echo "===== 4. Download data ====="
 RESULTS="solvation-gnn/results"
 mkdir -p "$RESULTS"
 
-echo "===== 5. Stage 1: Vacuum (quick) ====="
-$PYTHON -c "import torch; torch.cuda.empty_cache()"
-$PYTHON train.py train_stage1_vacuum.py \
-    --hdf5 AQM-gas.hdf5 \
-    --max_structures 4000 --epochs 30 --batchsize 8 \
-    --lr 0.001 --k_folds 1 \
-    --output_dir "$RESULTS"
+echo "===== 5. Stage 1: Vacuum (quick) — DONE, SKIPPING ====="
+# $PYTHON -c "import torch; torch.cuda.empty_cache()"
+# $PYTHON train.py train_stage1_vacuum.py \
+#     --hdf5 AQM-gas.hdf5 \
+#     --max_structures 4000 --epochs 30 --batchsize 8 \
+#     --lr 0.001 --k_folds 1 \
+#     --output_dir "$RESULTS"
 
-echo "===== 6. Stage 2a: Implicit correction (quick) ====="
-$PYTHON -c "import torch; torch.cuda.empty_cache()"
-$PYTHON train.py train_stage2_correction.py \
-    --hdf5 AQM-sol.hdf5 \
-    --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 4000 --epochs 30 --batchsize 8 \
-    --lr 0.001 \
-    --output_dir "$RESULTS"
+echo "===== 6. Stage 2a: Implicit correction (quick) — DONE, SKIPPING ====="
+# $PYTHON -c "import torch; torch.cuda.empty_cache()"
+# $PYTHON train.py train_stage2_correction.py \
+#     --hdf5 AQM-sol.hdf5 \
+#     --vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
+#     --max_structures 4000 --epochs 30 --batchsize 8 \
+#     --lr 0.001 \
+#     --output_dir "$RESULTS"
 
 echo "===== 7. Option A: Scratch baseline (quick) ====="
 $PYTHON -c "import torch; torch.cuda.empty_cache()"
