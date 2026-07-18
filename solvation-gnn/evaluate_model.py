@@ -368,8 +368,6 @@ print(f"  Stable molecules: {stable_count}/{total_md} ({stability_fraction:.2%})
 if energy_drifts:
     print(f"  Mean energy drift: {mean_drift:.6f} eV/step")
     print(f"  Mean |drift|:      {mean_abs_drift:.6f} eV/step")
-if args.md_clip_force > 0:
-    print(f"  Force clipping: {clip_fraction:.4%} of steps clipped at {args.md_clip_force} eV/A")
 
 # ---- Save results ----
 results = {
@@ -387,10 +385,6 @@ results = {
         "total_molecules": total_md,
         "steps": args.md_steps,
         "force_threshold_eV_per_A": args.force_threshold,
-        "clip_enabled": args.md_clip_force > 0,
-        "clip_max_eV_per_A": args.md_clip_force,
-        "clip_fraction": clip_fraction,
-        "clip_total_steps": total_clip_count,
     },
     "energy_conservation": {
         "mean_drift_eV_per_step": mean_drift,
