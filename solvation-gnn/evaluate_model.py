@@ -234,23 +234,9 @@ for idx in range(len(test_dataset)):
 
     pos = pos.detach().requires_grad_(True)
     forces = forces0.detach()
-    if args.md_clip_force > 0:
-        forces = torch.clamp(forces, -args.md_clip_force, args.md_clip_force)
     accel = forces * CONV / masses.view(-1, 1)
 
     for step in range(args.md_steps):
-        # Check stability threshold
-        max_force = forces.abs().max().item()
-        if max_force > args.force_threshold:
-            if args.md_clip_force > 0:
-                if not clipped_warned:
-                    print(f"  Molecule {idx}: force >{args.force_threshold:.0f} at step {step} ({max_force:.1f} eV/A), clipped")
-                    clipped_warned = True
-            else:
-                unstable = True
-                print(f"  Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A)")
-                break
-
         # O half-step: friction + noise (fluctuation-dissipation)
         noise_std = torch.sqrt(
             boltzmann_k * args.md_temp_K * CONV * (1.0 - friction_half**2) / masses.view(-1, 1)
@@ -267,11 +253,18 @@ for idx in range(len(test_dataset)):
         # Compute new forces
         energy, forces = compute_energy_and_forces(pos)
         forces = forces.detach()
+        max_force = forces.abs().max().item()
         if args.md_clip_force > 0:
-            c = forces.abs().max().item()
-            if c > args.md_clip_force:
+            if max_force > args.md_clip_force:
                 clip_count += 1
+                if max_force > args.force_threshold and not clipped_warned:
+                    print(f"  Molecule {idx}: force >{args.force_threshold:.0f} at step {step} ({max_force:.1f} eV/A), clipped")
+                    clipped_warned = True
                 forces = torch.clamp(forces, -args.md_clip_force, args.md_clip_force)
+        elif max_force > args.force_threshold:
+            unstable = True
+            print(f"  Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A)")
+            break
         accel = forces * CONV / masses.view(-1, 1)
 
         # A half-step: velocity kick from forces
