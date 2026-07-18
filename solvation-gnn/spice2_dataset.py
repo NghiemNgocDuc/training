@@ -143,7 +143,7 @@ class SPICE2Dataset(InMemoryDataset):
                     pos_bohr = np.asarray(conformations[c])
                     solute_pos = torch.tensor(pos_bohr[:water_start] * pos_scale, dtype=torch.float)
 
-                    energy_hartree = float(formation_energy[c])
+                    energy_hartree = float(np.asarray(formation_energy[c]).item())
                     energy_ev = energy_hartree * ene_scale
 
                     grad = np.asarray(gradients[c])
