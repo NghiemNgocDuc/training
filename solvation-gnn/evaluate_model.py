@@ -7,6 +7,7 @@ sys.path.append(os.path.join(_root, "aqm_data"))
 import json
 import torch
 import numpy as np
+import math
 from torch_geometric.loader import DataLoader
 from DimeModels import DimeNetPlus
 from aqm_dataset import AQMDataset
@@ -219,7 +220,7 @@ for idx in range(len(test_dataset)):
     # A: Half-step velocity kick from forces
     # B: Position update
     gamma = args.md_gamma  # fs^-1
-    friction_half = torch.exp(-gamma * args.md_dt / 2)  # scalar (same for all atoms)
+    friction_half = math.exp(-gamma * args.md_dt / 2)  # scalar (same for all atoms)
 
     step = 0
     unstable = False
