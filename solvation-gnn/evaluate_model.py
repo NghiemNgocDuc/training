@@ -45,8 +45,10 @@ parser.add_argument("--force_threshold", type=float, default=50.0,
                     help="Force threshold for stability (eV/A)")
 parser.add_argument("--md_temp_K", type=float, default=300.0,
                     help="Initial temperature for MD (K)")
-parser.add_argument("--md_gamma", type=float, default=0.001,
-                    help="Langevin friction coefficient (fs^-1); ~1 ps^-1 = 0.001 fs^-1")
+parser.add_argument("--md_gamma", type=float, default=0.5,
+                    help="Langevin friction coefficient (fs^-1); 0.5 fs^-1 = 500 ps^-1 (strong)")
+parser.add_argument("--md_clip_force", type=float, default=30.0,
+                    help="Clip per-atom forces to this magnitude during MD (eV/A); 0 = no clip")
 parser.add_argument("--hidden", type=int, default=128)
 parser.add_argument("--num_blocks", type=int, default=4)
 parser.add_argument("--int_emb_size", type=int, default=64)
@@ -186,6 +188,7 @@ def get_mass(z):
 stable_count = 0
 total_md = 0
 energy_drifts = []
+total_clip_count = 0
 
 for idx in range(len(test_dataset)):
     data = test_dataset[idx]
@@ -224,20 +227,29 @@ for idx in range(len(test_dataset)):
 
     step = 0
     unstable = False
+    clip_count = 0
+    clipped_warned = False
     trajectory = {"potential": [initial_potential],
                   "kinetic": [], "total": []}
 
     pos = pos.detach().requires_grad_(True)
     forces = forces0.detach()
+    if args.md_clip_force > 0:
+        forces = torch.clamp(forces, -args.md_clip_force, args.md_clip_force)
     accel = forces * CONV / masses.view(-1, 1)
 
     for step in range(args.md_steps):
-        # Check force threshold
+        # Check stability threshold
         max_force = forces.abs().max().item()
         if max_force > args.force_threshold:
-            unstable = True
-            print(f"  Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A)")
-            break
+            if args.md_clip_force > 0:
+                if not clipped_warned:
+                    print(f"  Molecule {idx}: force >{args.force_threshold:.0f} at step {step} ({max_force:.1f} eV/A), clipped")
+                    clipped_warned = True
+            else:
+                unstable = True
+                print(f"  Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A)")
+                break
 
         # O half-step: friction + noise (fluctuation-dissipation)
         noise_std = torch.sqrt(
@@ -255,6 +267,11 @@ for idx in range(len(test_dataset)):
         # Compute new forces
         energy, forces = compute_energy_and_forces(pos)
         forces = forces.detach()
+        if args.md_clip_force > 0:
+            c = forces.abs().max().item()
+            if c > args.md_clip_force:
+                clip_count += 1
+                forces = torch.clamp(forces, -args.md_clip_force, args.md_clip_force)
         accel = forces * CONV / masses.view(-1, 1)
 
         # A half-step: velocity kick from forces
@@ -284,7 +301,10 @@ for idx in range(len(test_dataset)):
             drift = coeffs[0]  # eV per step
             energy_drifts.append(drift)
 
+    total_clip_count += clip_count
+
 stability_fraction = stable_count / total_md if total_md > 0 else 0.0
+clip_fraction = total_clip_count / (total_md * args.md_steps) if total_md > 0 and args.md_steps > 0 else 0.0
 mean_drift = float(np.mean(energy_drifts)) if energy_drifts else 0.0
 mean_abs_drift = float(np.mean(np.abs(energy_drifts))) if energy_drifts else 0.0
 
@@ -293,6 +313,8 @@ print(f"  Stable molecules: {stable_count}/{total_md} ({stability_fraction:.2%})
 if energy_drifts:
     print(f"  Mean energy drift: {mean_drift:.6f} eV/step")
     print(f"  Mean |drift|:      {mean_abs_drift:.6f} eV/step")
+if args.md_clip_force > 0:
+    print(f"  Force clipping: {clip_fraction:.4%} of steps clipped at {args.md_clip_force} eV/A")
 
 # ---- Save results ----
 results = {
@@ -310,6 +332,10 @@ results = {
         "total_molecules": total_md,
         "steps": args.md_steps,
         "force_threshold_eV_per_A": args.force_threshold,
+        "clip_enabled": args.md_clip_force > 0,
+        "clip_max_eV_per_A": args.md_clip_force,
+        "clip_fraction": clip_fraction,
+        "clip_total_steps": total_clip_count,
     },
     "energy_conservation": {
         "mean_drift_eV_per_step": mean_drift,
@@ -321,6 +347,7 @@ results = {
         "dataset": args.hdf5,
         "md_dt_fs": args.md_dt,
         "md_temp_K": args.md_temp_K,
+        "md_gamma_fs_inv": args.md_gamma,
     },
 }
 
