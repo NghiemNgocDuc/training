@@ -47,8 +47,14 @@ parser.add_argument("--md_temp_K", type=float, default=300.0,
                     help="Initial temperature for MD (K)")
 parser.add_argument("--md_gamma", type=float, default=0.5,
                     help="Langevin friction coefficient (fs^-1); 0.5 fs^-1 = 500 ps^-1 (strong)")
-parser.add_argument("--md_clip_force", type=float, default=30.0,
+parser.add_argument("--md_clip_force", type=float, default=0.0,
                     help="Clip per-atom forces to this magnitude during MD (eV/A); 0 = no clip")
+parser.add_argument("--disable_zbl", action="store_true",
+                    help="Disable ZBL short-range repulsion correction")
+parser.add_argument("--zbl_cutoff_low", type=float, default=0.5,
+                    help="ZBL fully ON below this distance (A)")
+parser.add_argument("--zbl_cutoff_high", type=float, default=1.0,
+                    help="ZBL fully OFF above this distance (A)")
 parser.add_argument("--hidden", type=int, default=128)
 parser.add_argument("--num_blocks", type=int, default=4)
 parser.add_argument("--int_emb_size", type=int, default=64)
@@ -185,10 +191,56 @@ def get_mass(z):
         masses.append(ATOMIC_MASSES[zn_int])
     return torch.tensor(masses, dtype=torch.float, device=device)
 
+def min_pairwise_distance(pos):
+    dist = torch.cdist(pos, pos)
+    n = dist.size(0)
+    dist.fill_diagonal_(float('inf'))
+    return dist.min().item()
+
+
+_ZBL_COEFFS = [
+    (0.18175, 3.19980),
+    (0.50986, 0.94229),
+    (0.28022, 0.40290),
+    (0.02817, 0.20162),
+]
+
+
+def zbl_energy(pos, z, cutoff_low=1.0, cutoff_high=2.0):
+    n = pos.size(0)
+    dist = torch.cdist(pos, pos)
+    dist_safe = dist.clamp(min=1e-6)
+
+    Zi = z.view(-1, 1).expand(n, n)
+    Zj = z.view(1, -1).expand(n, n)
+    Zi_23 = Zi.pow(0.23)
+    Zj_23 = Zj.pow(0.23)
+    a = 0.529 * 0.46850 / (Zi_23 + Zj_23)
+    x = dist_safe / a
+    phi = torch.zeros_like(dist_safe)
+    for c, d in _ZBL_COEFFS:
+        phi = phi + c * torch.exp(-d * x)
+    e_pair = 14.399645 * Zi * Zj / dist_safe * phi
+
+    switch = torch.where(
+        dist < cutoff_low,
+        torch.ones_like(dist),
+        torch.where(
+            dist > cutoff_high,
+            torch.zeros_like(dist),
+            0.5 * (1.0 + torch.cos(math.pi * (dist - cutoff_low) / (cutoff_high - cutoff_low)))
+        ),
+    )
+
+    self_mask = torch.eye(n, device=pos.device, dtype=torch.bool)
+    e_pair = e_pair * (~self_mask).float()
+    switch = switch * (~self_mask).float()
+
+    return 0.5 * (e_pair * switch).sum()
+
 stable_count = 0
 total_md = 0
 energy_drifts = []
-total_clip_count = 0
 
 for idx in range(len(test_dataset)):
     data = test_dataset[idx]
@@ -210,6 +262,8 @@ for idx in range(len(test_dataset)):
         if ref_energies is not None:
             mol_ref = compute_molecular_reference(x, None, ref_energies, 1)
             e = e + mol_ref  # restore absolute energy from shifted prediction
+        if not args.disable_zbl:
+            e = e + zbl_energy(p, data.z, args.zbl_cutoff_low, args.zbl_cutoff_high)
         f = -torch.autograd.grad(e, p, grad_outputs=torch.ones_like(e),
                                  create_graph=False)[0]
         return e, f
@@ -227,14 +281,18 @@ for idx in range(len(test_dataset)):
 
     step = 0
     unstable = False
-    clip_count = 0
-    clipped_warned = False
+    trace_diag = []  # (step, min_dist, max_force) for instability analysis
     trajectory = {"potential": [initial_potential],
                   "kinetic": [], "total": []}
 
     pos = pos.detach().requires_grad_(True)
     forces = forces0.detach()
     accel = forces * CONV / masses.view(-1, 1)
+
+    # Log initial min_dist before the loop
+    min_dist = min_pairwise_distance(pos)
+    if idx < 10:
+        print(f"  Molecule {idx}: initial min_dist={min_dist:.4f} A  n_atoms={n_atoms}")
 
     for step in range(args.md_steps):
         # O half-step: friction + noise (fluctuation-dissipation)
@@ -254,17 +312,24 @@ for idx in range(len(test_dataset)):
         energy, forces = compute_energy_and_forces(pos)
         forces = forces.detach()
         max_force = forces.abs().max().item()
-        if args.md_clip_force > 0:
-            if max_force > args.md_clip_force:
-                clip_count += 1
-                if max_force > args.force_threshold and not clipped_warned:
-                    print(f"  Molecule {idx}: force >{args.force_threshold:.0f} at step {step} ({max_force:.1f} eV/A), clipped")
-                    clipped_warned = True
-                forces = torch.clamp(forces, -args.md_clip_force, args.md_clip_force)
-        elif max_force > args.force_threshold:
+        min_dist = min_pairwise_distance(pos)
+        trace_diag.append((step, min_dist, max_force))
+
+        if max_force > args.force_threshold:
             unstable = True
-            print(f"  Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A)")
+            # Print collapse trace for this instability
+            print(f"\n  *** Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A, min_dist={min_dist:.4f} A) ***")
+            print(f"  Collapse trace (last 10 steps before blowup):")
+            print(f"  {'step':>5}  {'min_dist(A)':>12}  {'max_force(eV/A)':>15}")
+            for s, d, f in trace_diag[-10:]:
+                marker = " <<<" if f > args.force_threshold else ""
+                print(f"  {s:5d}  {d:12.6f}  {f:15.2f}{marker}")
+            print()
             break
+
+        if idx < 10:
+            print(f"  Molecule {idx}: step {step:3d}  min_dist={min_dist:.4f} A  max_force={max_force:.2f} eV/A")
+
         accel = forces * CONV / masses.view(-1, 1)
 
         # A half-step: velocity kick from forces
@@ -294,10 +359,7 @@ for idx in range(len(test_dataset)):
             drift = coeffs[0]  # eV per step
             energy_drifts.append(drift)
 
-    total_clip_count += clip_count
-
 stability_fraction = stable_count / total_md if total_md > 0 else 0.0
-clip_fraction = total_clip_count / (total_md * args.md_steps) if total_md > 0 and args.md_steps > 0 else 0.0
 mean_drift = float(np.mean(energy_drifts)) if energy_drifts else 0.0
 mean_abs_drift = float(np.mean(np.abs(energy_drifts))) if energy_drifts else 0.0
 
