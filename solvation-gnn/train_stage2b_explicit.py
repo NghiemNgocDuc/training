@@ -194,11 +194,9 @@ for epoch in range(1, args.epochs + 1):
 
         x = build_one_hot(data, device)
 
-        if ref_energies is not None:
-            mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
-            y_energy_shifted = data.y_energy - mol_ref
-        else:
-            y_energy_shifted = data.y_energy
+        # SPICE formation_energy is already relative to isolated atoms;
+        # don't subtract AQM-derived atomic references (would create huge offset)
+        y_energy_shifted = data.y_energy
 
         vacuum_e = vacuum_model(x, data.pos, data.batch)
         implicit_e = implicit_model(x, data.pos, data.batch)
@@ -237,11 +235,8 @@ for epoch in range(1, args.epochs + 1):
 
             x = build_one_hot(data, device)
 
-            if ref_energies is not None:
-                mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
-                y_energy_shifted = data.y_energy - mol_ref
-            else:
-                y_energy_shifted = data.y_energy
+            # SPICE formation_energy is already relative; no AQM reference to subtract
+            y_energy_shifted = data.y_energy
 
             vacuum_e = vacuum_model(x, data.pos, data.batch)
             implicit_e = implicit_model(x, data.pos, data.batch)
