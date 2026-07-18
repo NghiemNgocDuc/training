@@ -1,0 +1,15 @@
+{
+  "best_val_loss": 1.9453616499900819,
+  "best_esolv_mae": 0.0,
+  "option_a_esolv_mae": 0.0,
+  "option_b_esolv_mae": 46462.234512455165,
+  "config": {
+    "model": "DimeNetPlus (single, from scratch)",
+    "dataset": "AQM-sol.hdf5",
+    "gas_dataset": null,
+    "num_blocks": 3,
+    "epochs": 30,
+    "batchsize": 8,
+    "lambda_force": 1000.0
+  }
+}

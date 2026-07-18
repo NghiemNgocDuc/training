@@ -321,7 +321,8 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
         torch.load(args.option_b_checkpoint, map_location=device, weights_only=True))
     correction_model.eval()
 
-    # Option B: total = vacuum(solvated) + correction(solvated), correction approximates eSOLV
+    # Option B: total = vacuum(solvated) + correction(solvated)
+    # eSOLV = total_abs - gas_energy (requires paired gas data via --gas_hdf5)
     total_esolv_mae = 0.0
     count = 0
     for data in val_loader:
@@ -330,11 +331,16 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
         with torch.no_grad():
             vacuum_e = vacuum_model(x, data.pos, data.batch)
             correction_e = correction_model(x, data.pos, data.batch)
+            total_e = vacuum_e + correction_e
+            if ref_energies is not None:
+                mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
+                total_e = total_e + mol_ref
         for i in range(data.num_graphs):
-            mask = data.batch == i
-            if hasattr(data, 'y_esolv') and data.y_esolv is not None:
+            if hasattr(data, 'y_esolv') and data.y_esolv is not None \
+               and hasattr(data, 'gas_energy') and data.gas_energy is not None:
                 esolv_true = data.y_esolv[i].item()
-                esolv_pred = correction_e[i].item()
+                gas_e = data.gas_energy[i].item() if data.gas_energy.dim() > 0 else data.gas_energy.item()
+                esolv_pred = total_e[i].item() - gas_e
                 total_esolv_mae += abs(esolv_pred - esolv_true)
                 count += 1
     option_b_esolv_mae = total_esolv_mae / count if count > 0 else None
@@ -342,7 +348,7 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
         if option_b_esolv_mae is not None:
             print(f"  Option B eSOLV MAE: {option_b_esolv_mae:.6f} eV")
         else:
-            print("  Could not compute Option B eSOLV MAE (no y_esolv in data)")
+            print("  Could not compute Option B eSOLV MAE (needs --gas_hdf5 for proper comparison)")
 
 if is_main(local_rank):
     # ---- Save results ----
