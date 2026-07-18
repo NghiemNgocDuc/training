@@ -71,7 +71,7 @@ echo "===== 9. Evaluate ====="
 $PYTHON solvation-gnn/evaluate_model.py \
     --checkpoint "$RESULTS/stage1_fold_1.pt" \
     --hdf5 AQM-gas.hdf5 \
-    --max_structures 500 --md_steps 500 \
+    --max_structures 500 --md_steps 500 --md_dt 0.1 \
     --output_dir "$RESULTS"
 
 echo "===== DONE ====="
