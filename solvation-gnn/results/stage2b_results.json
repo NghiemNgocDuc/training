@@ -1,0 +1,24 @@
+{
+  "best_val_total_loss": 27.5356949076933,
+  "best_val_force_mse": 0.02742889424895539,
+  "best_val_energy_mse": 0.1067989688804921,
+  "best_val_force_rmse": 0.16561670884592347,
+  "config": {
+    "vacuum_ckpt": "solvation-gnn/results/stage1_fold_1.pt",
+    "implicit_ckpt": "solvation-gnn/results/stage2_correction.pt",
+    "num_blocks_vacuum": 4,
+    "num_blocks_implicit": 3,
+    "num_blocks_explicit": 2,
+    "epochs": 15,
+    "batchsize": 8,
+    "lr": 0.001,
+    "loss": "lambda_energy*energy_mse + lambda_force*force_mse",
+    "lambda_energy": 1.0,
+    "lambda_force": 1000.0
+  },
+  "params": {
+    "vacuum": 1888006,
+    "implicit": 1489926,
+    "explicit": 1091846
+  }
+}
