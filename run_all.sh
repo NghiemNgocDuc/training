@@ -48,14 +48,14 @@ echo "===== 6. Stage 2a: Implicit correction (quick) — DONE, SKIPPING ====="
 #     --output_dir "$RESULTS"
 
 echo "===== 7. Option A: Scratch baseline (quick) ====="
-$PYTHON -c "import torch; torch.cuda.empty_cache()"
-$PYTHON train.py train_option_a.py \
-    --hdf5 AQM-sol.hdf5 \
-    --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
-    --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
-    --max_structures 4000 --epochs 30 --batchsize 8 \
-    --lr 0.001 \
-    --output_dir "$RESULTS"
+# $PYTHON -c "import torch; torch.cuda.empty_cache()"
+# $PYTHON train.py train_option_a.py \
+#     --hdf5 AQM-sol.hdf5 \
+#     --option_b_checkpoint "$RESULTS/stage2_correction.pt" \
+#     --option_b_vacuum_ckpt "$RESULTS/stage1_fold_1.pt" \
+#     --max_structures 4000 --epochs 30 --batchsize 8 \
+#     --lr 0.001 \
+#     --output_dir "$RESULTS"
 
 echo "===== 8. Stage 2b: Explicit water (quick) ====="
 $PYTHON -c "import torch; torch.cuda.empty_cache()"
