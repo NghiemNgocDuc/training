@@ -74,4 +74,25 @@ $PYTHON solvation-gnn/evaluate_model.py \
     --max_structures 500 --md_steps 500 --md_dt 0.1 \
     --output_dir "$RESULTS"
 
+# ==== OPTIONAL: Comparison scripts (run on GPU, takes ~mins) ====
+#
+# echo "===== 10a. Baseline comparison: Option A vs Option B vs Vacuum ====="
+# $PYTHON -c "import torch; torch.cuda.empty_cache()"
+# $PYTHON solvation-gnn/ab_comparison.py
+#
+# echo "===== 10b. A/B: Evaluate vacuum with ZBL OFF ====="
+# $PYTHON solvation-gnn/evaluate_model.py \
+#     --checkpoint "$RESULTS/stage1_fold_1.pt" \
+#     --hdf5 AQM-gas.hdf5 \
+#     --disable_zbl \
+#     --max_structures 500 --md_steps 500 --md_dt 0.1 \
+#     --output_dir "${RESULTS}/zbl_off"
+#
+# echo "===== 10c. A/B: Evaluate vacuum with ZBL ON (same config, default) ====="
+# $PYTHON solvation-gnn/evaluate_model.py \
+#     --checkpoint "$RESULTS/stage1_fold_1.pt" \
+#     --hdf5 AQM-gas.hdf5 \
+#     --max_structures 500 --md_steps 500 --md_dt 0.1 \
+#     --output_dir "${RESULTS}/zbl_on"
+
 echo "===== DONE ====="
