@@ -219,6 +219,8 @@ for epoch in range(1, args.epochs + 1):
         train_loss += loss.item() * data.num_graphs
         train_force_loss += loss_f.item() * data.num_graphs
         train_energy_loss += loss_e.item() * data.num_graphs
+        del data, x, vacuum_e, implicit_e, explicit_e, total_e, forces_pred, loss
+    torch.cuda.empty_cache()
     train_loss /= len(train_loader.dataset)
     train_force_loss /= len(train_loader.dataset)
     train_energy_loss /= len(train_loader.dataset)
@@ -256,6 +258,8 @@ for epoch in range(1, args.epochs + 1):
             val_loss += loss.item() * data.num_graphs
             val_force_loss += loss_f.item() * data.num_graphs
             val_energy_loss += loss_e.item() * data.num_graphs
+            del data, x, vacuum_e, implicit_e, explicit_e, total_e, forces_pred, loss
+    torch.cuda.empty_cache()
     val_loss /= len(val_loader.dataset)
     val_force_loss /= len(val_loader.dataset)
     val_energy_loss /= len(val_loader.dataset)
