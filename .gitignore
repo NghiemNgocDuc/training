@@ -1,6 +1,8 @@
 Data/
 __MACOSX/
-results/
+# Ignore model checkpoints but keep small data files like atomic_references.json
+**/results/*.pt
+**/results/test/
 __pycache__/
 *.pyc
 .opencode/
