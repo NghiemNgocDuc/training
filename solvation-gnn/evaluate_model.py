@@ -44,6 +44,8 @@ parser.add_argument("--force_threshold", type=float, default=50.0,
                     help="Force threshold for stability (eV/A)")
 parser.add_argument("--md_temp_K", type=float, default=300.0,
                     help="Initial temperature for MD (K)")
+parser.add_argument("--md_gamma", type=float, default=0.001,
+                    help="Langevin friction coefficient (fs^-1); ~1 ps^-1 = 0.001 fs^-1")
 parser.add_argument("--hidden", type=int, default=128)
 parser.add_argument("--num_blocks", type=int, default=4)
 parser.add_argument("--int_emb_size", type=int, default=64)
@@ -212,7 +214,13 @@ for idx in range(len(test_dataset)):
     energy0, forces0 = compute_energy_and_forces(pos)
     initial_potential = energy0.item()
 
-    # Velocity Verlet with force threshold check
+    # Langevin OABAO integrator (Leimkuhler & Matthews, 2015)
+    # O: Ornstein-Uhlenbeck (friction + noise)
+    # A: Half-step velocity kick from forces
+    # B: Position update
+    gamma = args.md_gamma  # fs^-1
+    friction_half = torch.exp(-gamma * args.md_dt / 2)  # scalar (same for all atoms)
+
     step = 0
     unstable = False
     trajectory = {"potential": [initial_potential],
@@ -230,10 +238,16 @@ for idx in range(len(test_dataset)):
             print(f"  Molecule {idx}: unstable at step {step} (max force={max_force:.2f} eV/A)")
             break
 
-        # Half-step velocity
+        # O half-step: friction + noise (fluctuation-dissipation)
+        noise_std = torch.sqrt(
+            boltzmann_k * args.md_temp_K * CONV * (1.0 - friction_half**2) / masses.view(-1, 1)
+        )
+        vel = vel * friction_half + noise_std * torch.randn_like(vel)
+
+        # A half-step: velocity kick from forces
         vel = vel + 0.5 * accel * args.md_dt
 
-        # Full-step position
+        # B: position update
         pos = pos + vel * args.md_dt
         pos = pos.detach().requires_grad_(True)
 
@@ -242,8 +256,11 @@ for idx in range(len(test_dataset)):
         forces = forces.detach()
         accel = forces * CONV / masses.view(-1, 1)
 
-        # Full-step velocity
+        # A half-step: velocity kick from forces
         vel = vel + 0.5 * accel * args.md_dt
+
+        # O half-step: friction + noise
+        vel = vel * friction_half + noise_std * torch.randn_like(vel)
 
         # Track energy
         kinetic = 0.5 * (masses * (vel ** 2).sum(dim=1)).sum() / CONV
