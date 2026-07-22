@@ -1,0 +1,33 @@
+{
+  "force_mae": {
+    "overall": 0.32245881855487823,
+    "low_energy": 0.2894628047943115,
+    "high_energy": 0.35545483231544495,
+    "n_low": 1,
+    "n_high": 1,
+    "energy_percentile_threshold": -28262.99765625
+  },
+  "md_stability": {
+    "stable_fraction": 1.0,
+    "stable_count": 2,
+    "total_molecules": 2,
+    "steps": 10,
+    "force_threshold_eV_per_A": 50.0,
+    "clip_enabled": false,
+    "clip_max_eV_per_A": 0.0,
+    "clip_fraction": 0.0,
+    "clip_total_steps": 0
+  },
+  "energy_conservation": {
+    "mean_drift_eV_per_step": -0.01568306689055923,
+    "mean_abs_drift_eV_per_step": 0.01568306689055923,
+    "n_molecules": 2
+  },
+  "config": {
+    "checkpoint": "solvation-gnn/results/stage1_fold_1.pt",
+    "dataset": "AQM-gas.hdf5",
+    "md_dt_fs": 0.1,
+    "md_temp_K": 300.0,
+    "md_gamma_fs_inv": 0.5
+  }
+}
