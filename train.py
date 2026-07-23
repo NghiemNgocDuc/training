@@ -21,7 +21,7 @@ if GPU_COUNT <= 1:
     cmd = [sys.executable, script_path] + ARGS
     os.execvp(cmd[0], cmd)
 else:
-    print(f"Detected {GPU_COUNT} GPUs — launching with torchrun")
+    print(f"Detected {GPU_COUNT} GPUs - launching with torchrun")
     cmd = [
         "torchrun", "--standalone", f"--nproc_per_node={GPU_COUNT}",
         script_path

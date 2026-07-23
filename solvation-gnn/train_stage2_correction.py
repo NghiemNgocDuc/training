@@ -47,6 +47,8 @@ parser.add_argument("--num_after_skip", type=int, default=2)
 parser.add_argument("--num_output_layers", type=int, default=3)
 parser.add_argument("--max_neighbors", type=int, default=32)
 parser.add_argument("--lambda_force", type=float, default=1000.0)
+parser.add_argument("--lambda_total", type=float, default=0.05,
+                    help="Weight for total-energy regularizer (default 0.05)")
 parser.add_argument("--val_split", type=float, default=0.1)
 parser.add_argument("--max_structures", type=int, default=None)
 parser.add_argument("--output_dir", type=str, default="results")
@@ -153,17 +155,27 @@ scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
 mse = torch.nn.MSELoss()
 
 
-def combined_loss(energy_pred, energy_true, forces_pred, forces_true, n_atoms, lambda_force=None):
-    loss_e = mse(energy_pred / n_atoms, energy_true / n_atoms)
+def combined_loss(
+    energy_pred, energy_true, forces_pred, forces_true, n_atoms,
+    dG_pred=None, dG_true=None,
+    lambda_force=None, lambda_total=None,
+):
+    loss_total = mse(energy_pred / n_atoms, energy_true / n_atoms)
     loss_f = mse(forces_pred, forces_true)
-    return loss_e + lambda_force * loss_f
+    loss = loss_f * lambda_force
+    if dG_pred is not None and dG_true is not None:
+        loss += lambda_total * loss_total
+        loss += mse(dG_pred, dG_true)  # primary: correction_model → dG_solv directly
+    else:
+        loss += loss_total
+    return loss
 
 
 def train_epoch(loader):
     correction_model.train()
     total_loss = 0.0
-    total_esolv_loss = 0.0
-    esolv_count = 0
+    total_dG_loss = 0.0
+    dG_count = 0
     for data in loader:
         data = data.to(device)
         data.pos.requires_grad_()
@@ -184,35 +196,37 @@ def train_epoch(loader):
         )[0]
 
         n_atoms = torch.bincount(data.batch).float()
+        dG_true = data.y_esolv - data.y_energy
         loss = combined_loss(
             total_energy.view(-1), y_energy_shifted,
             forces_pred, data.y_forces,
             n_atoms=n_atoms,
+            dG_pred=correction_energy.view(-1),
+            dG_true=dG_true.view(-1),
             lambda_force=args.lambda_force,
+            lambda_total=args.lambda_total,
         )
         loss.backward()
         torch.nn.utils.clip_grad_norm_(correction_model.parameters(), 10.0)
         optimizer.step()
         total_loss += loss.item() * data.num_graphs
 
-        # Secondary eSOLV metric (if available in batch)
-        if hasattr(data, 'y_esolv') and data.y_esolv is not None:
-            # In Option B: correction_model(R_sol) approximates eSOLV
-            esolv_loss = mse(correction_energy.view(-1), data.y_esolv.view(-1))
-            total_esolv_loss += esolv_loss.item() * data.num_graphs
-            esolv_count += data.num_graphs
+        # Track dG MAE
+        dG_loss = mse(correction_energy.view(-1), dG_true.view(-1))
+        total_dG_loss += dG_loss.item() * data.num_graphs
+        dG_count += data.num_graphs
 
     avg_loss = total_loss / len(loader.dataset)
-    avg_esolv = total_esolv_loss / esolv_count if esolv_count > 0 else None
-    return avg_loss, avg_esolv
+    avg_dG = total_dG_loss / dG_count if dG_count > 0 else None
+    return avg_loss, avg_dG
 
 
 @torch.enable_grad()
 def validate_epoch(loader):
     correction_model.eval()
     total_loss = 0.0
-    total_esolv_loss = 0.0
-    esolv_count = 0
+    total_dG_loss = 0.0
+    dG_count = 0
     for data in loader:
         data = data.to(device)
         data.pos.requires_grad_()
@@ -232,27 +246,29 @@ def validate_epoch(loader):
         )[0]
 
         n_atoms = torch.bincount(data.batch).float()
+        dG_true = data.y_esolv - data.y_energy
         loss = combined_loss(
             total_energy.view(-1), y_energy_shifted,
             forces_pred, data.y_forces,
             n_atoms=n_atoms,
+            dG_pred=correction_energy.view(-1),
+            dG_true=dG_true.view(-1),
             lambda_force=args.lambda_force,
+            lambda_total=args.lambda_total,
         )
         total_loss += loss.item() * data.num_graphs
 
-
-        if hasattr(data, 'y_esolv') and data.y_esolv is not None:
-            esolv_loss = mse(correction_energy.view(-1), data.y_esolv.view(-1))
-            total_esolv_loss += esolv_loss.item() * data.num_graphs
-            esolv_count += data.num_graphs
+        dG_loss = mse(correction_energy.view(-1), dG_true.view(-1))
+        total_dG_loss += dG_loss.item() * data.num_graphs
+        dG_count += data.num_graphs
 
     avg_loss = total_loss / len(loader.dataset)
-    avg_esolv = total_esolv_loss / esolv_count if esolv_count > 0 else None
-    return avg_loss, avg_esolv
+    avg_dG = total_dG_loss / dG_count if dG_count > 0 else None
+    return avg_loss, avg_dG
 
 
 # ---- Training loop ----
-best_val_loss = float("inf")
+best_val_dG_mae = float("inf")
 patience = 10
 epochs_no_improve = 0
 
@@ -263,22 +279,24 @@ for epoch in range(1, args.epochs + 1):
     if is_ddp:
         train_sampler.set_epoch(epoch)
     t0 = time.time()
-    train_loss, train_esolv = train_epoch(train_loader)
-    val_loss, val_esolv = validate_epoch(val_loader)
+    train_loss, train_dG = train_epoch(train_loader)
+    val_loss, val_dG = validate_epoch(val_loader)
     elapsed = time.time() - t0
 
     if is_main(local_rank):
-        esolv_str = ""
-        if val_esolv is not None:
-            esolv_str = f"  |  eSOLV: {train_esolv:.6f} / {val_esolv:.6f}"
+        dG_str = ""
+        if val_dG is not None:
+            val_dG_eV = np.sqrt(val_dG)
+            train_dG_eV = np.sqrt(train_dG)
+            dG_str = (f"  |  dG MAE: {train_dG_eV:.6f} / {val_dG_eV:.6f} eV  "
+                      f"({train_dG_eV*23.0605:.3f} / {val_dG_eV*23.0605:.3f} kcal/mol)")
         print(
             f"  Epoch {epoch:3d}/{args.epochs}  |  "
-            f"Train: {train_loss:.6f}  |  Val: {val_loss:.6f}{esolv_str}  |  "
+            f"Loss: {train_loss:.6f} / {val_loss:.6f}{dG_str}  |  "
             f"{elapsed:.2f}s"
         )
         print()
 
-        # Every 5 epochs: sanity check frozen params haven't moved
         if epoch % 5 == 0:
             frozen_sum = sum(p.sum().item() for p in vacuum_model.parameters())
             diff = abs(frozen_sum - frozen_params_init_sum)
@@ -287,19 +305,21 @@ for epoch in range(1, args.epochs + 1):
 
     scheduler.step(val_loss)
 
-    if val_loss < best_val_loss:
-        best_val_loss = val_loss
+    if val_dG is not None and val_dG < best_val_dG_mae:
+        best_val_dG_mae = val_dG
         epochs_no_improve = 0
         if is_main(local_rank):
             ckpt_path = os.path.join(args.output_dir, "stage2_correction.pt")
             torch.save(raw_correction_model.state_dict(), ckpt_path)
-            print(f"    ✔ Saved best correction model → {ckpt_path}")
+            best_rmse = np.sqrt(best_val_dG_mae)
+            print(f"    [OK] Saved best correction model -> {ckpt_path}")
+            print(f"      (dG val RMSE = {best_rmse:.6f} eV = {best_rmse*23.0605:.3f} kcal/mol)")
             print()
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
             if is_main(local_rank):
-                print(f"    ✗ Early stopping after {epoch} epochs")
+                print(f"    [x] Early stopping after {epoch} epochs")
                 print()
             break
     sync_barrier(is_ddp)
@@ -307,6 +327,8 @@ for epoch in range(1, args.epochs + 1):
 cleanup(is_ddp)
 
 if is_main(local_rank):
+    best_rmse = np.sqrt(best_val_dG_mae)
     print(f"\n{'='*60}")
-    print(f"  Training complete. Best val loss: {best_val_loss:.6f}")
+    print(f"  Training complete.")
+    print(f"  Best val dG RMSE: {best_rmse:.6f} eV = {best_rmse*23.0605:.3f} kcal/mol")
     print(f"{'='*60}\n")

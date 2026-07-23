@@ -289,13 +289,13 @@ for epoch in range(1, args.epochs + 1):
         if is_main(local_rank):
             ckpt_path = os.path.join(args.output_dir, "stage2b.pt")
             torch.save(raw_explicit_model.state_dict(), ckpt_path)
-            print(f"    ✔ Saved best explicit model → {ckpt_path}")
+            print(f"    [OK] Saved best explicit model -> {ckpt_path}")
             print()
     else:
         epochs_no_improve += 1
         if epochs_no_improve >= patience:
             if is_main(local_rank):
-                print(f"    ✗ Early stopping after {epoch} epochs")
+                print(f"    [x] Early stopping after {epoch} epochs")
                 print()
             break
     sync_barrier(is_ddp)

@@ -6,3 +6,11 @@ __pycache__/
 vast_setup.txt
 download_data.txt
 *-full.hdf5
+# Generated outputs
+freesolv_conformers*.hdf5
+freesolv_predictions*.csv
+freesolv_gbn2*.csv
+freesolv_results.csv
+freesolv_labels.csv
+evaluation_summary.txt
+*.png

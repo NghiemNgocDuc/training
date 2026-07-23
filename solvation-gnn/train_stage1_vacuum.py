@@ -201,13 +201,13 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies, sampler=Non
             epochs_no_improve = 0
             if is_main(local_rank):
                 torch.save(raw_model.state_dict(), ckpt_path)
-                print(f"    ✔ Saved best model → {ckpt_path}")
+                print(f"    [OK] Saved best model -> {ckpt_path}")
                 print()
         else:
             epochs_no_improve += 1
             if epochs_no_improve >= patience:
                 if is_main(local_rank):
-                    print(f"    ✗ Early stopping after {epoch} epochs")
+                    print(f"    [x] Early stopping after {epoch} epochs")
                     print()
                 break
         sync_barrier(is_ddp)
