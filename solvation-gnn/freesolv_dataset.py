@@ -8,8 +8,6 @@ from typing import Dict, List, Optional, Tuple
 
 import h5py
 import numpy as np
-from rdkit import Chem
-from rdkit.Chem import rdDistGeom, rdForceFieldHelpers
 from tqdm import tqdm
 
 FREESOLV_URL = "https://raw.githubusercontent.com/MobleyLab/FreeSolv/master/database.json"
@@ -46,7 +44,7 @@ def load_freesolv_labels(json_path: str) -> Dict[str, dict]:
     return data
 
 
-def _relax_xtb(mol: Chem.Mol, conf_id: int) -> Optional[np.ndarray]:
+def _relax_xtb(mol, conf_id: int) -> Optional[np.ndarray]:
     try:
         from xtb.ase.calculator import XTB
         from ase import Atoms
@@ -73,6 +71,8 @@ def generate_conformers(
     random_seed: int = 42,
     use_xtb: bool = True,
 ) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+    from rdkit import Chem
+    from rdkit.Chem import rdDistGeom, rdForceFieldHelpers
     mol = Chem.MolFromSmiles(smiles)
     if mol is None:
         return None
@@ -146,6 +146,7 @@ def create_freesolv_hdf5(
         for mol_id, entry in tqdm(labels.items(), desc="Generating conformers"):
             smiles = entry["smiles"]
 
+            from rdkit import Chem
             mol_check = Chem.MolFromSmiles(smiles)
             if mol_check is None:
                 n_failed_smiles += 1
@@ -349,6 +350,7 @@ if __name__ == "__main__":
     labels = load_freesolv_labels(json_path)
 
     if args.check_elements:
+        from rdkit import Chem
         vocab_set = MODEL_ELEMENTS
         n_compatible = 0
         all_elements = set()

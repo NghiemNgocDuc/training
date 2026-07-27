@@ -5,17 +5,19 @@ sys.path.append(_root)
 sys.path.append(os.path.join(_root, "solvation-gnn"))
 
 import csv
+import json
 import argparse
 import numpy as np
 import torch
 from torch_geometric.loader import DataLoader
-from scipy.stats import linregress
+from scipy.stats import linregress, kendalltau
 
 from DimeModels import DimeNetPlus
 from freesolv_dataset import (
     FreeSolvDataset, EV_TO_KCAL, download_freesolv_data, load_freesolv_labels,
 )
-from element_vocab import NUM_ELEMENTS, build_one_hot
+from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
+from energy_reference import load_reference_energies, compute_molecular_reference
 
 
 def build_model(num_blocks, hidden=128, radius=6.0):
@@ -29,19 +31,48 @@ def build_model(num_blocks, hidden=128, radius=6.0):
     )
 
 
+def compute_metrics(y_true, y_pred, label):
+    residuals = y_true - y_pred
+    n = len(y_true)
+    mae = float(np.mean(np.abs(residuals)))
+    rmse = float(np.sqrt(np.mean(residuals ** 2)))
+    ss_res = np.sum(residuals ** 2)
+    ss_tot = np.sum((y_true - np.mean(y_true)) ** 2)
+    r2 = float(1 - ss_res / ss_tot) if ss_tot > 0 else 0.0
+    tau, p_val = kendalltau(y_true, y_pred)
+    return {
+        "method": label,
+        "n": n,
+        "MAE_kcal": mae,
+        "RMSE_kcal": rmse,
+        "R2": r2,
+        "Kendall_tau": float(tau),
+        "Kendall_p": float(p_val),
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="FreeSolv GNN prediction")
-    parser.add_argument("--conformers", type=str, default="freesolv_conformers.hdf5")
+    parser.add_argument("--conformers", type=str, default="freesolv_conformers.hdf5",
+                        help="Path to FreeSolv conformer HDF5")
     parser.add_argument("--output", type=str, default="freesolv_predictions.csv")
     parser.add_argument("--checkpoint_dir", type=str, default="results")
-    parser.add_argument("--vacuum_ckpt", type=str, default=None)
-    parser.add_argument("--correction_ckpt", type=str, default="stage2_correction.pt")
-    parser.add_argument("--explicit_ckpt", type=str, default=None)
+    parser.add_argument("--vacuum_ckpt", type=str, default=None,
+                        help="Stage 1 vacuum checkpoint (required for Option A or explicit)")
+    parser.add_argument("--correction_ckpt", type=str, default="stage2_correction.pt",
+                        help="Stage 2a correction checkpoint (Option B)")
+    parser.add_argument("--option_a_ckpt", type=str, default=None,
+                        help="Option A scratch model checkpoint (for Option A comparison)")
+    parser.add_argument("--explicit_ckpt", type=str, default=None,
+                        help="Stage 2b explicit model (experimental, needs --vacuum_ckpt)")
+    parser.add_argument("--method", type=str, default="B",
+                        choices=["A", "B", "all"],
+                        help="Prediction method: B=correction-only, A=vacuum+OptionA, all=both")
     parser.add_argument("--batchsize", type=int, default=32)
     parser.add_argument("--device", type=str, default=None)
     parser.add_argument("--cache_dir", type=str, default="Data/FreeSolv")
     parser.add_argument("--lfer_split", type=float, default=0.1,
-                        help="Fraction of molecules for LFER calibration (default 0.1)")
+                        help="Fraction of molecules for LFER calibration (0 to disable)")
     args = parser.parse_args()
 
     if args.device is None:
@@ -53,11 +84,45 @@ def main():
     ckpt_dir = args.checkpoint_dir
     if not os.path.isabs(ckpt_dir):
         ckpt_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ckpt_dir)
+    print(f"Checkpoint directory: {ckpt_dir}")
+
+    # ── Load atomic references (needed for Option A) ──
+    ref_path = os.path.join(ckpt_dir, "atomic_references.json")
+    ref_energies = None
+    if os.path.exists(ref_path):
+        ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+        print(f"Loaded atomic reference energies from {ref_path}")
+    else:
+        print("No atomic_references.json found")
+
+    # ── Load models ──
+    vacuum_model = None
+    if args.vacuum_ckpt:
+        vac_path = os.path.join(ckpt_dir, args.vacuum_ckpt)
+        if os.path.exists(vac_path):
+            vacuum_model = build_model(num_blocks=4).to(device)
+            vacuum_model.load_state_dict(torch.load(vac_path, map_location=device, weights_only=True))
+            for p in vacuum_model.parameters():
+                p.requires_grad_(False)
+            vacuum_model.eval()
+            print(f"Loaded vacuum model: {vac_path}")
+        else:
+            print(f"Warning: vacuum checkpoint not found: {vac_path}")
+
+    option_a_model = None
+    if args.option_a_ckpt:
+        oa_path = os.path.join(ckpt_dir, args.option_a_ckpt)
+        if os.path.exists(oa_path):
+            option_a_model = build_model(num_blocks=3).to(device)
+            option_a_model.load_state_dict(torch.load(oa_path, map_location=device, weights_only=True))
+            option_a_model.eval()
+            print(f"Loaded Option A model: {oa_path}")
+        else:
+            print(f"Warning: Option A checkpoint not found: {oa_path}")
 
     corr_ckpt = os.path.join(ckpt_dir, args.correction_ckpt)
     if not os.path.exists(corr_ckpt):
         raise FileNotFoundError(f"Correction checkpoint not found: {corr_ckpt}")
-
     correction_model = build_model(num_blocks=3).to(device)
     correction_model.load_state_dict(torch.load(corr_ckpt, map_location=device, weights_only=True))
     correction_model.eval()
@@ -71,94 +136,139 @@ def main():
             explicit_model.load_state_dict(torch.load(exp_ckpt, map_location=device, weights_only=True))
             explicit_model.eval()
             print(f"Loaded explicit model: {exp_ckpt}")
+            if vacuum_model is None:
+                print("  WARNING: explicit model used without vacuum backbone. "
+                      "Predictions will be unreliable.")
+            print("  WARNING: Stage 2b was trained on SPICE2 solute-water clusters,"
+                  " not single molecules.")
+            print("  Results on FreeSolv will be physically meaningless"
+                  " (~1000 kcal/mol error).")
+        else:
+            print(f"Warning: explicit checkpoint not found: {exp_ckpt}")
+
+    # ── Load dataset and labels ──
+    json_path, _ = download_freesolv_data(args.cache_dir)
+    labels = load_freesolv_labels(json_path)
 
     dataset = FreeSolvDataset(args.conformers)
     print(f"Dataset: {len(dataset)} molecules")
 
     loader = DataLoader(dataset, batch_size=args.batchsize, shuffle=False)
-    results = []
 
+    # ── Run inference ──
+    all_results = []
     for data in loader:
         data = data.to(device)
         x = build_one_hot(data, device)
         with torch.no_grad():
             corr_e = correction_model(x, data.pos, data.batch)
-            total_e = corr_e
-            if explicit_model is not None:
-                explicit_e = explicit_model(x, data.pos, data.batch)
-                total_e = total_e + explicit_e
+            dG_B = corr_e * EV_TO_KCAL  # Option B: correction = ΔG
+
+            dG_A = None
+            if option_a_model is not None and vacuum_model is not None:
+                vac_e = vacuum_model(x, data.pos, data.batch)
+                oa_e = option_a_model(x, data.pos, data.batch)
+                dG_A = (oa_e - vac_e) * EV_TO_KCAL
+
+            dG_exp = None
+            if explicit_model is not None and vacuum_model is not None:
+                vac_e = vacuum_model(x, data.pos, data.batch) if vacuum_model else 0
+                impl_e = correction_model(x, data.pos, data.batch)
+                expl_e = explicit_model(x, data.pos, data.batch)
+                total_e = vac_e + impl_e + expl_e
+                dG_exp = (total_e - vac_e) * EV_TO_KCAL
+            elif explicit_model is not None and vacuum_model is None:
+                expl_e = explicit_model(x, data.pos, data.batch)
+                dG_exp = (corr_e + expl_e) * EV_TO_KCAL
 
         for i in range(data.num_graphs):
-            dG_eV = total_e[i].item()
-            dG_kcal = dG_eV * EV_TO_KCAL
-            results.append({
+            row = {
                 "mol_id": data.mol_id[i],
-                "dG_pred_kcal": dG_kcal,
-            })
+                "dG_B_kcal": dG_B[i].item(),
+            }
+            if dG_A is not None:
+                row["dG_A_kcal"] = dG_A[i].item()
+            if dG_exp is not None:
+                row["dG_explicit_kcal"] = dG_exp[i].item()
+            expt = labels.get(data.mol_id[i], {}).get("expt", None)
+            if expt is not None:
+                row["dG_exp_kcal"] = expt
+            all_results.append(row)
 
+    print(f"\nInference complete: {len(all_results)} molecules")
+
+    # ── Save CSV ──
+    fieldnames = list(all_results[0].keys()) if all_results else []
     with open(args.output, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["mol_id", "dG_pred_kcal"])
+        w = csv.DictWriter(f, fieldnames=fieldnames)
         w.writeheader()
-        w.writerows(results)
+        w.writerows(all_results)
     print(f"Saved predictions to {args.output}")
 
-    # ---- Sign check ----
-    preds = np.array([r["dG_pred_kcal"] for r in results])
-    n_negative = int((preds < 0).sum())
-    n_total = len(preds)
-    print(f"\nSign check: {n_negative}/{n_total} predictions are negative")
-    print(f"  Mean raw prediction: {preds.mean():.2f} kcal/mol")
-    if n_negative < n_total * 0.5:
-        print("  WARNING: majority of predictions have wrong sign.")
+    # ── Evaluate each method ──
+    methods_to_eval = []
+    if args.method in ("B", "all"):
+        methods_to_eval.append(("Option B (delta-learning)", "dG_B_kcal"))
+    if args.method in ("A", "all") and "dG_A_kcal" in fieldnames:
+        methods_to_eval.append(("Option A (scratch)", "dG_A_kcal"))
+    if args.method == "all" and "dG_explicit_kcal" in fieldnames:
+        methods_to_eval.append(("+ Explicit (Stage 2b)", "dG_explicit_kcal"))
 
-    # ---- Issue 1: Outlier filtering (5-sigma) ----
-    mean_pred = preds.mean()
-    std_pred = preds.std()
-    mask = np.abs(preds - mean_pred) < 5 * std_pred
-    n_removed = int((~mask).sum())
-    if n_removed > 0:
-        print(f"\nOutlier filter (5 sigma from mean): removed {n_removed} molecule(s)")
-        for i in np.where(~mask)[0]:
-            print(f"  Removed {results[i]['mol_id']}: {results[i]['dG_pred_kcal']:.1f} kcal/mol")
-        preds = preds[mask]
-        results = [r for r, m in zip(results, mask) if m]
+    for label, key in methods_to_eval:
+        preds = np.array([r[key] for r in all_results])
+        expts = np.array([r.get("dG_exp_kcal", np.nan) for r in all_results])
+        valid = ~np.isnan(expts)
+        preds = preds[valid]
+        expts = expts[valid]
+        n = len(preds)
 
-    # ---- Load experimental labels for calibration ----
-    json_path, _ = download_freesolv_data(args.cache_dir)
-    labels = load_freesolv_labels(json_path)
+        print(f"\n{'='*60}")
+        print(f"  {label}")
+        print(f"{'='*60}")
+        print(f"  Molecules: {n}")
+        print(f"  Mean pred: {preds.mean():.3f} kcal/mol")
+        print(f"  Mean expt: {expts.mean():.3f} kcal/mol")
+        print(f"  Pred std:  {preds.std():.3f} kcal/mol")
+        print(f"  Expt std:  {expts.std():.3f} kcal/mol")
 
-    exp_dg = np.array([labels[r["mol_id"]].get("expt", float("nan")) for r in results])
-    valid = ~np.isnan(exp_dg)
-    preds = preds[valid]
-    exp_dg = exp_dg[valid]
-    mol_ids = [results[i]["mol_id"] for i in range(len(results)) if valid[i]]
+        n_neg = int((preds < 0).sum())
+        print(f"  Sign agreement: {n_neg}/{n} negative ({n_neg/n*100:.1f}%)")
 
-    n_valid = len(preds)
-    print(f"\nMatched with experimental data: {n_valid} molecules")
+        metrics = compute_metrics(expts, preds, label)
+        print(f"  MAE:  {metrics['MAE_kcal']:.3f} kcal/mol")
+        print(f"  RMSE: {metrics['RMSE_kcal']:.3f} kcal/mol")
+        print(f"  R2:   {metrics['R2']:.4f}")
+        print(f"  Kendall tau: {metrics['Kendall_tau']:.4f} (p={metrics['Kendall_p']:.4e})")
 
-    # ---- Issue 3: LFER calibration ----
-    n_cal = max(10, int(n_valid * args.lfer_split))
-    cal_pred = preds[:n_cal]
-    cal_exp = exp_dg[:n_cal]
-    test_pred = preds[n_cal:]
-    test_exp = exp_dg[n_cal:]
+        # LFER calibration
+        if args.lfer_split > 0 and n >= 20:
+            n_cal = max(10, int(n * args.lfer_split))
+            n_test = n - n_cal
+            slope, intercept, r_val, p_val, _ = linregress(preds[:n_cal], expts[:n_cal])
+            test_pred_cal = slope * preds[n_cal:] + intercept
+            test_exp = expts[n_cal:]
+            raw_mae = float(np.mean(np.abs(preds[n_cal:] - test_exp)))
+            cal_mae = float(np.mean(np.abs(test_pred_cal - test_exp)))
+            print(f"  LFER (first {n_cal}/test {n_test}):")
+            print(f"    dG_exp = {slope:.4f} * dG_pred + {intercept:.4f}  (R={r_val:.4f})")
+            print(f"    Raw MAE:       {raw_mae:.3f} kcal/mol")
+            print(f"    Calibrated MAE: {cal_mae:.3f} kcal/mol")
 
-    slope, intercept, r_val, p_val, se = linregress(cal_pred, cal_exp)
-    test_pred_cal = slope * test_pred + intercept
-
-    raw_mae = float(np.mean(np.abs(test_pred - test_exp)))
-    cal_mae = float(np.mean(np.abs(test_pred_cal - test_exp)))
-    raw_rmse = float(np.sqrt(np.mean((test_pred - test_exp) ** 2)))
-    cal_rmse = float(np.sqrt(np.mean((test_pred_cal - test_exp) ** 2)))
-
-    print(f"\nLFER calibration (first {n_cal} molecules):")
-    print(f"  dG_exp = {slope:.4f} * dG_pred + {intercept:.4f}")
-    print(f"  R = {r_val:.4f}, p = {p_val:.4e}")
-    print(f"\nTest set ({n_valid - n_cal} molecules):")
-    print(f"  Raw MAE:       {raw_mae:.3f} kcal/mol")
-    print(f"  Calibrated MAE: {cal_mae:.3f} kcal/mol")
-    print(f"  Raw RMSE:       {raw_rmse:.3f} kcal/mol")
-    print(f"  Calibrated RMSE: {cal_rmse:.3f} kcal/mol")
+    # ── Comparison table if both methods available ──
+    if args.method == "all" and len(methods_to_eval) >= 2:
+        print(f"\n{'='*60}")
+        print(f"  METHOD COMPARISON")
+        print(f"{'='*60}")
+        print(f"  {'Method':<30} {'MAE':>8} {'RMSE':>8} {'R2':>8} {'Kendall_tau':>10}")
+        print(f"  {'-'*30} {'-'*8} {'-'*8} {'-'*8} {'-'*10}")
+        for label, key in methods_to_eval:
+            preds = np.array([r[key] for r in all_results])
+            expts = np.array([r.get("dG_exp_kcal", np.nan) for r in all_results])
+            valid = ~np.isnan(expts)
+            m = compute_metrics(expts[valid], preds[valid], label)
+            print(f"  {m['method']:<30} {m['MAE_kcal']:>8.3f} {m['RMSE_kcal']:>8.3f} "
+                  f"{m['R2']:>8.4f} {m['Kendall_tau']:>10.4f}")
+        print()
 
 
 if __name__ == "__main__":

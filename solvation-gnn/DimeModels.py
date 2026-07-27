@@ -336,6 +336,41 @@ class InteractionBlock(torch.nn.Module):
         return h
 
 
+class SqueezeExcitation(torch.nn.Module):
+    def __init__(self, hidden_channels: int, reduction: int = 16):
+        super().__init__()
+        reduced = max(4, hidden_channels // reduction)
+        self.fc1 = Linear(hidden_channels, reduced)
+        self.fc2 = Linear(reduced, hidden_channels)
+
+    def reset_parameters(self):
+        self.fc1.reset_parameters()
+        self.fc2.reset_parameters()
+
+    def forward(self, x: Tensor) -> Tensor:
+        y = x.mean(dim=0, keepdim=True)
+        y = self.fc1(y).relu()
+        y = self.fc2(y).sigmoid()
+        return x * y
+
+
+class MultiAggregate(torch.nn.Module):
+    def __init__(self, in_channels: int, act: Callable):
+        super().__init__()
+        self.act = act
+        self.lin_combine = Linear(in_channels * 3, in_channels)
+
+    def reset_parameters(self):
+        self.lin_combine.reset_parameters()
+
+    def forward(self, x: Tensor, index: Tensor, dim_size: int) -> Tensor:
+        sum_a = scatter(x, index, dim=0, dim_size=dim_size, reduce='sum')
+        mean_a = scatter(x, index, dim=0, dim_size=dim_size, reduce='mean')
+        max_a = scatter(x, index, dim=0, dim_size=dim_size, reduce='max')
+        combined = torch.cat([sum_a, mean_a, max_a], dim=-1)
+        return self.act(self.lin_combine(combined))
+
+
 class InteractionPPBlock(torch.nn.Module):
     def __init__(
         self,
@@ -347,9 +382,13 @@ class InteractionPPBlock(torch.nn.Module):
         num_before_skip: int,
         num_after_skip: int,
         act: Callable,
+        use_multi_aggregate: bool = False,
+        use_se: bool = False,
     ):
         super().__init__()
         self.act = act
+        self.use_multi_aggregate = use_multi_aggregate
+        self.use_se = use_se
 
         # Transformation of Bessel and spherical basis representations:
         self.lin_rbf1 = Linear(num_radial, basis_emb_size, bias=False)
@@ -366,6 +405,12 @@ class InteractionPPBlock(torch.nn.Module):
         # Embedding projections for interaction triplets:
         self.lin_down = Linear(hidden_channels, int_emb_size, bias=False)
         self.lin_up = Linear(int_emb_size, hidden_channels, bias=False)
+
+        if use_multi_aggregate:
+            self.multi_agg = MultiAggregate(int_emb_size, act)
+
+        if use_se:
+            self.se = SqueezeExcitation(hidden_channels)
 
         # Residual layers before and after skip connection:
         self.layers_before_skip = torch.nn.ModuleList([
@@ -392,6 +437,11 @@ class InteractionPPBlock(torch.nn.Module):
         glorot_orthogonal(self.lin_down.weight, scale=2.0)
         glorot_orthogonal(self.lin_up.weight, scale=2.0)
 
+        if self.use_multi_aggregate:
+            self.multi_agg.reset_parameters()
+        if self.use_se:
+            self.se.reset_parameters()
+
         for res_layer in self.layers_before_skip:
             res_layer.reset_parameters()
         glorot_orthogonal(self.lin.weight, scale=2.0)
@@ -401,25 +451,23 @@ class InteractionPPBlock(torch.nn.Module):
 
     def forward(self, x: Tensor, rbf: Tensor, sbf: Tensor, idx_kj: Tensor,
                 idx_ji: Tensor) -> Tensor:
-        # Initial transformation:
         x_ji = self.act(self.lin_ji(x))
         x_kj = self.act(self.lin_kj(x))
 
-        # Transformation via Bessel basis:
         rbf = self.lin_rbf1(rbf)
         rbf = self.lin_rbf2(rbf)
         x_kj = x_kj * rbf
 
-        # Down project embedding and generating triple-interactions:
         x_kj = self.act(self.lin_down(x_kj))
 
-        # Transform via 2D spherical basis:
         sbf = self.lin_sbf1(sbf)
         sbf = self.lin_sbf2(sbf)
         x_kj = x_kj[idx_kj] * sbf
 
-        # Aggregate interactions and up-project embeddings:
-        x_kj = scatter(x_kj, idx_ji, dim=0, dim_size=x.size(0), reduce='sum')
+        if self.use_multi_aggregate:
+            x_kj = self.multi_agg(x_kj, idx_ji, dim_size=x.size(0))
+        else:
+            x_kj = scatter(x_kj, idx_ji, dim=0, dim_size=x.size(0), reduce='sum')
         x_kj = self.act(self.lin_up(x_kj))
 
         h = x_ji + x_kj
@@ -428,6 +476,9 @@ class InteractionPPBlock(torch.nn.Module):
         h = self.act(self.lin(h)) + x
         for layer in self.layers_after_skip:
             h = layer(h)
+
+        if self.use_se:
+            h = self.se(h)
 
         return h
 
@@ -972,6 +1023,127 @@ class DimeNetPlus(DimeNet):
             P = P + output_block(h, rbf, i, num_nodes=pos.size(0))
 
         # Return node embeddings
+        if self.is_energy:
+            if batch is None:
+                return P.sum(dim=0)
+            else:
+                return scatter(P, batch, dim=0, reduce='sum')
+        else:
+            return P
+
+
+class DimeNetPlusSE(DimeNet):
+    def __init__(
+            self,
+            hidden_channels: int,
+            in_channels: int,
+            out_channels: int,
+            num_blocks: int,
+            int_emb_size: int,
+            basis_emb_size: int,
+            out_emb_channels: int,
+            num_spherical: int,
+            num_radial: int,
+            cutoff: float = 5.0,
+            max_num_neighbors: int = 32,
+            envelope_exponent: int = 5,
+            num_before_skip: int = 1,
+            num_after_skip: int = 2,
+            num_output_layers: int = 3,
+            num_atom_types: int = 95,
+            act: Union[str, Callable] = 'swish',
+            output_initializer: str = 'zeros',
+            is_energy: bool = False,
+            use_multi_aggregate: bool = True,
+            use_se: bool = True,
+    ):
+        act = activation_resolver(act)
+
+        super(DimeNet, self).__init__()
+
+        if num_spherical < 2:
+            raise ValueError("'num_spherical' should be greater than 1")
+
+        self.cutoff = cutoff
+        self.max_num_neighbors = max_num_neighbors
+        self.num_blocks = num_blocks
+        self.is_energy = is_energy
+        if self.is_energy:
+            self.out_channels = 1
+        else:
+            self.out_channels = out_channels
+
+        self.rbf = BesselBasisLayer(num_radial, cutoff, envelope_exponent)
+        self.sbf = SphericalBasisLayer(num_spherical, num_radial, cutoff,
+                                       envelope_exponent)
+
+        self.emb = HybridEmbeddingBlock(
+            hidden_channels,
+            in_channels - 1,
+            num_atom_types,
+            num_radial,
+            act
+        )
+
+        self.output_blocks = torch.nn.ModuleList([
+            OutputPPBlock(
+                num_radial,
+                hidden_channels,
+                out_emb_channels,
+                out_channels,
+                num_output_layers,
+                act,
+                output_initializer,
+            ) for _ in range(num_blocks + 1)
+        ])
+
+        self.interaction_blocks = torch.nn.ModuleList([
+            InteractionPPBlock(
+                hidden_channels,
+                int_emb_size,
+                basis_emb_size,
+                num_spherical,
+                num_radial,
+                num_before_skip,
+                num_after_skip,
+                act,
+                use_multi_aggregate=use_multi_aggregate,
+                use_se=use_se,
+            ) for _ in range(num_blocks)
+        ])
+
+        self.reset_parameters()
+
+    def forward(
+            self,
+            x: Tensor,
+            pos: Tensor,
+            batch: OptTensor = None,
+    ) -> Tensor:
+        edge_index = radius_graph(pos, r=self.cutoff, batch=batch,
+                                  max_num_neighbors=self.max_num_neighbors)
+
+        i, j, idx_i, idx_j, idx_k, idx_kj, idx_ji = triplets(
+            edge_index, num_nodes=x.size(0))
+
+        dist = (pos[i] - pos[j]).pow(2).sum(dim=-1).sqrt()
+
+        pos_jk, pos_ij = pos[idx_j] - pos[idx_k], pos[idx_i] - pos[idx_j]
+        a = (pos_ij * pos_jk).sum(dim=-1)
+        b = torch.cross(pos_ij, pos_jk, dim=1).norm(dim=-1)
+        angle = torch.atan2(b, a)
+
+        rbf = self.rbf(dist)
+        sbf = self.sbf(dist, angle, idx_kj)
+
+        h = self.emb(x, rbf, i, j)
+        P = self.output_blocks[0](h, rbf, i, num_nodes=pos.size(0))
+
+        for interaction_block, output_block in zip(self.interaction_blocks,
+                                                   self.output_blocks[1:]):
+            h = interaction_block(h, rbf, sbf, idx_kj, idx_ji)
+            P = P + output_block(h, rbf, i, num_nodes=pos.size(0))
+
         if self.is_energy:
             if batch is None:
                 return P.sum(dim=0)

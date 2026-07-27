@@ -1,0 +1,285 @@
+================================================================================
+  FreeSolv Solvation GNN — Progress Log
+  Last updated: 2026-07-27
+================================================================================
+
+== OBJECTIVE ==
+Achieve competitive FreeSolv MAE/RMSE by fine-tuning delta-learning pipeline
+(AQM → DimeNet++), benchmark against published SOTA, produce robust CV + ensemble.
+
+== REPO STRUCTURE ==
+solvation-gnn/
+  cv_finetune.py           — 5-fold CV + ensemble + conformer aug + comparison + plot
+  finetune_freesolv.py     — Single 80/20 split fine-tuning
+  predict_freesolv.py      — Zero-shot prediction (methods A, B, all, LFER)
+  lfer_calibrate.py        — LFER linear calibration (abandoned, R²=0.047)
+  analyze_freesolv.py      — Metrics, scatter, functional-group plots
+  freesolv_dataset.py      — Conformer generation, dataset loading
+  DimeModels.py            — DimeNet++ architecture
+  element_vocab.py         — Element one-hot encoding
+  results/
+    stage2_correction.pt   — Option B ΔG predictor (PBE0+MBD continuum)
+    stage1_fold_1.pt       — Vacuum backbone
+    option_a.pt            — Scratch model (Option A)
+    atomic_references.json — Atomic reference energies
+    stage2b.pt             — SPICE2 explicit correction (different domain)
+  cv_results/              — Created by cv_finetune.py at runtime
+
+freesolv_conformers.hdf5  — 642 molecules, MMFF-optimized geometries
+run_freesolv_pipeline.sh  — End-to-end pipeline script
+
+== VERIFIED RESULTS ==
+
+Fine-tuned correction model (single 80/20 split, seed 42):
+  Test MAE = 0.52 kcal/mol
+  Test RMSE = 0.84 kcal/mol
+  Test R²  = 0.956
+
+Zero-shot baseline (Option B, no fine-tuning):
+  MAE = 3.01, RMSE = 4.08, R² = 0.05 (r=0.25)
+
+== COMPARISON TABLE (verified from papers) ==
+  Method                          MAE       RMSE
+  Zhang 2022 (A3D-PNAConv-FT)     0.417     0.719
+  COSMO-RS (Klamt 2015)           0.52      —
+  ReSolv (Röcken 2024)            0.63      0.96
+  Amber GAFF (full FreeSolv)      1.11      1.53
+  CHARMM CGenFF (full FreeSolv)   1.18      2.04
+  GIN-FP (IIT Delhi 2025)         —         1.022
+  GCN (IIT Delhi 2025)            —         1.288
+  GBn2 (this baseline)            19.83     —
+  This work (fine-tuned)          0.52      0.84
+
+Gap to SOTA (Zhang 2022): ~0.1 MAE
+Zhang advantages: PNAConv (multi-aggregator) + ACSF 3D features + 
+solvation-specific pre-training (B3LYP/6-31G* + SMD on Frag20-Aqsol-100K)
+
+== SCRIPT CAPABILITIES ==
+cv_finetune.py:
+  --quick_test       2 epochs, 2 folds (verify setup, ~2 min)
+  --n_conformers N   Test-time conformer averaging (default 1 = off)
+  --epochs N         Training epochs (default 200)
+  --patience N       Early stopping (default 30)
+  Output: per-fold metrics + ensemble + comparison table + parity plot
+
+== WHAT WAS TRIED & ABANDONED ==
+- Option A (scratch model: vacuum + solvated, subtract): raw MAE 11.9
+- LFER calibration: MAE 2.97 → 2.84, R²=0.047 (predictions too weakly correlated)
+- xTB geometry relaxation: blocked (no C/Fortran compiler, no Windows wheel)
+- Architecture swap to PNAConv: not worth effort without GPU for re-pretraining
+
+== NEXT STEPS ==
+1. Run full pipeline on GPU (Vast AI):
+   bash run_freesolv_pipeline.sh
+   Or step-by-step for individual components.
+
+2. To beat SOTA (MAE < 0.417):
+   - Conformer ensemble (--n_conformers 20) might shave ~0.03-0.05
+   - Ensemble across CV folds already wired in
+   - Real gap is architecture + pre-training domain, not fine-tuning
+   - Would need PNAConv + solvation-specific pre-training from scratch
+
+3. For future sessions:
+   - Read this file first to understand context
+   - checkpoints in results/ and cv_results/*/finetuned.pt
+   - Predictions CSVs in cv_results/*/ft_test_predictions.csv
+   - Parity plot in cv_results/parity_plot.png
+
+===============================================================================
+  DimeNetPlusSE Architecture (July 2026)
+===============================================================================
+
+Input: x [num_atoms, 17]   — one-hot (Z=1..53) + continuous features
+       pos [num_atoms, 3]  — 3D coordinates
+
+1. Radius graph (@ 6.0 A, max 32 neighbors)
+2. Triplet indices (j->i, k->j->i) for angular messages
+
+3. HybridEmbeddingBlock
+   `-- atom_embedding(95->H) + continuous_lin(16->H) -> sum
+   `-- Bessel RBF -> MLP
+   `-- concat(x[i], x[j], rbf_emb) -> Linear(3H->H) -> act
+
+4. OutputPPBlock x 1 (first output)
+   `-- rbf-gated node embedding -> Linear(H->out_emb->1)
+
+5. InteractionPPBlock x N (N=3 default)  <<-- ENHANCED
+   |-- x_ji = act(lin_ji(x))           [H]
+   |-- x_kj = act(lin_kj(x)) * rbf     [H]
+   |-- x_kj = act(lin_down(x_kj))      [int_emb]
+   |-- x_kj = x_kj * sbf (spherical)   [int_emb]
+   |-- MultiAggregate  <<-- NEW
+   |   `-- scatter(sum) + scatter(mean) + scatter(max)
+   |   `-- concat(3*int_emb) -> Linear -> act
+   |-- x_kj = act(lin_up(x_kj))        [H]
+   |-- h = x_ji + x_kj
+   |-- ResidualLayer x num_before_skip [H]
+   |-- h = act(lin(h)) + x             [skip connection]
+   |-- ResidualLayer x num_after_skip  [H]
+   |-- SqueezeExcitation  <<-- NEW
+   |   `-- global mean pool -> FC(H->H/r) -> ReLU -> FC(H/r->H) -> sigmoid -> scale
+   `-- OutputPPBlock (summed to running total)
+
+6. scatter(P, batch, reduce='sum') -> [batch_size, 1]
+
+Key additions vs original DimeNetPlus:
+- MultiAggregate -- replaces single reduce='sum' with sum+mean+max, learned projection
+- SqueezeExcitation -- global channel recalibration at each block (from SenCos-GEM)
+- Both flag-gated (--no_se, --no_multi_agg to disable)
+
+===============================================================================
+  MACE (Batatia et al. 2022, NeurIPS 2022) — Analysis
+===============================================================================
+
+Core insight: decouple body order of messages from number of message-passing
+layers. Prior equivariant MPNNs (NequIP, Allegro, PaiNN) only pass 2-body
+messages per layer; need 4-6 stacked layers for angular/dihedral info, which
+blows up receptive field and kills parallelizability. DimeNet's fix was explicit
+3-body (angular) terms per layer, but triplet enumeration costs blow up
+combinatorially with body order.
+
+MACE's solution: construct >=3-body messages within a single layer using a
+tensor-product trick from the Atomic Cluster Expansion (ACE) framework.
+
+Architecture:
+1. A-features (eq. 8-9): standard 2-body pooling — radial basis x spherical
+   harmonics x learned embedding, combined via Clebsch-Gordan coefficients
+   = O(3)-equivariant. Cheap, once per layer.
+2. B-features (eq. 10): self tensor-products of A-features, v times
+   (v = correlation order), symmetrized via generalized CG coefficients.
+   Computed on NODES (not edges) -> nodes << edges -> stays fast.
+3. Message (eq. 11): linear combo of B-features across correlation orders
+   -> message is effectively (v+1)-body.
+4. Update (eq. 12): linear + residual, no nonlinearity (BOTNet variant).
+5. Readout (eq. 13): linear per layer except last = MLP.
+
+Result: with v=3 (4-body messages), 2 layers matches/beats models needing 5.
+
+Key findings:
+- Body order v changes the SLOPE of log-log error-vs-data curves (not just
+  offset) — like adding equivariance in NequIP. Equivariance L shifts the
+  curve at fixed v, doesn't change slope much. Body order and equivariance
+  are independent levers; body order changes learning efficiency fundamentally.
+- O(1) in chemical elements — species excluded from tensor product.
+- Speed: L=0 MACE ~10x faster than BOTNet/NequIP; L=2 ~4x faster.
+  30 min to BOTNet-level accuracy on 3BPA vs >1 day for BOTNet.
+- Near-SOTA on rMD17, 3BPA (extrapolation wins), AcAc (bond-breaking).
+
+Relevance to this project:
+- DimeNet++ 3-body angular messages are exactly what MACE generalizes.
+- Correction target is scalar per-structure delta (rotation-invariant) so
+  equivariance not strictly required, but solvation physics (polarizability,
+  many-body dispersion) depends on higher body-order -> MACE's body-order
+  efficiency directly addresses the likely accuracy bottleneck.
+- 2-layer MACE is a drop-in-ish upgrade to DimeNet++ backbone: faster train,
+  faster inference, likely better extrapolation on conformers far from training
+  distribution (important for delta-learning where errors compound).
+- Loss weighting (eq. 15, lambda_F=1000) worth comparing against current setup.
+- Compute: single A100, 2-6 hrs per benchmark — tractable on Vast.ai.
+
+===============================================================================
+  Zhang et al. 2026 (npj Comput Mater) — Key Findings for This Project
+===============================================================================
+
+Paper: "Constructing MLIPs with minimum amount of ab initio data"
+       Wang group at CAS, npj Computational Materials 12, 174 (2026)
+
+Core workflow (3 stages):
+  Stage 0: Run HT MD with pretrained MACE-MP-0 directly (no fine-tuning) to
+           generate trajectories. DIRECT resampling (PCA + stratified
+           clustering on M3GNet features) picks ~200 diverse configs for
+           one-shot DFT labeling. Key justification: MACE-MP-0 trajectories
+           have ~90% PCA feature overlap with AIMD despite 22.8% RRMSE on
+           transition energies, so it's good enough to sample with but not
+           accurate enough to trust directly.
+  Stage 1: Fine-tune MACE-MP-0 on ~200 DFT configs (full FT or ELoRA).
+  Stage 2: Distill to lightweight NEP (teacher labels 2000 pseudo-configs,
+           zero additional DFT). NEP recovers most accuracy with 20x speedup.
+
+Key findings:
+  - MD instability mechanism (directly relevant to our ZBL work):
+    * ZBL alone does NOT fix instability (Fig. S7) — same conclusion we reached
+    * Root cause is PES SMOOTHNESS, not just short-range repulsive trend
+    * A model can have correct repulsive energy trend at short r, but an
+      unsmooth ("kinked") energy curve — slope changes abruptly, producing
+      spurious attractive forces that destabilise MD
+    * Pretrained/fine-tuned models inherit smoothness from pretrained PES,
+      avoiding this problem entirely
+    * Fine-tuning with just 10 configs yields stable MD; training from scratch
+      on 800 configs is still unstable
+    * Diagnosis: check diatomic energy curves for kinks, not just ZBL sign
+  - Fine-tuned models inherit both accuracy and stability from pretrained
+  - ELoRA (equivariant low-rank adaptation) matches full fine-tuning with
+    far fewer trainable params
+  - Single-shot sampling + fine-tuning replaces costly active learning loops
+  - Distillation: NEP trained on teacher's 2000 pseudo-configs has 17% lower
+    energy RMSE, 11% lower force RMSE than NEP trained on 200 DFT configs
+  - Charged/long-range electrostatics still a known gap (no explicit
+    point-charge/polarization in MACE-MP-0)
+
+Relevance to this project:
+  1. FreeSolv MD stability: If we run MD with our DimeNet++ correction model,
+     check diatomic energy curves for kinks (not just ZBL sign) as the paper
+     diagnoses. Fine-tuned MACE-OFF23 would inherit smooth PES.
+  2. Fine-tuning MACE-OFF23 on FreeSolv: MACE-OFF23 is pretrained on SPICE v1
+     (wB97M+D3, exactly the organic molecules in FreeSolv). Fine-tuning on
+     FreeSolv's 642 molecules is the most direct path to:
+     - Inherited smooth PES (stable predictions)
+     - Better data efficiency (MACE needs far fewer samples than DimeNet++)
+     - Potentially sub-0.4 MAE (approaching Zhang 2022 SOTA of 0.417)
+  3. No need for Stage 0 sampling — FreeSolv labels already exist.
+  4. The electrostatic limitation is less relevant: FreeSolv is neutral organic
+     molecules, solvation free energy includes polarization implicitly.
+
+===============================================================================
+  MACE-OFF23 Fine-Tuning Pipeline (July 2026)
+===============================================================================
+
+New folder: mace_freesolv/
+
+Files:
+  config.py     — Hyperparameters (paths, epochs, LR, etc.)
+  data.py       — MACEFreeSolvDataset: reads freesolv_conformers.hdf5, builds
+                  MACE-format dicts (positions, node_attrs, edge_index, etc.)
+                  Contains radius_graph() and collate_mace().
+  model.py      — MACEFreeSolv: wraps pretrained ScaleShiftMACE from
+                  mace-off23 (medium or small). Initializes by:
+                  1) Fitting atomic reference energies to FreeSolv targets
+                     (ridge regression, residual std = 2.78 kcal/mol)
+                  2) Calibrating scale_shift on full dataset (init output ~0 eV)
+                  All 1.4M params trainable.
+  train.py      — 5-fold CV loop, train_epoch()/validate() with MSE loss,
+                  ReduceLROnPlateau, gradient clipping, early stopping.
+                  All metrics tracked in eV, converted to kcal/mol for display.
+  main.py       — CLI entry point with --quick_test, --model_size,
+                  --freeze_interactions, --epochs, --n_folds, etc.
+  results/      — Per-fold checkpoints and predictions (created at runtime)
+
+Approach:
+  - Load MACE-OFF23 foundation model (pretrained on SPICE v1, wB97M+D3,
+    10 organic elements)
+  - Zero atomic_energies, fit to FreeSolv via ridge regression
+  - Calibrate scale_shift to normalize output distribution
+  - Full fine-tune, MSE loss on ΔG_solv (experimental vs predicted)
+
+Known issue: CPU training is slow (~75s/epoch for small model, ~57s for
+medium). 1.4M param e3nn tensor products are GPU-native ops. Full 5-fold ×
+500 epoch run on CPU would take ~40 hours.
+
+Recommended approach:
+  - Use --model_size small for faster iteration
+  - Single fold × 50 epochs (~30 min) to check if trending toward SOTA
+  - Full run requires GPU (Vast.ai, etc.)
+
+Current status as of 2026-07-27:
+  - Pipeline code written and verified (forward pass, gradient flow, CV loop)
+  - Atomic reference: residual std = 2.78 kcal/mol (better than zero-shot DimeNet++)
+  - Quick test (2 epochs, small model): MAE ~2.0 kcal/mol (atomic ref only, no
+    interaction learning yet due to scale mismatch)
+  - Scale calibration implemented to fix the interaction output scale
+  - Full single-fold × 50 epoch test pending (user will run later)
+
+Next step:
+  python main.py --model_size small --epochs 50 --n_folds 2
+  (takes ~30 min on CPU, 51 training + 321 test molecules per fold)
+================================================================================

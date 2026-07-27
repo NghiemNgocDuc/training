@@ -1,16 +1,28 @@
-Data/
-__MACOSX/
 __pycache__/
 *.pyc
-.opencode/
-vast_setup.txt
-download_data.txt
-*-full.hdf5
-# Generated outputs
-freesolv_conformers*.hdf5
-freesolv_predictions*.csv
-freesolv_gbn2*.csv
-freesolv_results.csv
-freesolv_labels.csv
-evaluation_summary.txt
-*.png
+.DS_Store
+*.hdf5
+*.npz
+
+# Results/output
+results/
+cv_results/
+cv_results_se/
+ft_results/
+ft_option_a/
+results_test/
+results_test_atomic_ref/
+
+# MACE results
+mace_freesolv/results/
+
+# Data files
+AQM-gas-eval/
+AQM-sol/
+Data/FreeSolv/
+
+# MACE cache
+.cache/
+
+# Config
+opencode.json

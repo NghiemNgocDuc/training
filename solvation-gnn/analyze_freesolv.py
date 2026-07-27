@@ -12,7 +12,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.stats import kendalltau, pearsonr, linregress
-from rdkit import Chem
 
 from freesolv_dataset import download_freesolv_data, load_freesolv_labels
 
@@ -209,30 +208,34 @@ def main():
         smiles_list.append(entry.get("smiles", ""))
     merged_model["smiles"] = smiles_list
 
-    n_heavy = []
-    for smi in merged_model["smiles"]:
-        mol = Chem.MolFromSmiles(smi)
-        n_heavy.append(mol.GetNumHeavyAtoms() if mol else 0)
-    merged_model["n_heavy_atoms"] = n_heavy
-    merged_model["error"] = merged_model["dG_pred_kcal"] - merged_model["dG_exp_kcal"]
+    try:
+        from rdkit import Chem
+        n_heavy = []
+        for smi in merged_model["smiles"]:
+            mol = Chem.MolFromSmiles(smi)
+            n_heavy.append(mol.GetNumHeavyAtoms() if mol else 0)
+        merged_model["n_heavy_atoms"] = n_heavy
+        merged_model["error"] = merged_model["dG_pred_kcal"] - merged_model["dG_exp_kcal"]
 
-    fig, ax = plt.subplots(figsize=(7, 5))
-    ax.scatter(merged_model["n_heavy_atoms"], merged_model["error"],
-               alpha=0.5, s=15, color="#1f77b4")
-    ax.axhline(0, color="black", linestyle="--", lw=0.8)
-    ax.set_xlabel("Number of heavy atoms")
-    ax.set_ylabel("Predicted - Experimental ΔG (kcal/mol)")
-    ax.set_title("Prediction error vs molecular size")
-    plt.tight_layout()
-    size_path = os.path.join(args.output_dir, "freesolv_size_bias.png")
-    plt.savefig(size_path, dpi=150)
-    plt.close()
-    print(f"Saved size bias plot: {size_path}")
+        fig, ax = plt.subplots(figsize=(7, 5))
+        ax.scatter(merged_model["n_heavy_atoms"], merged_model["error"],
+                   alpha=0.5, s=15, color="#1f77b4")
+        ax.axhline(0, color="black", linestyle="--", lw=0.8)
+        ax.set_xlabel("Number of heavy atoms")
+        ax.set_ylabel("Predicted - Experimental ΔG (kcal/mol)")
+        ax.set_title("Prediction error vs molecular size")
+        plt.tight_layout()
+        size_path = os.path.join(args.output_dir, "freesolv_size_bias.png")
+        plt.savefig(size_path, dpi=150)
+        plt.close()
+        print(f"Saved size bias plot: {size_path}")
 
-    r, p = pearsonr(merged_model["n_heavy_atoms"], merged_model["error"])
-    print(f"Size-error correlation: r={r:.3f}, p={p:.4f}")
-    if abs(r) > 0.3 and p < 0.05:
-        print("  WARNING: significant size bias detected in predictions")
+        r, p = pearsonr(merged_model["n_heavy_atoms"], merged_model["error"])
+        print(f"Size-error correlation: r={r:.3f}, p={p:.4f}")
+        if abs(r) > 0.3 and p < 0.05:
+            print("  WARNING: significant size bias detected in predictions")
+    except ImportError:
+        print("RDKit not available, skipping size bias analysis")
 
     # Save joined results CSV
     results_path = os.path.join(args.output_dir, "freesolv_results.csv")
