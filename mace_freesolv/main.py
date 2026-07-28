@@ -7,10 +7,17 @@ import torch
 from torch.utils.data import DataLoader
 
 from config import OUTPUT_DIR, EV_TO_KCAL, MACE_MODEL_SIZE, MACE_R_MAX, MACE_MAX_NEIGHBORS
-from config import EPOCHS, LR, LR_MIN, WEIGHT_DECAY, BATCH_SIZE, PATIENCE, VAL_SPLIT, SEED, N_FOLDS
-from train import run_cv, evaluate, validate
+from config import EPOCHS, LR, LR_MIN, WEIGHT_DECAY, BATCH_SIZE, PATIENCE, SEED, N_FOLDS
+from config import WARMUP_EPOCHS, LOSS_TYPE
+from train import run_cv, evaluate, validate, compute_target_stats
 from data import MACEFreeSolvDataset, collate_mace
 from model import MACEFreeSolv
+
+
+def set_seed(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 def main():
@@ -18,6 +25,7 @@ def main():
     parser.add_argument("--quick_test", action="store_true", help="2 epochs, 2 folds")
     parser.add_argument("--device", type=str, default=None, help="Device (cpu/cuda)")
     parser.add_argument("--freeze_interactions", action="store_true", help="Freeze interaction blocks")
+    parser.add_argument("--freeze_atomic_energies", action="store_true", help="Freeze atomic reference energies")
     parser.add_argument("--model_size", type=str, default=MACE_MODEL_SIZE, choices=["small", "medium", "large"])
     parser.add_argument("--epochs", type=int, default=EPOCHS)
     parser.add_argument("--n_folds", type=int, default=N_FOLDS)
@@ -31,7 +39,14 @@ def main():
     parser.add_argument("--output_dir", type=str, default=OUTPUT_DIR)
     parser.add_argument("--seed", type=int, default=SEED)
     parser.add_argument("--eval_only", type=str, default=None, help="Evaluate a saved checkpoint")
+    parser.add_argument("--warmup_epochs", type=int, default=WARMUP_EPOCHS, help="LR warmup epochs")
+    parser.add_argument("--loss_type", type=str, default=LOSS_TYPE, choices=["mse", "huber"])
+    parser.add_argument("--huber_delta", type=float, default=1.0, help="Huber loss delta (in eV)")
+    parser.add_argument("--no_seed", action="store_true", help="Disable deterministic seeding")
     args = parser.parse_args()
+
+    if not args.no_seed:
+        set_seed(args.seed)
 
     if args.quick_test:
         args.epochs = 2
@@ -73,7 +88,7 @@ def eval_checkpoint(checkpoint_path, args):
     device = torch.device(args.device if args.device else "cpu")
     print(f"Evaluating: {checkpoint_path}")
 
-    model = MACEFreeSolv(model_size=args.model_size, device=device).to(device)
+    model = MACEFreeSolv(model_size=args.model_size, device=device, fit_refs=False).to(device)
     model.load(checkpoint_path)
     model.eval()
 

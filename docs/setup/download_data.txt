@@ -1,0 +1,8 @@
+# Run these in PowerShell to download datasets locally
+
+cmd /c "curl -L -o Data\AQM-gas.hdf5 https://zenodo.org/records/10208010/files/AQM-gas.hdf5"
+cmd /c "curl -L -o Data\AQM-sol.hdf5 https://zenodo.org/records/10208010/files/AQM-sol.hdf5"
+cmd /c "curl -L -o Data\SPICE-2.0.1.hdf5 https://zenodo.org/records/10975225/files/SPICE-2.0.1.hdf5"
+
+# Then upload to Vast (repo root is the working directory):
+# scp Data\AQM-gas.hdf5 Data\AQM-sol.hdf5 Data\SPICE-2.0.1.hdf5 root@<VAST_IP>:/workspace/

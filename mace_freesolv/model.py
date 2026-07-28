@@ -50,10 +50,14 @@ def calibrate_output(model, dataset, batch_size=64, device="cpu"):
 
 
 class MACEFreeSolv(torch.nn.Module):
-    def __init__(self, model_size="medium", device="cpu", fit_refs=True):
+    def __init__(self, model_size="medium", device="cpu", fit_refs=True,
+                 freeze_atomic_energies=False, target_mean=0.0, target_std=None):
         super().__init__()
         self.device = device
         self.model_size = model_size
+        self.freeze_atomic_energies = freeze_atomic_energies
+        self.target_mean = target_mean
+        self.target_std = target_std
 
         base = load_mace_foundation(model_size, device)
         base = base.float()
@@ -66,15 +70,22 @@ class MACEFreeSolv(torch.nn.Module):
             ref_kcal = fit_atomic_references(ds)
             ref_ev = ref_kcal / 23.0605
             base.atomic_energies_fn.atomic_energies.data = ref_ev.unsqueeze(0).float()
-            base.atomic_energies_fn.atomic_energies.requires_grad_(True)
+            base.atomic_energies_fn.atomic_energies.requires_grad_(not self.freeze_atomic_energies)
 
-            mean_e, std_e = calibrate_output(base, ds, batch_size=64, device="cpu")
+            mean_e, std_e = calibrate_output(base, ds, batch_size=64, device=device)
 
-            target_mean = 0.0
-            target_std = 1.0 / 23.0605
-            base.scale_shift.scale.data.fill_(max(0.001, target_std / max(std_e, 1e-8)))
-            base.scale_shift.shift.data.fill_(-mean_e * base.scale_shift.scale.item())
-            print(f"  Set scale={base.scale_shift.scale.item():.6f}, shift={base.scale_shift.shift.item():.6f}")
+            if target_std is None:
+                target_std_ev = 1.0 / 23.0605
+            else:
+                target_std_ev = target_std / 23.0605
+            scale_analytic = target_std_ev / max(std_e, 1e-8)
+            scale = min(0.001, scale_analytic)
+            shift = 0.0
+            base.scale_shift.scale.data.fill_(scale)
+            base.scale_shift.shift.data.fill_(shift)
+            print(f"  Calibration: target_std={target_std_ev:.4f} eV, model_std={std_e:.4f} eV")
+            print(f"    analytic_scale={scale_analytic:.6f}, capped_scale={scale:.6f}")
+            print(f"    shift=0.0 (per-node shift must be 0 — summed over atoms)")
 
         self.model = base
         n_trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)

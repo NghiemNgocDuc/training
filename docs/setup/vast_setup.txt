@@ -1,0 +1,35 @@
+# Usage on Vast.ai (or any GPU server)
+# --------------------------------
+# The main pipeline scripts are in:
+#   aqm-spice2/scripts/    — DimeNet++ FreeSolv pipeline
+#   mace_freesolv/main.py     — MACE-OFF23 FreeSolv pipeline
+#
+# Repo structure:
+#   aqm-spice2/     — DimeNet++ solvation GNN project
+#   thr-forcefield-gnn/ — THR Force Field GNN project (older)
+#   mace_freesolv/     — MACE-OFF23 fine-tuning project
+#   aqm_data/          — AQM dataset utilities
+#   Data/              — Shared data files
+#   docs/              — Documentation & planning
+
+# Option A: Jupyter notebook cell
+!git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || (cd training && git pull)
+%cd training
+!pip install torch torch_geometric h5py scikit-learn
+!bash aqm-spice2/scripts/run_all.sh
+
+# Option B: SSH terminal
+git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || (cd training && git pull)
+cd training
+pip install torch torch_geometric h5py scikit-learn
+bash aqm-spice2/scripts/run_all.sh
+
+# Option C: SSH detached (can close terminal, watch later)
+git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || (cd training && git pull)
+cd training
+pip install torch torch_geometric h5py scikit-learn
+nohup bash aqm-spice2/scripts/run_all.sh > training.log 2>&1 &
+tail -f training.log   # watch live; Ctrl+C to detach, reconnect anytime
+
+# For MACE-OFF23 pipeline (on GPU):
+# python mace_freesolv/main.py --model_size medium --epochs 500 --n_folds 5 --batch_size 32

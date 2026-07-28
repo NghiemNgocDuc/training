@@ -1,0 +1,26 @@
+======================================================================
+FreeSolv Benchmark Evaluation Summary
+======================================================================
+
+Dataset: 605 molecules evaluated
+  Total compatible: 605
+  Total FreeSolv:   642
+
+Mean experimental DeltaG: -3.91 kcal/mol
+Sign agreement (Option B): 100.0%
+
+Method                                   MAE     RMSE       R2 Kendall_tau      n
+----------------------------------- -------- -------- -------- ---------- ------
+Option B (delta-learning)             27.144   29.905 -61.4241     0.0516    604
+GBNeck2 (classical)                   19.859   27.089 -50.2218     0.5277    604
+
+Target benchmarks for zero-shot QM-trained model:
+  MAE < 2.0 kcal/mol: competitive with classical implicit solvent
+  MAE < 1.5 kcal/mol: strong result
+  MAE < 1.0 kcal/mol: exceptional, better than classical GB
+
+GAFF reference (from FreeSolv DB):
+  MAE  = 1.131 kcal/mol
+  RMSE = 1.559 kcal/mol
+
+======================================================================

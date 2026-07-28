@@ -4,14 +4,24 @@ __pycache__/
 *.hdf5
 *.npz
 
-# Results/output
+# Results/output (any level)
 results/
+aqm-spice2/results/
 cv_results/
 cv_results_se/
 ft_results/
 ft_option_a/
 results_test/
 results_test_atomic_ref/
+aqm-spice2/cv_results/
+aqm-spice2/ft_results/
+aqm-spice2/freesolv/ft_results/
+aqm-spice2/freesolv/ft_option_a/
+aqm-spice2/freesolv/cv_results_se/
+aqm-spice2/freesolv/cv_results/
+aqm-spice2/pipeline/results/
+aqm-spice2/pipeline/results_test/
+aqm-spice2/pipeline/results_test_atomic_ref/
 
 # MACE results
 mace_freesolv/results/
@@ -19,10 +29,12 @@ mace_freesolv/results/
 # Data files
 AQM-gas-eval/
 AQM-sol/
+Data/
 Data/FreeSolv/
 
 # MACE cache
 .cache/
 
-# Config
+# opencode
+.opencode/
 opencode.json

@@ -1,0 +1,475 @@
+FreeSolv Benchmark Plan
+========================
+Solvation GNN Project — github.com/NghiemNgocDuc/training
+
+GOAL
+----
+1. Download FreeSolv (643 small molecules with experimental hydration free energies)
+2. Generate 3D conformations from SMILES
+3. Run the trained GNN pipeline (vacuum + correction models) to predict DeltaG_hyd
+4. Run GBNeck2 classical implicit solvent baseline on same molecules
+5. Compare: GNN vs GBNeck2 vs experimental vs FreeSolv's own GAFF calculations
+
+KEY INSIGHT
+-----------
+The correction model (Stage 2a) was trained to predict the residual between solvated
+and gas-phase energy. For the SAME molecular geometry fed to both vacuum and correction
+models:
+
+    E_vac_abs  = vacuum_model(x, pos) + mol_ref       (gas-phase energy)
+    E_solv_abs = vacuum_model(x, pos) + correction_model(x, pos) + mol_ref
+                                                       (implicit-solvated energy)
+
+    DeltaG_pred = E_solv_abs - E_vac_abs
+                = correction_model(x, pos)
+
+No subtraction needed — the correction model output IS the implicit solvation free
+energy (in eV). Convert to kcal/mol: 1 eV = 23.0605 kcal/mol.
+
+For Option A (single scratch model), you'd need separate vacuum prediction:
+    DeltaG_pred = option_A_model(x, pos) - vacuum_model(x, pos)
+(using the same conformer for both).
+
+PHASE 1: Download & Parse FreeSolv
+-----------------------------------
+Files to create: freesolv_dataset.py (or just run inline)
+
+Steps:
+1. Clone/download from github.com/MobleyLab/FreeSolv
+     - Contains: database.json, database.txt, groups.txt
+2. Parse database.json to extract:
+     - mol_id (e.g. "mobley_2146331")
+     - SMILES string
+     - experimental DeltaG (kcal/mol)
+     - experimental uncertainty (kcal/mol)
+     - calculated GAFF DeltaG (kcal/mol), for reference
+3. Filter molecules:
+     - Keep only molecules whose elements are in model vocab (17 elements:
+       H=1, C=6, N=7, O=8, F=9, P=15, S=16, Cl=17, Li=3, B=5, Na=11,
+       Mg=12, Si=14, K=19, Ca=20, Br=35, I=53)
+     - Most FreeSolv compounds are organic (H,C,N,O,F,Cl,Br) — should pass
+4. Export:
+     - freesolv_labels.csv (mol_id, smiles, exp_dg_kcal, exp_uncertainty,
+       gaff_dg_kcal)
+
+Dependencies: rdkit, h5py
+
+PHASE 2: Generate 3D Conformations (RDKit)
+-------------------------------------------
+Files to create: aqm-spice2/freesolv/freesolv_dataset.py
+
+Steps:
+1. For each molecule from SMILES:
+     mol = Chem.MolFromSmiles(smiles)
+     mol = Chem.AddHs(mol)
+     AllChem.EmbedMolecule(mol, randomSeed=42)   # ETKDG conformer
+     AllChem.UFFOptimizeMolecule(mol)             # relax geometry
+     Extract: atomic_numbers, coordinates (Angstroms)
+
+2. Save as HDF5 with same schema as AQM:
+     /{mol_id}/
+       atNUM  = [Z1, Z2, ...]                    # atomic numbers
+       atXYZ  = [[x1,y1,z1], ...]                # coordinates (A)
+
+3. Export freesolv_conformers.hdf5
+
+4. Option: generate multiple conformers (e.g., 5) per molecule and
+   pick lowest-energy one, or average predictions across them.
+
+Note: Since we only need structures for INFERENCE (not training), we
+only need atNUM and atXYZ. Energies and forces are not required.
+
+Dependencies: rdkit, h5py
+Install: conda install -c conda-forge rdkit
+
+PHASE 3: GNN Inference for DeltaG Prediction
+---------------------------------------------
+Files to create: aqm-spice2/freesolv/predict_freesolv.py
+
+Steps:
+1. Load trained models:
+     vacuum_model  = DimeNetPlus(in_channels=17, num_blocks=4, ...)
+     vacuum_model.load_state_dict(torch.load("results/stage1_fold_1.pt"))
+
+     corr_model    = DimeNetPlus(in_channels=17, num_blocks=3, ...)
+     corr_model.load_state_dict(torch.load("results/stage2_correction.pt"))
+
+     ref_energies  = load_reference_energies("results/atomic_references.json")
+
+2. Load FreeSolv dataset:
+     dataset = AQMDataset(root="Data/FreeSolv", hdf5_path="freesolv_conformers.hdf5",
+                          energy_key="ePBE0+MBD", forces_key="totFOR")
+     loader = DataLoader(dataset, batch_size=32)
+
+3. For each batch:
+     x = build_one_hot(data, device)
+     mol_ref = compute_molecular_reference(x, data.batch, ref_energies,
+                                           data.num_graphs)
+     vac_energy = vacuum_model(x, data.pos, data.batch)
+     corr_energy = correction_model(x, data.pos, data.batch)
+
+     deltaG_eV = corr_energy                              # eV per molecule
+     deltaG_kcal = deltaG_eV * 23.0605                    # convert to kcal/mol
+
+4. Also evaluate:
+     - Option A: deltaG_A = option_A_model(x, pos, batch) - vac_energy
+       (both in shifted space; atomic references cancel)
+     - Vacuum-only: absolute E_vac = vac_energy + mol_ref
+       (not useful for DeltaG, but can be sanity-checked)
+
+5. Output:
+     freesolv_predictions.csv with columns:
+       mol_id, dG_pred_kcal, dG_pred_eV, dG_exp_kcal, dG_gaff_kcal
+
+6. Metrics:
+     RMSE = sqrt(mean((pred - exp)^2))
+     MAE  = mean(abs(pred - exp))
+     R^2  = 1 - sum((pred - exp)^2) / sum((exp - mean_exp)^2)
+     Kendall tau rank correlation
+
+7. Plot: scatter of predicted vs experimental, colored by prediction method
+   (delta-learning vs Option A vs GAFF reference)
+
+PHASE 4: GBNeck2 Baseline
+--------------------------
+Files to create: aqm-spice2/freesolv/baseline_gbn2.py
+
+Approach: Use OpenMM with GBn2 implicit solvent model.
+
+Required: AmberTools + openmoltools for molecule parameterization.
+
+Steps (for each molecule):
+1. Parameterize with GAFF/AM1-BCC:
+     Uses openmoltools or AmberTools' antecharge + parmchk2:
+     - Generate mol2 with AM1-BCC charges
+     - Generate prmtop/inpcrd files for the molecule
+
+2. Compute GBNeck2 solvation free energy via OpenMM:
+     from openmm.app import AmberPrmtopFile, ForceField
+     from openmm import System, Platform
+
+     # Load molecule
+     prmtop = AmberPrmtopFile("molecule.prmtop")
+     inpcrd = AmberInpcrdFile("molecule.inpcrd")
+
+     # System with GBn2 implicit solvent
+     system_gb = prmtop.createSystem(implicitSolvent=GBn2,
+                                      soluteDielectric=1.0,
+                                      solventDielectric=80.0)
+
+     # Vacuum system (no solvent)
+     system_vac = prmtop.createSystem(implicitSolvent=None)
+
+     # Compute energies
+     for system in [system_vac, system_gb]:
+         integrator = LangevinIntegrator(300*kelvin, 1/picosecond, 0.002*picoseconds)
+         context = Context(system, integrator)
+         context.setPositions(inpcrd.positions)
+         state = context.getState(getEnergy=True)
+         energy = state.getPotentialEnergy()
+
+     deltaG_GB = E_gb - E_vac    # in kJ/mol or kcal/mol
+
+3. Alternative (simpler, less accurate) — Gasteiger charges via RDKit:
+     - Use RDKit to assign Gasteiger charges
+     - Create OpenMM topology by hand with PDBFile + ForceField
+     - Rough baseline, useful for quick comparison
+
+4. Alternative 2 — Use existing PyTorch GBNeck layer:
+     thr-forcefield-gnn/GNN_Layers.py has GBNeck_interaction,
+     but requires per-atom GB parameters (radii, scale factors, charges).
+     This is harder to generalize to arbitrary molecules vs OpenMM.
+
+5. Output: freesolv_gbn2.csv with columns:
+       mol_id, dG_GBn2_kcal
+
+Dependencies: openmm, AmberTools, openmoltools (or rdkit for fallback)
+Install:
+     conda install -c conda-forge openmm
+     conda install -c conda-forge ambertools
+     conda install -c conda-forge openmoltools
+
+PHASE 5: Comparison & Analysis
+-------------------------------
+Files to create: aqm-spice2/freesolv/analyze_freesolv.py
+
+Steps:
+1. Join all results on mol_id:
+     - freesolv_labels.csv        (exp_dg_kcal, gaff_dg_kcal)
+     - freesolv_predictions.csv  (dG_pred_kcal from GNN)
+     - freesolv_gbn2.csv         (dG_GBn2_kcal)
+
+2. Metrics table:
+
+     | Method                   | RMSE | MAE  | R^2  | Kendall tau |
+     |--------------------------|------|------|------|-------------|
+     | GNN delta-learning (B)   | ?    | ?    | ?    | ?           |
+     | GNN Option A (scratch)   | ?    | ?    | ?    | ?           |
+     | GBNeck2                  | ?    | ?    | ?    | ?           |
+     | FreeSolv GAFF (ref)      | 1.51 | 1.14 | 0.94 | 0.80        |
+
+     FreeSolv GAFF rows from literature (Mobley 2014, JCED 2017 update).
+
+3. Plots:
+     - Scatter: predicted vs experimental DeltaG (kcal/mol)
+       Three colors/markers for the three methods + GAFF reference
+       45-degree line + linear fit
+     - Residuals: predicted - experimental vs experimental
+     - Per-functional-group error bars (use groups.txt from FreeSolv)
+     - Error distribution histograms
+
+4. Statistical tests:
+     - Paired t-test: is GNN significantly better than GBNeck2?
+     - Correlation test (Kendall tau) for rank-ordering accuracy
+
+SOTA BENCHMARKS TO COMPARE AGAINST (from literature)
+------------------------------------------------------
+| Method                                    | MAE    | RMSE   | Year |
+|-------------------------------------------|--------|--------|------|
+| A3D-PNAConv-FT (Zhang)                   | 0.417  | 0.719  | 2022 |
+| GNN + cross-attention (Sirohi)           | 0.54   | 0.75   | 2025 |
+| CIGIN (Pathak)                           | 0.76   | —      | 2021 |
+| Explainable GNN (Low)                    | 0.70   | —      | 2022 |
+| MMGNN (Du)                               | 0.536  | 0.902  | 2024 |
+| CGIB                                     | 0.531  | 0.892  | 2023 |
+| GAT (2021)                               | 0.13*  | 0.25*  | 2021 |
+
+*Very low — may use different train/test splits; take with caution.
+
+Key insight: All SOTA methods train DIRECTLY on experimental DeltaG from
+FreeSolv (supervised learning). Our approach is FUNDAMENTALLY different:
+we train on QM data (AQM) with NO exposure to experimental FreeSolv
+values. This is a zero-shot transfer / domain generalization test of our
+QM-trained implicit solvent model.
+
+If our method approaches MAE ~1-2 kcal/mol without any FreeSolv training
+data, that would be competitive with classical Implicit Solvent / GB
+models and would validate the delta-learning approach as a physics-based
+alternative to direct ML.
+
+
+EXTENSION A (Item 5): Option A Direct eSOLV Regression
+========================================================
+Files to create: aqm-spice2/train_freesolv_option_a.py
+                 aqm-spice2/predict_freesolv_option_a.py
+
+Goal: Train a DimeNetPlus to DIRECTLY predict the solvation free energy
+(eSOLV field from AQM-sol HDF5) from molecular coordinates. This is
+different from the existing Option A which predicts total solvated energy.
+
+Background: The AQM-sol dataset contains an eSOLV field — this is the
+explicit solvation free energy from the QM implicit solvent calculation
+(PBE0+MBD with continuum solvent). Training on eSOLV directly means the
+model learns the mapping: geometry -> DeltaG_solv.
+
+Steps:
+1. Create a new dataset loader that reads eSOLV as the target:
+     Dataset:
+       z  = atomic numbers (from atNUM)
+       pos = coordinates (from atXYZ)
+       y  = eSOLV (directly the solvation free energy)
+
+2. Train DimeNetPlus (same architecture: 3 blocks, 128 hidden):
+     model = DimeNetPlus(in_channels=17, is_energy=True)
+     loss = MSE(energy_pred, data.y_esolv)
+     No forces involved (eSOLV has no force counterpart)
+     No atomic reference subtraction (eSOLV is already a delta)
+
+3. Hyperparameters:
+     lr=0.001, epochs=200, batchsize=32
+     Use AQM-sol dataset, standard 90/10 train/val split
+     Early stopping with patience 10
+     Evaluate on same validation split as Stage 2a correction
+
+4. Evaluate on FreeSolv:
+     Load trained eSOLV model
+     For each FreeSolv molecule:
+       x = build_one_hot(data)
+       deltaG_pred = esolv_model(x, pos, batch)   # directly predicts DeltaG
+       deltaG_kcal = deltaG_pred * 23.0605
+     Compare with experimental DeltaG
+     Report RMSE, MAE, R^2, Kendall tau
+
+5. Expected behavior:
+     - Direct eSOLV regression should be SIMPLER than delta-learning
+       because it only needs to predict one energy, not two
+     - But it may be LESS accurate because it doesn't decompose the
+       problem into gas-phase + correction (no physical prior)
+     - This test isolates whether delta-learning's decomposition is
+       actually beneficial vs end-to-end learning
+
+Dependencies: none beyond existing (PyTorch, PyG, h5py)
+
+
+EXTENSION B (Item 6): Option A vs Option B Comparison on FreeSolv
+==================================================================
+Files to create: aqm-spice2/compare_freesolv_methods.py
+
+Compare three approaches head-to-head on the SAME FreeSolv molecules:
+
+1. Option A-scratch (existing):
+     Model: train_option_a.py — predicts total solvated energy (ePBE0+MBD)
+     DeltaG: option_A_model(x, pos) - vacuum_model(x, pos)
+     (Difference of two total-energy predictions)
+
+2. Option A-direct (new, from Extension A):
+     Model: train_freesolv_option_a.py — predicts eSOLV directly
+     DeltaG: esolv_model(x, pos)
+     (Single direct prediction)
+
+3. Option B delta-learning (existing):
+     Model: Stage 2a correction model
+     DeltaG: correction_model(x, pos)
+     (Correction model output IS DeltaG by construction)
+
+Steps:
+1. Run all three models on the same FreeSolv conformers
+2. For each method, compute per-molecule DeltaG
+3. Merge results into a single DataFrame:
+     mol_id | exp_dG | delta_learning_B | option_A_scratch | option_A_direct_esolv
+4. Metrics table:
+
+     | Method                    | RMSE | MAE  | R^2  | Kendall tau |
+     |---------------------------|------|------|------|-------------|
+     | Option A-scratch (total)  | ?    | ?    | ?    | ?           |
+     | Option A-direct (eSOLV)   | ?    | ?    | ?    | ?           |
+     | Option B (delta-learning) | ?    | ?    | ?    | ?           |
+     | GBNeck2 (classical)       | ?    | ?    | ?    | ?           |
+
+5. Analysis:
+     - Does delta-learning beat both Option A variants? (expected: yes)
+     - Is direct eSOLV regression better or worse than scratch total energy?
+     - Per-functional-group breakdown for each method
+     - Scatter plots with all four methods overlaid
+     - Pairwise scatter plots (method A vs method B vs experiment)
+
+6. Statistical significance:
+     - Paired t-tests between methods (corrected for multiple comparisons)
+     - Which differences are significant at p < 0.05?
+
+Key question: Does the two-stage delta-learning decomposition (gas phase
+energy + correction) actually help, or is a single direct regression
+sufficient? This directly tests the core design choice of the pipeline.
+
+
+EXTENSION C (Item 7): With vs Without Stage 2b (Explicit Refinement)
+=====================================================================
+Files to create: aqm-spice2/predict_freesolv_stage2b.py
+                 aqm-spice2/compare_stage2b.py
+
+Goal: Add Stage 2b (explicit water refinement, trained on SPICE2) to the
+inference pipeline and measure its impact on FreeSolv predictions.
+
+Background: Stage 2b adds a third model trained on SPICE2 (solute-water
+clusters from QM) to capture explicit solvation effects missing from the
+implicit solvent correction (Stage 2a).
+
+Pipeline comparison:
+
+  Without Stage 2b:
+    DeltaG = correction_model(x, pos)
+    (Only implicit solvent effects from AQM-sol)
+
+  With Stage 2b:
+    DeltaG = correction_model(x, pos) + explicit_model(x, pos)
+    (Implicit + explicit water refinement from SPICE2)
+
+Steps:
+1. Load all three models (vacuum frozen, correction frozen, explicit):
+     vacuum_model   = load("results/stage1_fold_1.pt")
+     corr_model     = load("results/stage2_correction.pt")
+     explicit_model = load("results/stage2b.pt")
+
+2. For each FreeSolv molecule, compute two predictions:
+     deltaG_implicit    = corr_model(x, pos)           # without Stage 2b
+     deltaG_implicit_explicit = corr_model(x, pos) + explicit_model(x, pos)
+                                                        # with Stage 2b
+
+3. Compare both against experimental DeltaG:
+
+     | Variant                          | RMSE | MAE  | R^2  |
+     |----------------------------------|------|------|------|
+     | Implicit only (no Stage 2b)      | ?    | ?    | ?    |
+     | + Explicit refinement (Stage 2b) | ?    | ?    | ?    |
+     | Improvement / degradation        | ?    | ?    | ?    |
+
+4. Analysis:
+     - Does adding explicit refinement HELP or HURT on FreeSolv?
+     - SPICE2 contains solute-water clusters; the explicit model learns
+       corrections for specific solvent configurations. For FreeSolv
+       (bulk hydration free energy), the explicit correction may:
+         a) Improve accuracy by capturing hydrogen bonding / specific
+            solvent interactions that continuum models miss
+         b) Hurt accuracy because SPICE2 clusters don't represent the
+            full bulk solvent ensemble
+         c) Have negligible impact because FreeSolv molecules are small
+            and well-described by continuum models
+     - Analyze by functional group: which groups benefit most from
+       explicit refinement? (polar groups with H-bonding likely)
+
+5. Expected magnitude: Stage 2b may contribute 1-5 kcal/mol correction
+   on individual molecules. The net effect on bulk RMSE is uncertain.
+
+6. Additional diagnostic:
+     - Scatter: explicit correction magnitude vs molecular properties
+       (e.g., number of H-bond donors/acceptors, polarity, size)
+     - Which molecules have the LARGEST explicit correction?
+
+Key question: Is the SPICE2 explicit refinement transferable to FreeSolv,
+or is it overfitted to the specific SPICE2 solute-water cluster geometry?
+
+
+UPDATED RISKS & NOTES
+---------------------
+1. Conformer sensitivity: Single conformer per molecule may not capture
+   conformational ensemble. Multiple conformers (5-10) with Boltzmann
+   averaging would be more rigorous but adds complexity.
+
+2. Model domain: GNN trained on AQM data (PBE0+MBD) which uses implicit
+   solvent. The correction model predicts the implicit solvation energy
+   from the QM method, not the full experimental hydration free energy.
+   The comparison with experiment will include errors from:
+     - QM method accuracy (PBE0+MBD for implicit solvation)
+     - Delta-learning approximation
+     - Conformer dependence
+     - Missing explicit-solvent effects (no SPICE-2 refinement included)
+
+3. GBNeck2 requires charge assignment: AM1-BCC is standard but adds
+   AmberTools dependency. Gasteiger charges (RDKit) are a fallback.
+
+4. Installation: RDKit, OpenMM, AmberTools are NOT currently installed
+   in this environment. Install via conda from conda-forge channel.
+
+5. FreeSolv version: Latest is v0.52 (2017). The database.json is the
+   most machine-readable format.
+
+FILES TO CREATE (Summary)
+-------------------------
+  Core pipeline (all under aqm-spice2/freesolv/):
+    freesolv/freesolv_dataset.py               — Phase 2: conformer generation
+    freesolv/predict_freesolv.py              — Phase 3: GNN inference (Option B)
+    freesolv/baseline_gbn2.py                 — Phase 4: GBNeck2 baseline
+    freesolv/analyze_freesolv.py              — Phase 5: comparison & plots
+    freesolv/finetune_freesolv.py             — Fine-tune on experimental FreeSolv
+    freesolv/cv_finetune.py                   — 5-fold CV fine-tuning
+    freesolv/cv_finetune_se.py                — CV with SE-enhanced architecture
+
+  Extensions (proposed, not yet created):
+    aqm-spice2/freesolv/train_freesolv_option_a.py   — Ext A: train direct eSOLV model
+    aqm-spice2/freesolv/predict_freesolv_option_a.py — Ext A: inference with eSOLV model
+    aqm-spice2/freesolv/compare_freesolv_methods.py  — Ext B: Option A vs B comparison
+    aqm-spice2/freesolv/predict_freesolv_stage2b.py  — Ext C: inference with Stage 2b
+    aqm-spice2/freesolv/compare_stage2b.py           — Ext C: with/without Stage 2b
+
+OUTPUT FILES GENERATED
+----------------------
+  freesolv_conformers.hdf5        — 3D conformations (Phase 2)
+  freesolv_labels.csv             — SMILES + experimental data (Phase 1)
+  freesolv_predictions.csv        — GNN DeltaG predictions (Phase 3)
+  freesolv_gbn2.csv               — GBNeck2 baseline (Phase 4)
+  freesolv_results.csv            — Joined comparison (Phase 5)
+  freesolv_*.png                  — Plots (Phase 5)
+  esolv_direct_model.pt           — Trained direct eSOLV model (Ext A)
+  freesolv_predictions_esolv.csv  — eSOLV direct predictions (Ext A)
+  freesolv_method_comparison.csv  — All methods comparison (Ext B)
+  freesolv_stage2b.csv            — With/without Stage 2b (Ext C)

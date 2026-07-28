@@ -2,7 +2,7 @@ import os
 
 # Paths
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SOLVATION_GNN = os.path.join(ROOT, "solvation-gnn")
+SOLVATION_GNN = os.path.join(ROOT, "aqm-spice2")
 HDF5_PATH = os.path.join(ROOT, "freesolv_conformers.hdf5")
 MODEL_CACHE = os.path.join(os.path.expanduser("~"), ".cache", "mace")
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
@@ -23,6 +23,8 @@ PATIENCE = 50
 VAL_SPLIT = 0.2
 SEED = 42
 N_FOLDS = 5
+WARMUP_EPOCHS = 10
+LOSS_TYPE = "mse"  # mse | huber
 
 # Targets (FreeSolv experimental dG in kcal/mol)
 EV_TO_KCAL = 23.0605

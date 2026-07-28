@@ -20,7 +20,31 @@ def evaluate(preds, expts):
     return mae, rmse, r2
 
 
-def train_epoch(model, loader, optimizer, mse_loss, device):
+def compute_target_stats(dataset):
+    targets = torch.tensor([s[1] for s in dataset.samples], dtype=torch.float32)
+    return targets.mean().item(), targets.std().item()
+
+
+class WarmupWrapper:
+    def __init__(self, optimizer, warmup_epochs, initial_lr):
+        self.optimizer = optimizer
+        self.warmup_epochs = warmup_epochs
+        self.initial_lr = initial_lr
+        self.base_lrs = [pg["lr"] for pg in optimizer.param_groups]
+        self.current_epoch = 0
+
+    def step(self):
+        self.current_epoch += 1
+        if self.current_epoch <= self.warmup_epochs:
+            factor = self.current_epoch / max(self.warmup_epochs, 1)
+            for pg, base_lr in zip(self.optimizer.param_groups, self.base_lrs):
+                pg["lr"] = base_lr * factor
+
+    def get_lr(self):
+        return self.optimizer.param_groups[0]["lr"]
+
+
+def train_epoch(model, loader, optimizer, loss_fn, device):
     model.train()
     total_loss = 0.0
     n_samples = 0
@@ -29,7 +53,7 @@ def train_epoch(model, loader, optimizer, mse_loss, device):
         y_true = batch.pop("y").view(-1)
         optimizer.zero_grad()
         y_pred = model(batch, compute_force=False).view(-1)
-        loss = mse_loss(y_pred, y_true)
+        loss = loss_fn(y_pred, y_true)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
         optimizer.step()
@@ -80,7 +104,16 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
         test_ds, batch_size=cfg["batch_size"], shuffle=False, collate_fn=collate_mace, num_workers=0,
     )
 
-    model = MACEFreeSolv(model_size=cfg["model_size"], device=device).to(device)
+    t_mean_kcal, t_std_kcal = compute_target_stats(train_ds)
+    print(f"  Target stats: mean={t_mean_kcal:.4f} kcal/mol, std={t_std_kcal:.4f} kcal/mol")
+
+    model = MACEFreeSolv(
+        model_size=cfg["model_size"],
+        device=device,
+        freeze_atomic_energies=cfg.get("freeze_atomic_energies", False),
+        target_mean=0.0,
+        target_std=t_std_kcal,
+    ).to(device)
     if cfg.get("freeze_interactions"):
         model.freeze_interactions()
 
@@ -88,7 +121,12 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=cfg["patience"] // 2, min_lr=cfg["lr_min"],
     )
-    mse_loss = torch.nn.MSELoss()
+    warmup = WarmupWrapper(optimizer, cfg.get("warmup_epochs", 10), cfg["lr"])
+
+    if cfg.get("loss_type") == "huber":
+        loss_fn = torch.nn.HuberLoss(delta=cfg.get("huber_delta", 1.0))
+    else:
+        loss_fn = torch.nn.MSELoss()
 
     best_mae = float("inf")
     best_epoch = -1
@@ -98,10 +136,11 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
 
     for epoch in range(1, cfg["epochs"] + 1):
         t0 = time.time()
-        train_loss = train_epoch(model, train_loader, optimizer, mse_loss, device)
+        train_loss = train_epoch(model, train_loader, optimizer, loss_fn, device)
+        warmup.step()
         val_mae, val_rmse, val_r2, val_preds, val_expts = validate(model, test_loader, device)
         scheduler.step(val_mae)
-        current_lr = optimizer.param_groups[0]["lr"]
+        current_lr = warmup.get_lr()
 
         val_mae_kcal = val_mae * EV_TO_KCAL
         val_rmse_kcal = val_rmse * EV_TO_KCAL
@@ -134,6 +173,12 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
 def run_cv(args):
     device = torch.device(args.device if args.device else "cpu")
     print(f"Device: {device}")
+
+    if args.seed is not None:
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
+        torch.cuda.manual_seed_all(args.seed)
+
     os.makedirs(args.output_dir, exist_ok=True)
 
     cfg = {
@@ -148,6 +193,10 @@ def run_cv(args):
         "patience": args.patience,
         "n_folds": args.n_folds,
         "freeze_interactions": args.freeze_interactions,
+        "freeze_atomic_energies": args.freeze_atomic_energies,
+        "warmup_epochs": args.warmup_epochs,
+        "loss_type": args.loss_type,
+        "huber_delta": args.huber_delta,
     }
 
     full_ds = MACEFreeSolvDataset(r_max=args.r_max, max_neighbors=args.max_neighbors, targets_in_ev=True)

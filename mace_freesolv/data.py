@@ -9,8 +9,9 @@ from torch.utils.data import Dataset
 from config import HDF5_PATH, EV_TO_KCAL, ROOT
 
 ELEMENT_TO_IDX = {
-    1: 0, 6: 1, 7: 2, 8: 3, 9: 4, 15: 5, 16: 6, 17: 7,
+    1: 0, 6: 1, 7: 2, 8: 3, 9: 4, 15: 5, 16: 6, 17: 7, 35: 8, 53: 9,
 }
+ELEMENT_ATOMIC_NUMBERS = list(ELEMENT_TO_IDX.keys())
 MACE_NUM_ELEMENTS = 10  # MACE-OFF23 was trained with 10 elements
 
 
@@ -51,10 +52,17 @@ def radius_graph(pos, r, batch=None, max_num_neighbors=32):
 def get_labels(cache_dir="Data/FreeSolv"):
     json_path = os.path.join(ROOT, cache_dir, "database.json")
     if not os.path.exists(json_path):
-        from solvation_gnn.freesolv_dataset import download_freesolv_data
-        json_path, _ = download_freesolv_data(os.path.join(ROOT, cache_dir))
+        _download_freesolv_data(json_path, os.path.join(ROOT, cache_dir))
     with open(json_path) as f:
         return json.load(f)
+
+
+def _download_freesolv_data(json_path, cache_dir):
+    import urllib.request
+    os.makedirs(cache_dir, exist_ok=True)
+    url = "https://raw.githubusercontent.com/MobleyLab/FreeSolv/master/database.json"
+    print(f"Downloading FreeSolv database from {url}")
+    urllib.request.urlretrieve(url, json_path)
 
 
 class MACEFreeSolvDataset(Dataset):
