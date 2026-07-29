@@ -87,24 +87,10 @@ class MACEFreeSolvDataset(Dataset):
                 continue
             self.samples.append((mol_id, float(expt)))
 
-        print(f"MACEFreeSolvDataset: {len(self.samples)} samples")
+        self._cached = [self._build_item(i) for i in range(len(self.samples))]
+        print(f"MACEFreeSolvDataset: {len(self.samples)} samples (precomputed)")
 
-    def _get_node_attrs(self, idx):
-        mol_id = self.samples[idx][0]
-        with h5py.File(HDF5_PATH, "r") as f:
-            z = torch.tensor(f[mol_id]["atNUM"][...], dtype=torch.long)
-        n_atoms = z.size(0)
-        node_attrs = torch.zeros(n_atoms, MACE_NUM_ELEMENTS, dtype=torch.float32)
-        for i, zi in enumerate(z):
-            idx_e = ELEMENT_TO_IDX.get(zi.item())
-            if idx_e is not None:
-                node_attrs[i, idx_e] = 1.0
-        return node_attrs
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
+    def _build_item(self, idx):
         mol_id, dG_kcal = self.samples[idx]
         with h5py.File(HDF5_PATH, "r") as f:
             grp = f[mol_id]
@@ -132,6 +118,15 @@ class MACEFreeSolvDataset(Dataset):
             "num_edges": n_edges,
             "y": torch.tensor([target], dtype=torch.float32),
         }
+
+    def _get_node_attrs(self, idx):
+        return self._cached[idx]["node_attrs"]
+
+    def __len__(self):
+        return len(self.samples)
+
+    def __getitem__(self, idx):
+        return self._cached[idx]
 
 
 def collate_mace(batch):

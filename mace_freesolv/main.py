@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--warmup_epochs", type=int, default=WARMUP_EPOCHS, help="LR warmup epochs")
     parser.add_argument("--loss_type", type=str, default=LOSS_TYPE, choices=["mse", "huber"])
     parser.add_argument("--huber_delta", type=float, default=1.0, help="Huber loss delta (in eV)")
+    parser.add_argument("--num_workers", type=int, default=0, help="DataLoader workers (0=main process)")
     parser.add_argument("--no_seed", action="store_true", help="Disable deterministic seeding")
     args = parser.parse_args()
 

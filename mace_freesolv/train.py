@@ -97,11 +97,15 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
         targets_in_ev=True,
     )
 
+    num_w = cfg.get("num_workers", 0)
+    pin = device.type == "cuda"
     train_loader = DataLoader(
-        train_ds, batch_size=cfg["batch_size"], shuffle=True, collate_fn=collate_mace, num_workers=0,
+        train_ds, batch_size=cfg["batch_size"], shuffle=True, collate_fn=collate_mace,
+        num_workers=num_w, pin_memory=pin,
     )
     test_loader = DataLoader(
-        test_ds, batch_size=cfg["batch_size"], shuffle=False, collate_fn=collate_mace, num_workers=0,
+        test_ds, batch_size=cfg["batch_size"], shuffle=False, collate_fn=collate_mace,
+        num_workers=num_w, pin_memory=pin,
     )
 
     t_mean_kcal, t_std_kcal = compute_target_stats(train_ds)
@@ -197,6 +201,7 @@ def run_cv(args):
         "warmup_epochs": args.warmup_epochs,
         "loss_type": args.loss_type,
         "huber_delta": args.huber_delta,
+        "num_workers": args.num_workers,
     }
 
     full_ds = MACEFreeSolvDataset(r_max=args.r_max, max_neighbors=args.max_neighbors, targets_in_ev=True)

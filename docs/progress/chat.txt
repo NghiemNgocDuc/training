@@ -136,5 +136,29 @@ Relevance to FreeSolv:
     molecules in FreeSolv). Fine-tuning on 642 labels should inherit smooth
     PES and reach sub-0.4 MAE — directly parallels their Stage 1.
   - No need for Stage 0 sampling — FreeSolv labels already exist.
-  - Distillation (Stage 2) not needed here — we just need per-molecule ΔG,
-    not fast MD. But if we wanted to run MD with our model, same principles apply.
+   - Distillation (Stage 2) not needed here — we just need per-molecule ΔG,
+     not fast MD. But if we wanted to run MD with our model, same principles apply.
+
+== 2026-07-28 REPO REORGANIZATION ==
+
+solvation-gnn/ renamed → aqm-spice2/, with flat inner dirs reorganized:
+  aqm-spice2/                 ← top level (shared: DimeModels.py, element_vocab.py, energy_reference.py)
+  ├── pipeline/               ← AQM + SPICE2 training code
+  ├── freesolv/               ← FreeSolv fine-tuning code
+  ├── analysis/               ← FreeSolv analysis outputs (CSV, PNG, LFER)
+  ├── scripts/                ← run_all.sh, train.py
+  └── notes/                  ← planning notes
+
+Added docs/: setup/ (vast_setup, download_data), progress/ (this file).
+chat.txt moved from repo root → docs/progress/chat.txt.
+
+mace_freesolv/ fixes:
+  - config.py: logger reference backported, epochs default 500, results_dir relative
+  - data.py: EnergyFreeSolvDataset uses ScaleShiftBlock with learnable shift/bias
+  - model.py: ScaleShiftBlock dim fix (1 → 1×1 for scalar targets)
+  - train.py: padding mask for collate, print→log, fold timing, Huber/SmoothL1
+  - main.py: ModelRegistry, logger fix, atomic ref file search, SOTA table formatting
+
+.gitignore: added .opencode/ (opencode skill configs), Data/ (top-level data dir).
+
+Pushed to GitHub (origin/master).
