@@ -29,6 +29,13 @@ LOSS_TYPE = "mse"  # mse | huber
 # Targets (FreeSolv experimental dG in kcal/mol)
 EV_TO_KCAL = 23.0605
 
+# LoRA
+USE_LORA = False
+LORA_RANK = 32
+LORA_ALPHA = 2.0
+LORA_UNFREEZE_READOUTS = True
+LORA_UNFREEZE_SKIP_TP = True
+
 # Architecture
 FREEZE_ATOMIC_ENERGIES = True
 FREEZE_INTERACTIONS = False

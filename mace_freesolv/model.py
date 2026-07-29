@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from mace.calculators.foundations_models import mace_off
+from mace.modules.lora import inject_LoRAs
 from torch.utils.data import DataLoader
 
 from data import collate_mace
@@ -51,13 +52,16 @@ def calibrate_output(model, dataset, batch_size=64, device="cpu"):
 
 class MACEFreeSolv(torch.nn.Module):
     def __init__(self, model_size="medium", device="cpu", fit_refs=True,
-                 freeze_atomic_energies=False, target_mean=0.0, target_std=None):
+                 freeze_atomic_energies=False, target_mean=0.0, target_std=None,
+                 use_lora=False, lora_rank=32, lora_alpha=2.0,
+                 lora_unfreeze_readouts=True, lora_unfreeze_skip_tp=True):
         super().__init__()
         self.device = device
         self.model_size = model_size
         self.freeze_atomic_energies = freeze_atomic_energies
         self.target_mean = target_mean
         self.target_std = target_std
+        self.use_lora = use_lora
 
         base = load_mace_foundation(model_size, device)
         base = base.float()
@@ -87,10 +91,38 @@ class MACEFreeSolv(torch.nn.Module):
             print(f"    analytic_scale={scale_analytic:.6f}, capped_scale={scale:.6f}")
             print(f"    shift=0.0 (per-node shift must be 0 — summed over atoms)")
 
+        if use_lora:
+            inject_LoRAs(base, rank=lora_rank, alpha=lora_alpha)
+            lora_total = sum(p.numel() for p in base.parameters() if p.requires_grad)
+            print(f"  LoRA injected: rank={lora_rank}, alpha={lora_alpha}, lora_only={lora_total:,} params")
+
+            if not self.freeze_atomic_energies:
+                base.atomic_energies_fn.atomic_energies.requires_grad_(True)
+            base.scale_shift.scale.requires_grad_(True)
+            base.scale_shift.shift.requires_grad_(True)
+
+            if lora_unfreeze_skip_tp:
+                n_skip = 0
+                for name, p in base.named_parameters():
+                    if "skip_tp" in name and "weight" in name:
+                        p.requires_grad_(True)
+                        n_skip += p.numel()
+                if n_skip > 0:
+                    print(f"  Hybrid: unfroze skip_tp weights ({n_skip:,} params)")
+
+            if lora_unfreeze_readouts:
+                n_read = 0
+                for name, p in base.named_parameters():
+                    if name.startswith("readouts") and "lora" not in name and "weight" in name:
+                        p.requires_grad_(True)
+                        n_read += p.numel()
+                if n_read > 0:
+                    print(f"  Hybrid: unfroze readout base weights ({n_read:,} params)")
+
         self.model = base
         n_trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         n_total = sum(p.numel() for p in self.model.parameters())
-        print(f"MACEFreeSolv: {n_trainable:,}/{n_total:,} trainable params")
+        print(f"MACEFreeSolv: {n_trainable:,}/{n_total:,} trainable params ({100*n_trainable/n_total:.1f}%)")
 
     def forward(self, data, compute_force=False):
         out = self.model(data, compute_force=compute_force, training=self.training)
@@ -104,9 +136,19 @@ class MACEFreeSolv(torch.nn.Module):
         print(f"Frozen interactions: {n_trainable:,} trainable params remaining")
 
     def save(self, path):
-        torch.save(self.model.state_dict(), path)
+        state = self.model.state_dict()
+        if "atomic_energies_fn.atomic_energies" in state:
+            state["atomic_energies_fn.atomic_energies"] = state[
+                "atomic_energies_fn.atomic_energies"
+            ].squeeze(0)
+        torch.save(state, path)
 
     def load(self, path, strict=True):
         state = torch.load(path, map_location=self.device, weights_only=True)
+        if "atomic_energies_fn.atomic_energies" in state:
+            expected_shape = self.model.atomic_energies_fn.atomic_energies.shape
+            loaded = state["atomic_energies_fn.atomic_energies"]
+            if loaded.dim() != expected_shape:
+                state["atomic_energies_fn.atomic_energies"] = loaded.reshape(expected_shape)
         self.model.load_state_dict(state, strict=strict)
         print(f"Loaded checkpoint: {path}")

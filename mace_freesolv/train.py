@@ -117,6 +117,11 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
         freeze_atomic_energies=cfg.get("freeze_atomic_energies", False),
         target_mean=0.0,
         target_std=t_std_kcal,
+        use_lora=cfg.get("use_lora", False),
+        lora_rank=cfg.get("lora_rank", 32),
+        lora_alpha=cfg.get("lora_alpha", 2.0),
+        lora_unfreeze_readouts=cfg.get("lora_unfreeze_readouts", True),
+        lora_unfreeze_skip_tp=cfg.get("lora_unfreeze_skip_tp", True),
     ).to(device)
     if cfg.get("freeze_interactions"):
         model.freeze_interactions()
@@ -202,6 +207,11 @@ def run_cv(args):
         "loss_type": args.loss_type,
         "huber_delta": args.huber_delta,
         "num_workers": args.num_workers,
+        "use_lora": args.use_lora,
+        "lora_rank": args.lora_rank,
+        "lora_alpha": args.lora_alpha,
+        "lora_unfreeze_readouts": args.lora_unfreeze_readouts,
+        "lora_unfreeze_skip_tp": args.lora_unfreeze_skip_tp,
     }
 
     full_ds = MACEFreeSolvDataset(r_max=args.r_max, max_neighbors=args.max_neighbors, targets_in_ev=True)

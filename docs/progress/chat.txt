@@ -162,3 +162,42 @@ mace_freesolv/ fixes:
 .gitignore: added .opencode/ (opencode skill configs), Data/ (top-level data dir).
 
 Pushed to GitHub (origin/master).
+
+== 2026-07-29 LoRA INTEGRATION ==
+
+Integrated LoRA (Low-Rank Adaptation) into MACE-OFF23 FreeSolv pipeline:
+
+Core LoRA (mace/modules/lora.py — site-packages, not modified):
+  - LoRAO3Linear: wraps equivariant o3.Linear with rank-4/8/16/32 bottleneck
+  - LoRAFCLayer: wraps e3nn FC layers (conv_tp_weights MLPs)
+  - inject_LoRAs(): recursive injection, freezes non-LoRA params
+  - merge_lora_weights(): folds LoRA back into base for inference
+
+Pipeline changes (mace_freesolv/):
+  - model.py: inject_LoRAs() after calibration; new params lora_rank/lora_alpha
+  - config.py: defaults LORA_RANK=32, LORA_ALPHA=2.0
+  - main.py: --use_lora, --lora_rank, --lora_alpha CLI args
+  - train.py: threads LoRA config through cfg dict to model constructor
+
+Hybrid strategy (lora_unfreeze_readouts/skip_tp):
+  - After LoRA injection, selectively unfreezes:
+    - skip_tp weights (FullyConnectedTensorProduct, 460K params)
+    - readout base weights (1.6K params)
+    - atomic_energies_fn (when freeze_atomic_energies=False)
+    - scale_shift (always, 2 scalars)
+  - Result: 596K/828K trainable (72%) vs 100% for full fine-tune
+  - Verified: forward pass, gradient flow, checkpoint save/load, 3-epoch convergence
+
+Expected: LoRA hybrid should match or beat full FT MAE 0.417 due to:
+  - Regularization from low-rank bottleneck on linear layers
+  - Full expressive power on skip_tp (main message-passing weights)
+  - Tighter calibration of atomic references and output scale
+  - Higher rank (32) provides sufficient subspace capacity
+
+Run command (GPU, ~1-3 hrs for 5-fold × 500 epochs):
+  python mace_freesolv/main.py --use_lora --lora_rank 32 --lora_alpha 2.0 ^
+      --no_freeze_atomic_energies --epochs 500 --model_size medium ^
+      --batch_size 32
+
+Quick test (CPU, ~5 min):
+  python mace_freesolv/main.py --quick_test --use_lora --lora_rank 32

@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 
 from config import OUTPUT_DIR, EV_TO_KCAL, MACE_MODEL_SIZE, MACE_R_MAX, MACE_MAX_NEIGHBORS
 from config import EPOCHS, LR, LR_MIN, WEIGHT_DECAY, BATCH_SIZE, PATIENCE, SEED, N_FOLDS
-from config import WARMUP_EPOCHS, LOSS_TYPE
+from config import WARMUP_EPOCHS, LOSS_TYPE, USE_LORA, LORA_RANK, LORA_ALPHA, LORA_UNFREEZE_READOUTS, LORA_UNFREEZE_SKIP_TP
 from train import run_cv, evaluate, validate, compute_target_stats
 from data import MACEFreeSolvDataset, collate_mace
 from model import MACEFreeSolv
@@ -43,6 +43,13 @@ def main():
     parser.add_argument("--loss_type", type=str, default=LOSS_TYPE, choices=["mse", "huber"])
     parser.add_argument("--huber_delta", type=float, default=1.0, help="Huber loss delta (in eV)")
     parser.add_argument("--num_workers", type=int, default=0, help="DataLoader workers (0=main process)")
+    parser.add_argument("--use_lora", action="store_true", default=USE_LORA, help="Enable LoRA")
+    parser.add_argument("--lora_rank", type=int, default=LORA_RANK, help="LoRA rank")
+    parser.add_argument("--lora_alpha", type=float, default=LORA_ALPHA, help="LoRA alpha scaling")
+    parser.add_argument("--lora_unfreeze_readouts", action="store_true", default=LORA_UNFREEZE_READOUTS, help="Unfreeze readout base weights (hybrid)")
+    parser.add_argument("--no_lora_unfreeze_readouts", action="store_false", dest="lora_unfreeze_readouts", help="Keep readout base weights frozen")
+    parser.add_argument("--lora_unfreeze_skip_tp", action="store_true", default=LORA_UNFREEZE_SKIP_TP, help="Unfreeze skip_tp weights (hybrid)")
+    parser.add_argument("--no_lora_unfreeze_skip_tp", action="store_false", dest="lora_unfreeze_skip_tp", help="Keep skip_tp weights frozen")
     parser.add_argument("--no_seed", action="store_true", help="Disable deterministic seeding")
     args = parser.parse_args()
 
@@ -89,7 +96,12 @@ def eval_checkpoint(checkpoint_path, args):
     device = torch.device(args.device if args.device else "cpu")
     print(f"Evaluating: {checkpoint_path}")
 
-    model = MACEFreeSolv(model_size=args.model_size, device=device, fit_refs=False).to(device)
+    model = MACEFreeSolv(
+        model_size=args.model_size, device=device, fit_refs=False,
+        use_lora=args.use_lora, lora_rank=args.lora_rank, lora_alpha=args.lora_alpha,
+        lora_unfreeze_readouts=args.lora_unfreeze_readouts,
+        lora_unfreeze_skip_tp=args.lora_unfreeze_skip_tp,
+    ).to(device)
     model.load(checkpoint_path)
     model.eval()
 
