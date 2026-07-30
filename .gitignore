@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 .DS_Store
 *.hdf5
+!freesolv_conformers.hdf5
 *.npz
 
 # Results/output (any level)
