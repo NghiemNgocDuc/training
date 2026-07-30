@@ -79,48 +79,40 @@ Metric reference:
       main.py argparse default.
   13. Dead seed variable: removed from eval_checkpoint (set but unused).
 
-== FULL SETUP & RUN (Vast AI / fresh GPU instance) ==
+== FULL SETUP & RUN (Vast AI / terminal via SSH) ==
 
 Before starting: upload freesolv_conformers.hdf5 to the instance
-(use scp/rsync from your laptop — it's ~1.5 GB and NOT in git).
-The file goes into the training/ repo root.
+(scp from your laptop — it's ~1.5 GB and NOT in git).
+Place it at ~/training/freesolv_conformers.hdf5.
 
-Paste each box into its own Jupyter notebook cell in order.
+SSH into your instance, then run each block in order:
 
 ---
 
-Cell 1 — clone repo:
-!git clone https://github.com/NghiemNgocDuc/training.git
-import os
-os.chdir("training")
+# 1 — clone repo
+git clone https://github.com/NghiemNgocDuc/training.git
+cd training
 
-Cell 2 — install deps:
-!pip install mace-torch tqdm h5py
+# 2 — create venv + install deps
+python3 -m venv venv
+source venv/bin/activate
+pip install mace-torch tqdm h5py
 
-Cell 3 — quick test (2 folds × 2 epochs, ~5 min):
-!python -m mace_freesolv.main --quick_test --device cuda
+# 3 — quick test (2 folds × 2 epochs, ~5 min)
+python -m mace_freesolv.main --quick_test --device cuda
 
-Cell 4 — full run in background (survives laptop shutdown):
-import subprocess
-with open("run.log", "w") as f:
-    p = subprocess.Popen([
-        "python", "-m", "mace_freesolv.main",
-        "--model_size", "medium",
-        "--epochs", "500",
-        "--n_folds", "5",
-        "--batch_size", "32",
-        "--device", "cuda"
-    ], stdout=f, stderr=subprocess.STDOUT)
-print(f"PID: {p.pid}")
+# 4 — full run with screen (survives laptop shutdown)
+screen -S mace_run
+python -m mace_freesolv.main --model_size medium --epochs 500 --n_folds 5 --batch_size 32 --device cuda
+# Detach: Ctrl+A then D
+# Re-attach later: screen -r mace_run
 
-Cell 5 — watch live (run anytime while Cell 4 runs):
-!tail -f run.log
+# Alternative — nohup (also survives shutdown)
+nohup python -m mace_freesolv.main --model_size medium --epochs 500 --n_folds 5 --batch_size 32 --device cuda > run.log 2>&1 &
+tail -f run.log
 
-Cell 6 — results after completion:
-!tail -30 run.log
-
-Cell 7 — evaluate a specific fold checkpoint:
-!python -m mace_freesolv.main --eval_only results/fold_2/model.pt --eval_fold 2 --device cuda
+# 5 — evaluate a checkpoint later
+python -m mace_freesolv.main --eval_only results/fold_2/model.pt --eval_fold 2 --device cuda
 
 == BENCHMARK ==
   Zhang 2022 (A3D-PNAConv-FT)   0.417    0.719
