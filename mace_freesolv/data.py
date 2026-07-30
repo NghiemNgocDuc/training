@@ -157,7 +157,7 @@ def collate_mace(batch):
     total_edges = edge_index.size(1)
 
     cell_diag = positions.max(dim=0).values - positions.min(dim=0).values + 20.0
-    cell = torch.diag(cell_diag).unsqueeze(0).expand(batch_size, -1, -1)
+    cell = torch.diag(cell_diag).unsqueeze(0).repeat(batch_size, 1, 1)
 
     data = {
         "positions": positions,
