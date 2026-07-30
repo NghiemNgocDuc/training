@@ -8,7 +8,9 @@ from data import collate_mace
 
 
 def load_mace_foundation(model_size="medium", device="cpu"):
-    return mace_off(model_size, return_raw_model=True, device=device)
+    model = mace_off(model_size, return_raw_model=True, device=device)
+    model = model.to(device)
+    return model
 
 
 def fit_atomic_references(dataset):
@@ -35,6 +37,7 @@ def fit_atomic_references(dataset):
 
 def calibrate_output(model, dataset, batch_size=64, device="cpu"):
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_mace, num_workers=0)
+    model = model.to(device)
     model.eval()
     all_energies = []
     with torch.no_grad():
