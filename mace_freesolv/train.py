@@ -4,6 +4,7 @@ import time
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
+from tqdm.auto import tqdm
 
 from config import VAL_SPLIT
 from data import MACEFreeSolvDataset, collate_mace
@@ -49,7 +50,7 @@ def train_epoch(model, loader, optimizer, loss_fn, device):
     model.train()
     total_loss = 0.0
     n_samples = 0
-    for batch in loader:
+    for batch in tqdm(loader, desc=f"  Training", leave=False):
         batch = {k: v.to(device) if torch.is_tensor(v) else v for k, v in batch.items()}
         y_true = batch.pop("y").view(-1)
         optimizer.zero_grad()

@@ -79,27 +79,27 @@ Metric reference:
       main.py argparse default.
   13. Dead seed variable: removed from eval_checkpoint (set but unused).
 
-== RUN COMMANDS ==
+== RUN FROM JUPYTER NOTEBOOK ==
+
+Run these in a notebook cell using the ! prefix:
 
 CPU quick test (~5 min):
-  python mace_freesolv/main.py --quick_test --batch_size 8
+  !python -m mace_freesolv.main --quick_test --batch_size 8
 
 Full pipeline (GPU, ~2-4 hrs):
-  python mace_freesolv/main.py --model_size medium --epochs 500 ^
-      --n_folds 5 --batch_size 32 --device cuda
+  !python -m mace_freesolv.main --model_size medium --epochs 500 --n_folds 5 --batch_size 32 --device cuda
 
 With LoRA hybrid (~2-4 hrs):
-  python mace_freesolv/main.py --use_lora --lora_rank 32 --lora_alpha 2.0 ^
-      --no_freeze_atomic_energies --epochs 500 --model_size medium ^
-      --batch_size 32 --device cuda
+  !python -m mace_freesolv.main --use_lora --lora_rank 32 --lora_alpha 2.0 --no_freeze_atomic_energies --epochs 500 --model_size medium --batch_size 32 --device cuda
 
 Evaluate a specific fold checkpoint:
-  python mace_freesolv/main.py --eval_only results/fold_2/model.pt ^
-      --eval_fold 2 --device cuda
+  !python -m mace_freesolv.main --eval_only results/fold_2/model.pt --eval_fold 2 --device cuda
 
 Huber loss variant:
-  python mace_freesolv/main.py --loss_type huber --huber_delta 1.0 ^
-      --epochs 500 --batch_size 32 --device cuda
+  !python -m mace_freesolv.main --loss_type huber --huber_delta 1.0 --epochs 500 --batch_size 32 --device cuda
+
+Terminal equivalent (Windows):
+  python -m mace_freesolv.main [args]
 
 == BENCHMARK ==
   Zhang 2022 (A3D-PNAConv-FT)   0.417    0.719
