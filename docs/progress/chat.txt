@@ -1,203 +1,115 @@
 ==============================================================================
-  AQM/SPICE2 + FreeSolv — Progress Log
-  Updated: 2026-07-28
+  MACE-OFF23 + FreeSolv — Pipeline Status & Run Guide
+  Updated: 2026-07-30
 ==============================================================================
 
-== REPO STRUCTURE ==
-aqm-spice2/                  ← DimeNet++ solvation GNN project
-├── pipeline/                ← AQM + SPICE2 training code + checkpoints
-├── freesolv/                ← FreeSolv fine-tuning code + results
-├── scripts/                 ← Shared launch scripts
-├── analysis/                ← Analysis outputs
-├── notes/                   ← Planning notes
-├── DimeModels.py            ← Shared architecture
-├── element_vocab.py         ← Shared element vocab
-└── energy_reference.py      ← Shared atomic references
-mace_freesolv/               ← MACE-OFF23 FreeSolv fine-tuning
-docs/                        ← setup/, progress/
-Data/                        ← Raw FreeSolv data
-aqm_data/                    ← AQM datasets
-
 == OBJECTIVE ==
-Fine-tune MACE-OFF23 (a foundation model for molecules) on FreeSolv 
-(642 small organic molecules) to predict solvation free energy (ΔG_solv 
-in kcal/mol). Beat SOTA MAE 0.417 (Zhang 2022).
+Fine-tune MACE-OFF23 (pretrained organic-molecule foundation model) on FreeSolv
+(642 small organic molecules) to predict solvation free energy ΔG_solv
+in kcal/mol. Target: beat SOTA MAE 0.417 (Zhang 2022, A3D-PNAConv-FT).
 
-Input: 3D geometry (atomic numbers + coordinates) → Output: scalar ΔG per molecule.
-
-All ΔG in kcal/mol (1 kcal/mol = 4.184 kJ/mol).
-Typical FreeSolv experimental uncertainty: ~0.1-0.3 kcal/mol.
+All ΔG in kcal/mol. 1 kcal/mol = 4.184 kJ/mol.
+FreeSolv experimental uncertainty: ~0.1-0.3 kcal/mol.
 
 Metric reference:
   MAE (mean absolute error) = avg |prediction − experiment|
-    <0.4 beats SOTA | 0.52 = DimeNet++ FT | 3.0 = zero-shot | 20 = useless (GBn2)
+    <0.4 beats SOTA | 0.52 = DimeNet++ FT | 3.0 = zero-shot
   RMSE = sqrt(avg(pred−exp)²) — penalizes outliers
     0.72 = Zhang SOTA | 0.84 = DimeNet++ FT
   R² = fraction of variance explained
     1.0 = perfect | 0.96 = excellent | 0.0 = mean baseline
 
-What 0.4 kcal/mol looks like physically:
-  ~kT at room temp (0.6). Typical H-bond = 1.0. Drug discovery: <1.0 useful for
-  ranking, <0.5 for quantitative design.
+== FILES (mace_freesolv/) ==
+  config.py   — All hyperparameters (epochs, LR, patience, etc.)
+  data.py     — MACEFreeSolvDataset, radius_graph, collate_mace
+  model.py    — MACEFreeSolv wrapper, atomic ref fitting, calibration, LoRA
+  train.py    — WarmupWrapper, train_epoch, validate, run_fold, run_cv
+  main.py     — CLI entry, SOTA comparison table, eval_checkpoint
 
-== ACHIEVED ==
-- MACE-OFF23 pipeline built: config, data, model, train, main (5 modules)
-- Atomic references fit to FreeSolv (ridge residual std = 2.78 kcal/mol)
-- ScaleShiftBlock per-node bias calibrated (shift=0.0, no molecule-size bias)
-- LR warmup, Huber loss, seed reproducibility, calibration all working
-- 2-epoch test confirmed forward pass, gradient flow, loss decreases
-- Pipeline runs end-to-end on CPU (single fold 50 epochs ~30 min)
+== CV STRATEGY ==
+  Round-robin fold assignment: sort 642 molecules by target ΔG,
+  assign i % n_folds. Gives stratified folds by property (not shuffled).
 
-== FREEZING STRATEGY ==
-- FREEZE_ATOMIC_ENERGIES=True (default): freezes atomic energy embeddings.
-  Residual before FT: 2.78 kcal/mol. Faster, less overfitting risk.
-  Set False to also train atomic references (when target domain shift is large).
-- Inference: always uses saved checkpoint's atomic_energies regardless of flag.
+  Each fold: 80% train/val, 20% test (round-robin).
+  Train/val split: 80/20 shuffle within train_val molecules.
+  Val drives early stopping + ReduceLROnPlateau.
+  Test held out until final reload-and-evaluate.
 
-== OUTPUT (what you get after running) ==
+  fold_metadata.json saved alongside checkpoints for eval_checkpoint.
 
-Console per fold:
-  Epoch 001/500 | Loss 4.872e-02 | MAE 2.460 | R² 0.152 | LR 1.0e-04 | 12.3s
-  ...
-  Fold 0 best: epoch 342 | val MAE 0.401 | val RMSE 0.698 | val R² 0.961
+== DEFAULT CONFIG ==
+  FREEZE_ATOMIC_ENERGIES=True   — freezes per-element reference energies
+  FREEZE_INTERACTIONS=False     — fine-tunes all interaction layers
+  PATIENCE=50 epochs            — early stopping
+  WARMUP_EPOCHS=10              — linear LR ramp
+  N_FOLDS=5                     — cross-validation
+  LR=1e-4                       — Adam
+  BATCH_SIZE=32
+  LOSS_TYPE="mse"               — also supports "huber"
+  USE_LORA=False                — full fine-tune by default
 
-Summary table printed at end:
-  ┌─────────────┬───────┬───────┬───────┐
-  │ Fold        │ MAE   │ RMSE  │ R²    │
-  ├─────────────┼───────┼───────┼───────┤
-  │ 0           │ 0.401 │ 0.698 │ 0.961 │
-  │ 1           │ 0.423 │ 0.734 │ 0.954 │
-  │ 2           │ 0.415 │ 0.711 │ 0.958 │
-  │ 3           │ 0.438 │ 0.752 │ 0.949 │
-  │ 4           │ 0.409 │ 0.705 │ 0.960 │
-  ├─────────────┼───────┼───────┼───────┤
-  │ Macro avg   │ 0.417 │ 0.720 │ 0.956 │
-  └─────────────┴───────┴───────┴───────┘
-  SOTA comparison: Zhang 2022 MAE 0.417, COSMO-RS 0.52, ReSolv 0.63
+== BUGS FIXED (2026-07-30) ==
+  1. radius_graph: torch.lexsort does not exist in current PyTorch.
+     Replaced with np.lexsort (data.py:31). radius_graph had never
+     actually executed — all prior edge indices were empty.
+  2. hdf5_path ignored: _build_item hardcoded module-level HDF5_PATH
+     instead of self.hdf5_path. Added self.hdf5_path = hdf5_path in
+     __init__ (data.py:69), changed _build_item to use it (data.py:94).
+  3. Atomic ref / calibration leaked test data: fit_refs in model.py
+     built a fresh MACEFreeSolvDataset() with all 642 molecules every
+     fold. Added fit_dataset param; train.py:138 passes fit_dataset=train_ds.
+  4. Scale cap at 0.001: model.py line 90 now caps at 1.0 with
+     warning when it fires. Old cap always clipped reasonable values.
+  5. Fold leakage (KFold shuffle): train.py replaced KFold(shuffle=True)
+     with round-robin on sorted targets. KFold was re-shuffling the
+     sorted list, cancelling the stratification.
+  6. No validation set: train.py added 3-way train/val/test split.
+     Was evaluating on test set every epoch and picking best test epoch.
+  7. Warmup/scheduler ordering: warmup.step() moved before train_epoch().
+     First epoch was training at full LR.
+  8. Warmup/scheduler overlap: scheduler.step() only called when
+     epoch > warmup_epochs to avoid conflicting LR adjustments.
+  9. eval_checkpoint fold reconstruction: added round-robin split
+     matching train.py, plus fold_metadata.json roundtrip.
+  10. loaded.dim() != expected_shape: model.py:160 fixed to
+      loaded.shape != expected_shape (dim() returns int, always True).
+  11. LoRA print timing: moved after hybrid unfreezing.
+  12. Dead config wires: MACE_NUM_INTERACTIONS deleted from config.py;
+      VAL_SPLIT imported in train.py; FREEZE_INTERACTIONS wired into
+      main.py argparse default.
+  13. Dead seed variable: removed from eval_checkpoint (set but unused).
 
-Files saved in mace_freesolv/results/:
-  fold_0_best.pt          ← best checkpoint per fold
-  fold_0_predictions.csv  ← per-molecule pred vs exp
-  ensemble_predictions.csv ← ensemble avg across folds
-  training_curves.png     ← loss/MAE/R² over epochs
-  parity_plot.png         ← predicted vs experimental ΔG
+== RUN COMMANDS ==
 
-Benchmark (from SOTA table in main.py):
+CPU quick test (~5 min):
+  python mace_freesolv/main.py --quick_test --batch_size 8
+
+Full pipeline (GPU, ~2-4 hrs):
+  python mace_freesolv/main.py --model_size medium --epochs 500 ^
+      --n_folds 5 --batch_size 32 --device cuda
+
+With LoRA hybrid (~2-4 hrs):
+  python mace_freesolv/main.py --use_lora --lora_rank 32 --lora_alpha 2.0 ^
+      --no_freeze_atomic_energies --epochs 500 --model_size medium ^
+      --batch_size 32 --device cuda
+
+Evaluate a specific fold checkpoint:
+  python mace_freesolv/main.py --eval_only results/fold_2/model.pt ^
+      --eval_fold 2 --device cuda
+
+Huber loss variant:
+  python mace_freesolv/main.py --loss_type huber --huber_delta 1.0 ^
+      --epochs 500 --batch_size 32 --device cuda
+
+== BENCHMARK ==
   Zhang 2022 (A3D-PNAConv-FT)   0.417    0.719
   COSMO-RS                      0.52      —
   ReSolv                        0.63      0.96
   Fine-tuned DimeNet++ (ours)   0.52      0.84
-  MACE-OFF23 (target)           ?         ?
+  MACE-OFF23 fine-tuned         ?         ?
 
-20-epoch quick test trend: MAE dropped 2.46→2.06, R² rose 0.15→0.54.
-500 epochs × 5 folds should reach well below 0.52 — target MAE < 0.417.
-
-== NEXT STEP (on GPU) ==
-  python mace_freesolv/main.py --model_size medium --epochs 500 \
-      --n_folds 5 --batch_size 32
-
-Estimated ~2-4 hrs on A100/4090.
-
-== KEY FINDINGS FROM Zhang 2026 (npj Comput Mater 12, 174) ==
-
-Paper: "Constructing MLIPs with minimum ab initio data" — Wang group at CAS.
-Directly relevant to our MACE-OFF23 FreeSolv work.
-
-Core workflow (3 stages):
-  Stage 0: Run HT MD with pretrained MACE-MP-0 directly (no fine-tuning) to
-           generate trajectories. DIRECT resampling (PCA + stratified clustering
-           on M3GNet features) picks ~200 diverse configs for one-shot DFT
-           labeling. Key justification: MACE-MP-0 trajectories have ~90% PCA
-           feature overlap with AIMD despite 22.8% RRMSE on transition energies,
-           so it's good enough to sample with but not accurate enough to trust.
-  Stage 1: Fine-tune MACE-MP-0 on ~200 DFT configs (full FT or ELoRA).
-  Stage 2: Distill to lightweight NEP (teacher labels 2000 pseudo-configs,
-           zero additional DFT). NEP recovers most accuracy with 20× speedup.
-
-Key findings relevant to us:
-  - MD instability mechanism: ZBL alone does NOT fix instability (Fig. S7).
-    Root cause is PES SMOOTHNESS, not just short-range repulsive trend.
-    A model can have correct repulsive energy trend at short r, but an unsmooth
-    ("kinked") energy curve — slope changes abruptly, producing spurious
-    attractive forces that destabilise MD.
-    Pretrained/fine-tuned models inherit smoothness from pretrained PES,
-    avoiding this problem entirely.
-    Fine-tuning with just 10 configs yields stable MD; training from scratch
-    on 800 configs is still unstable.
-    Diagnosis: check diatomic energy curves for kinks, not just ZBL sign.
-  - ELoRA matches full fine-tuning accuracy with far fewer trainable params.
-  - Single-shot sampling + fine-tuning replaces costly active learning loops.
-  - Distilled NEP: 17% lower energy RMSE, 11% lower force RMSE than NEP
-    trained on 200 DFT configs (because teacher provides 2000 labels vs 200).
-  - Long-range electrostatics still a known gap in current uMLIPs.
-
-Relevance to FreeSolv:
-  - MACE-OFF23 is pretrained on SPICE v1 (wB97M+D3, exactly the organic
-    molecules in FreeSolv). Fine-tuning on 642 labels should inherit smooth
-    PES and reach sub-0.4 MAE — directly parallels their Stage 1.
-  - No need for Stage 0 sampling — FreeSolv labels already exist.
-   - Distillation (Stage 2) not needed here — we just need per-molecule ΔG,
-     not fast MD. But if we wanted to run MD with our model, same principles apply.
-
-== 2026-07-28 REPO REORGANIZATION ==
-
-solvation-gnn/ renamed → aqm-spice2/, with flat inner dirs reorganized:
-  aqm-spice2/                 ← top level (shared: DimeModels.py, element_vocab.py, energy_reference.py)
-  ├── pipeline/               ← AQM + SPICE2 training code
-  ├── freesolv/               ← FreeSolv fine-tuning code
-  ├── analysis/               ← FreeSolv analysis outputs (CSV, PNG, LFER)
-  ├── scripts/                ← run_all.sh, train.py
-  └── notes/                  ← planning notes
-
-Added docs/: setup/ (vast_setup, download_data), progress/ (this file).
-chat.txt moved from repo root → docs/progress/chat.txt.
-
-mace_freesolv/ fixes:
-  - config.py: logger reference backported, epochs default 500, results_dir relative
-  - data.py: EnergyFreeSolvDataset uses ScaleShiftBlock with learnable shift/bias
-  - model.py: ScaleShiftBlock dim fix (1 → 1×1 for scalar targets)
-  - train.py: padding mask for collate, print→log, fold timing, Huber/SmoothL1
-  - main.py: ModelRegistry, logger fix, atomic ref file search, SOTA table formatting
-
-.gitignore: added .opencode/ (opencode skill configs), Data/ (top-level data dir).
-
-Pushed to GitHub (origin/master).
-
-== 2026-07-29 LoRA INTEGRATION ==
-
-Integrated LoRA (Low-Rank Adaptation) into MACE-OFF23 FreeSolv pipeline:
-
-Core LoRA (mace/modules/lora.py — site-packages, not modified):
-  - LoRAO3Linear: wraps equivariant o3.Linear with rank-4/8/16/32 bottleneck
-  - LoRAFCLayer: wraps e3nn FC layers (conv_tp_weights MLPs)
-  - inject_LoRAs(): recursive injection, freezes non-LoRA params
-  - merge_lora_weights(): folds LoRA back into base for inference
-
-Pipeline changes (mace_freesolv/):
-  - model.py: inject_LoRAs() after calibration; new params lora_rank/lora_alpha
-  - config.py: defaults LORA_RANK=32, LORA_ALPHA=2.0
-  - main.py: --use_lora, --lora_rank, --lora_alpha CLI args
-  - train.py: threads LoRA config through cfg dict to model constructor
-
-Hybrid strategy (lora_unfreeze_readouts/skip_tp):
-  - After LoRA injection, selectively unfreezes:
-    - skip_tp weights (FullyConnectedTensorProduct, 460K params)
-    - readout base weights (1.6K params)
-    - atomic_energies_fn (when freeze_atomic_energies=False)
-    - scale_shift (always, 2 scalars)
-  - Result: 596K/828K trainable (72%) vs 100% for full fine-tune
-  - Verified: forward pass, gradient flow, checkpoint save/load, 3-epoch convergence
-
-Expected: LoRA hybrid should match or beat full FT MAE 0.417 due to:
-  - Regularization from low-rank bottleneck on linear layers
-  - Full expressive power on skip_tp (main message-passing weights)
-  - Tighter calibration of atomic references and output scale
-  - Higher rank (32) provides sufficient subspace capacity
-
-Run command (GPU, ~1-3 hrs for 5-fold × 500 epochs):
-  python mace_freesolv/main.py --use_lora --lora_rank 32 --lora_alpha 2.0 ^
-      --no_freeze_atomic_energies --epochs 500 --model_size medium ^
-      --batch_size 32
-
-Quick test (CPU, ~5 min):
-  python mace_freesolv/main.py --quick_test --use_lora --lora_rank 32
+== FILES SAVED ==
+  mace_freesolv/results/
+    fold_N/model.pt                 — best checkpoint per fold
+    fold_N/fold_metadata.json       — seed, n_folds, fold_index
+    fold_N/test_preds.npz           — preds vs expts for test set

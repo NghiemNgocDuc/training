@@ -28,18 +28,16 @@ def radius_graph(pos, r, batch=None, max_num_neighbors=32):
         i, j = adj.nonzero(as_tuple=True)
         if i.numel() > 0 and max_num_neighbors > 0:
             dist_vals = dist[i, j]
-            order = torch.argsort(dist_vals, stable=True)
+            order_np = np.lexsort((dist_vals.cpu().numpy(), i.cpu().numpy()))
+            order = torch.from_numpy(order_np).to(i.device)
             i_sorted, j_sorted = i[order], j[order]
-            uniq, counts = torch.unique(i_sorted, return_counts=True)
+            uniq, counts = torch.unique_consecutive(i_sorted, return_counts=True)
             keep = []
-            start = 0
             for c in counts.tolist():
-                end = start + c
                 k = min(c, max_num_neighbors)
                 keep.append(torch.ones(k, dtype=torch.bool))
                 if c > k:
                     keep.append(torch.zeros(c - k, dtype=torch.bool))
-                start = end
             keep = torch.cat(keep)
             i, j = i_sorted[keep], j_sorted[keep]
         rows.append(i)
@@ -68,6 +66,7 @@ def _download_freesolv_data(json_path, cache_dir):
 class MACEFreeSolvDataset(Dataset):
     def __init__(self, hdf5_path=HDF5_PATH, r_max=5.0, max_neighbors=32,
                  targets_in_ev=True, mol_ids=None):
+        self.hdf5_path = hdf5_path
         self.r_max = r_max
         self.max_neighbors = max_neighbors
         self.targets_in_ev = targets_in_ev
@@ -92,7 +91,7 @@ class MACEFreeSolvDataset(Dataset):
 
     def _build_item(self, idx):
         mol_id, dG_kcal = self.samples[idx]
-        with h5py.File(HDF5_PATH, "r") as f:
+        with h5py.File(self.hdf5_path, "r") as f:
             grp = f[mol_id]
             z = torch.tensor(grp["atNUM"][...], dtype=torch.long)
             pos = torch.tensor(grp["atXYZ"][...], dtype=torch.float32)

@@ -54,7 +54,8 @@ class MACEFreeSolv(torch.nn.Module):
     def __init__(self, model_size="medium", device="cpu", fit_refs=True,
                  freeze_atomic_energies=False, target_mean=0.0, target_std=None,
                  use_lora=False, lora_rank=32, lora_alpha=2.0,
-                 lora_unfreeze_readouts=True, lora_unfreeze_skip_tp=True):
+                 lora_unfreeze_readouts=True, lora_unfreeze_skip_tp=True,
+                 fit_dataset=None):
         super().__init__()
         self.device = device
         self.model_size = model_size
@@ -69,8 +70,11 @@ class MACEFreeSolv(torch.nn.Module):
             p.requires_grad_(True)
 
         if fit_refs:
-            from data import MACEFreeSolvDataset
-            ds = MACEFreeSolvDataset(targets_in_ev=False)
+            if fit_dataset is not None:
+                ds = fit_dataset
+            else:
+                from data import MACEFreeSolvDataset
+                ds = MACEFreeSolvDataset()
             ref_kcal = fit_atomic_references(ds)
             ref_ev = ref_kcal / 23.0605
             base.atomic_energies_fn.atomic_energies.data = ref_ev.unsqueeze(0).float()
@@ -83,18 +87,21 @@ class MACEFreeSolv(torch.nn.Module):
             else:
                 target_std_ev = target_std / 23.0605
             scale_analytic = target_std_ev / max(std_e, 1e-8)
-            scale = min(0.001, scale_analytic)
+            scale = min(1.0, scale_analytic)
             shift = 0.0
             base.scale_shift.scale.data.fill_(scale)
             base.scale_shift.shift.data.fill_(shift)
             print(f"  Calibration: target_std={target_std_ev:.4f} eV, model_std={std_e:.4f} eV")
-            print(f"    analytic_scale={scale_analytic:.6f}, capped_scale={scale:.6f}")
+            if scale < scale_analytic:
+                print(f"    scale={scale:.6f} (capped from {scale_analytic:.6f})")
+                print(f"    WARNING: output will be ~{1/scale:.0f}x too small until scale_shift adapts")
+            else:
+                print(f"    scale={scale:.6f}")
             print(f"    shift=0.0 (per-node shift must be 0 — summed over atoms)")
 
         if use_lora:
             inject_LoRAs(base, rank=lora_rank, alpha=lora_alpha)
-            lora_total = sum(p.numel() for p in base.parameters() if p.requires_grad)
-            print(f"  LoRA injected: rank={lora_rank}, alpha={lora_alpha}, lora_only={lora_total:,} params")
+            lora_adapter = sum(p.numel() for p in base.parameters() if p.requires_grad)
 
             if not self.freeze_atomic_energies:
                 base.atomic_energies_fn.atomic_energies.requires_grad_(True)
@@ -107,8 +114,6 @@ class MACEFreeSolv(torch.nn.Module):
                     if "skip_tp" in name and "weight" in name:
                         p.requires_grad_(True)
                         n_skip += p.numel()
-                if n_skip > 0:
-                    print(f"  Hybrid: unfroze skip_tp weights ({n_skip:,} params)")
 
             if lora_unfreeze_readouts:
                 n_read = 0
@@ -116,8 +121,12 @@ class MACEFreeSolv(torch.nn.Module):
                     if name.startswith("readouts") and "lora" not in name and "weight" in name:
                         p.requires_grad_(True)
                         n_read += p.numel()
-                if n_read > 0:
-                    print(f"  Hybrid: unfroze readout base weights ({n_read:,} params)")
+
+            print(f"  LoRA: rank={lora_rank}, alpha={lora_alpha}, adapter_params={lora_adapter:,}")
+            if lora_unfreeze_skip_tp and n_skip > 0:
+                print(f"  LoRA hybrid: unfroze skip_tp ({n_skip:,})")
+            if lora_unfreeze_readouts and n_read > 0:
+                print(f"  LoRA hybrid: unfroze readouts ({n_read:,})")
 
         self.model = base
         n_trainable = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
@@ -148,7 +157,7 @@ class MACEFreeSolv(torch.nn.Module):
         if "atomic_energies_fn.atomic_energies" in state:
             expected_shape = self.model.atomic_energies_fn.atomic_energies.shape
             loaded = state["atomic_energies_fn.atomic_energies"]
-            if loaded.dim() != expected_shape:
+            if loaded.shape != expected_shape:
                 state["atomic_energies_fn.atomic_energies"] = loaded.reshape(expected_shape)
         self.model.load_state_dict(state, strict=strict)
         print(f"Loaded checkpoint: {path}")

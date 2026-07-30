@@ -1,10 +1,11 @@
+import json
 import os
 import time
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
-from sklearn.model_selection import KFold
 
+from config import VAL_SPLIT
 from data import MACEFreeSolvDataset, collate_mace
 from model import MACEFreeSolv
 
@@ -78,14 +79,20 @@ def validate(model, loader, device):
     return mae, rmse, r2, all_preds, all_expts
 
 
-def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
+def run_fold(train_ids, val_ids, test_ids, fold, output_dir, device, cfg):
     print(f"\n{'='*60}")
     print(f"  FOLD {fold}")
     print(f"{'='*60}")
-    print(f"  Train: {len(train_ids)}, Test: {len(test_ids)}")
+    print(f"  Train: {len(train_ids)}, Val: {len(val_ids)}, Test: {len(test_ids)}")
 
     train_ds = MACEFreeSolvDataset(
         mol_ids=train_ids,
+        r_max=cfg["r_max"],
+        max_neighbors=cfg["max_neighbors"],
+        targets_in_ev=True,
+    )
+    val_ds = MACEFreeSolvDataset(
+        mol_ids=val_ids,
         r_max=cfg["r_max"],
         max_neighbors=cfg["max_neighbors"],
         targets_in_ev=True,
@@ -103,6 +110,10 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
         train_ds, batch_size=cfg["batch_size"], shuffle=True, collate_fn=collate_mace,
         num_workers=num_w, pin_memory=pin,
     )
+    val_loader = DataLoader(
+        val_ds, batch_size=cfg["batch_size"], shuffle=False, collate_fn=collate_mace,
+        num_workers=num_w, pin_memory=pin,
+    )
     test_loader = DataLoader(
         test_ds, batch_size=cfg["batch_size"], shuffle=False, collate_fn=collate_mace,
         num_workers=num_w, pin_memory=pin,
@@ -110,6 +121,8 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
 
     t_mean_kcal, t_std_kcal = compute_target_stats(train_ds)
     print(f"  Target stats: mean={t_mean_kcal:.4f} kcal/mol, std={t_std_kcal:.4f} kcal/mol")
+    print(f"  Note: shift=0 (per-node shift creates molecule-size bias; computed mean discarded)")
+    print(f"  target_std in kcal/mol — converted to eV inside calibrate_output")
 
     model = MACEFreeSolv(
         model_size=cfg["model_size"],
@@ -122,6 +135,7 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
         lora_alpha=cfg.get("lora_alpha", 2.0),
         lora_unfreeze_readouts=cfg.get("lora_unfreeze_readouts", True),
         lora_unfreeze_skip_tp=cfg.get("lora_unfreeze_skip_tp", True),
+        fit_dataset=train_ds,
     ).to(device)
     if cfg.get("freeze_interactions"):
         model.freeze_interactions()
@@ -137,18 +151,24 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
     else:
         loss_fn = torch.nn.MSELoss()
 
-    best_mae = float("inf")
+    best_val_mae = float("inf")
+    best_val_rmse = float("inf")
     best_epoch = -1
     stale = 0
     fold_dir = os.path.join(output_dir, f"fold_{fold}")
     os.makedirs(fold_dir, exist_ok=True)
 
+    meta = {"seed": cfg.get("seed"), "n_folds": cfg.get("n_folds"), "fold_index": fold}
+    with open(os.path.join(fold_dir, "fold_metadata.json"), "w") as f:
+        json.dump(meta, f)
+
     for epoch in range(1, cfg["epochs"] + 1):
         t0 = time.time()
-        train_loss = train_epoch(model, train_loader, optimizer, loss_fn, device)
         warmup.step()
-        val_mae, val_rmse, val_r2, val_preds, val_expts = validate(model, test_loader, device)
-        scheduler.step(val_mae)
+        train_loss = train_epoch(model, train_loader, optimizer, loss_fn, device)
+        val_mae, val_rmse, val_r2, _, _ = validate(model, val_loader, device)
+        if epoch > cfg.get("warmup_epochs", 10):
+            scheduler.step(val_mae)
         current_lr = warmup.get_lr()
 
         val_mae_kcal = val_mae * EV_TO_KCAL
@@ -156,17 +176,16 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
         elapsed = time.time() - t0
 
         print(f"    Epoch {epoch:3d}/{cfg['epochs']} | Loss: {train_loss:.6f} | "
-              f"MAE: {val_mae_kcal:.3f} RMSE: {val_rmse_kcal:.3f} R²: {val_r2:.4f} | "
+              f"Val MAE: {val_mae_kcal:.3f} RMSE: {val_rmse_kcal:.3f} R²: {val_r2:.4f} | "
               f"LR: {current_lr:.2e} | {elapsed:.1f}s")
 
-        if val_mae < best_mae:
-            best_mae = val_mae
+        if val_mae < best_val_mae:
+            best_val_mae = val_mae
+            best_val_rmse = val_rmse
             best_epoch = epoch
             stale = 0
-            ckpt_path = os.path.join(fold_dir, "model.pt")
-            model.save(ckpt_path)
-            np.savez(os.path.join(fold_dir, "test_preds.npz"), preds=val_preds, expts=val_expts)
-            print(f"    [*] Best model saved (MAE={val_mae_kcal:.3f} kcal/mol)")
+            model.save(os.path.join(fold_dir, "model.pt"))
+            print(f"    [*] Best val checkpoint saved (MAE={val_mae_kcal:.3f} kcal/mol)")
         else:
             stale += 1
 
@@ -174,9 +193,19 @@ def run_fold(train_ids, test_ids, fold, output_dir, device, cfg):
             print(f"    Early stopping at epoch {epoch}")
             break
 
-    best_mae_kcal = best_mae * EV_TO_KCAL
-    print(f"\n  Fold {fold} best: MAE={best_mae_kcal:.3f} kcal/mol at epoch {best_epoch}")
-    return best_mae, best_epoch
+    val_mae_kcal = best_val_mae * EV_TO_KCAL
+    val_rmse_kcal = best_val_rmse * EV_TO_KCAL
+    print(f"\n  Fold {fold} best val: MAE={val_mae_kcal:.3f} RMSE={val_rmse_kcal:.3f} at epoch {best_epoch}")
+
+    model.load(os.path.join(fold_dir, "model.pt"))
+    model.eval()
+    test_mae, test_rmse, test_r2, test_preds, test_expts = validate(model, test_loader, device)
+    test_mae_kcal = test_mae * EV_TO_KCAL
+    test_rmse_kcal = test_rmse * EV_TO_KCAL
+    print(f"  Fold {fold} test:  MAE={test_mae_kcal:.3f} RMSE={test_rmse_kcal:.3f} R²={test_r2:.4f}")
+
+    np.savez(os.path.join(fold_dir, "test_preds.npz"), preds=test_preds, expts=test_expts)
+    return test_mae, test_rmse, best_epoch
 
 
 def run_cv(args):
@@ -201,6 +230,7 @@ def run_cv(args):
         "epochs": args.epochs,
         "patience": args.patience,
         "n_folds": args.n_folds,
+        "seed": args.seed,
         "freeze_interactions": args.freeze_interactions,
         "freeze_atomic_energies": args.freeze_atomic_energies,
         "warmup_epochs": args.warmup_epochs,
@@ -220,22 +250,39 @@ def run_cv(args):
     sort_idx = np.argsort(all_expts_all)
     mol_ids_sorted = [all_mol_ids[i] for i in sort_idx]
 
-    kf = KFold(n_splits=cfg["n_folds"], shuffle=True, random_state=args.seed)
-    fold_results = []
+    n_folds = cfg["n_folds"]
+    fold_mol_ids = [[] for _ in range(n_folds)]
+    for i, mol_id in enumerate(mol_ids_sorted):
+        fold_mol_ids[i % n_folds].append(mol_id)
 
-    for fold in range(cfg["n_folds"]):
-        train_idx, test_idx = list(kf.split(mol_ids_sorted))[fold]
-        train_ids = [mol_ids_sorted[i] for i in train_idx]
-        test_ids = [mol_ids_sorted[i] for i in test_idx]
-        best_mae, best_epoch = run_fold(train_ids, test_ids, fold, args.output_dir, device, cfg)
-        fold_results.append(best_mae)
+    fold_maes = []
+    fold_rmses = []
+
+    for fold in range(n_folds):
+        test_ids = fold_mol_ids[fold]
+        train_val_ids = []
+        for f_idx, mids in enumerate(fold_mol_ids):
+            if f_idx != fold:
+                train_val_ids.extend(mids)
+
+        rng = np.random.RandomState(cfg.get("seed", 42) + fold)
+        indices = np.arange(len(train_val_ids))
+        rng.shuffle(indices)
+        n_val = max(1, int(len(train_val_ids) * VAL_SPLIT))
+        val_ids = [train_val_ids[i] for i in indices[:n_val]]
+        train_ids = [train_val_ids[i] for i in indices[n_val:]]
+
+        test_mae, test_rmse, _ = run_fold(train_ids, val_ids, test_ids, fold, args.output_dir, device, cfg)
+        fold_maes.append(test_mae)
+        fold_rmses.append(test_rmse)
 
     print(f"\n{'='*60}")
-    print(f"  CROSS-VALIDATION RESULTS")
+    print(f"  CROSS-VALIDATION RESULTS (test-set metrics)")
     print(f"{'='*60}")
-    for f, m in enumerate(fold_results):
-        print(f"  Fold {f}: MAE = {m*EV_TO_KCAL:.3f} kcal/mol")
-    mean_mae = np.mean(fold_results) * EV_TO_KCAL
-    std_mae = np.std(fold_results) * EV_TO_KCAL
-    print(f"  Mean ± std: {mean_mae:.3f} ± {std_mae:.3f} kcal/mol")
-    return fold_results
+    for f, (m, r) in enumerate(zip(fold_maes, fold_rmses)):
+        print(f"  Fold {f}: MAE = {m*EV_TO_KCAL:.3f}, RMSE = {r*EV_TO_KCAL:.3f} kcal/mol")
+    mean_mae = np.mean(fold_maes) * EV_TO_KCAL
+    std_mae = np.std(fold_maes) * EV_TO_KCAL
+    mean_rmse = np.mean(fold_rmses) * EV_TO_KCAL
+    print(f"  Mean ± std: MAE {mean_mae:.3f} ± {std_mae:.3f}, RMSE {mean_rmse:.3f}")
+    return fold_maes, fold_rmses

@@ -11,7 +11,6 @@ OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
 MACE_MODEL_SIZE = "medium"  # small | medium | large
 MACE_R_MAX = 5.0
 MACE_MAX_NEIGHBORS = 32
-MACE_NUM_INTERACTIONS = 2
 
 # Fine-tuning
 EPOCHS = 500
