@@ -79,27 +79,48 @@ Metric reference:
       main.py argparse default.
   13. Dead seed variable: removed from eval_checkpoint (set but unused).
 
-== RUN FROM JUPYTER NOTEBOOK ==
+== FULL SETUP & RUN (Vast AI / fresh GPU instance) ==
 
-Run these in a notebook cell using the ! prefix:
+Before starting: upload freesolv_conformers.hdf5 to the instance
+(use scp/rsync from your laptop — it's ~1.5 GB and NOT in git).
+The file goes into the training/ repo root.
 
-CPU quick test (~5 min):
-  !python -m mace_freesolv.main --quick_test --batch_size 8
+Paste each box into its own Jupyter notebook cell in order.
 
-Full pipeline (GPU, ~2-4 hrs):
-  !python -m mace_freesolv.main --model_size medium --epochs 500 --n_folds 5 --batch_size 32 --device cuda
+---
 
-With LoRA hybrid (~2-4 hrs):
-  !python -m mace_freesolv.main --use_lora --lora_rank 32 --lora_alpha 2.0 --no_freeze_atomic_energies --epochs 500 --model_size medium --batch_size 32 --device cuda
+Cell 1 — clone repo:
+!git clone https://github.com/NghiemNgocDuc/training.git
+import os
+os.chdir("training")
 
-Evaluate a specific fold checkpoint:
-  !python -m mace_freesolv.main --eval_only results/fold_2/model.pt --eval_fold 2 --device cuda
+Cell 2 — install deps:
+!pip install mace-torch tqdm h5py
 
-Huber loss variant:
-  !python -m mace_freesolv.main --loss_type huber --huber_delta 1.0 --epochs 500 --batch_size 32 --device cuda
+Cell 3 — quick test (2 folds × 2 epochs, ~5 min):
+!python -m mace_freesolv.main --quick_test --device cuda
 
-Terminal equivalent (Windows):
-  python -m mace_freesolv.main [args]
+Cell 4 — full run in background (survives laptop shutdown):
+import subprocess
+with open("run.log", "w") as f:
+    p = subprocess.Popen([
+        "python", "-m", "mace_freesolv.main",
+        "--model_size", "medium",
+        "--epochs", "500",
+        "--n_folds", "5",
+        "--batch_size", "32",
+        "--device", "cuda"
+    ], stdout=f, stderr=subprocess.STDOUT)
+print(f"PID: {p.pid}")
+
+Cell 5 — watch live (run anytime while Cell 4 runs):
+!tail -f run.log
+
+Cell 6 — results after completion:
+!tail -30 run.log
+
+Cell 7 — evaluate a specific fold checkpoint:
+!python -m mace_freesolv.main --eval_only results/fold_2/model.pt --eval_fold 2 --device cuda
 
 == BENCHMARK ==
   Zhang 2022 (A3D-PNAConv-FT)   0.417    0.719
