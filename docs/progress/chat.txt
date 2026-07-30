@@ -97,6 +97,8 @@ cd training
 python3 -m venv venv
 source venv/bin/activate
 pip install mace-torch tqdm h5py
+# If you get "No module named 'mace'", you skipped this pip install step.
+# Make sure (venv) shows in your prompt, then run it.
 
 # 3 — quick test (2 folds × 2 epochs, ~5 min)
 python -m mace_freesolv.main --quick_test --device cuda
