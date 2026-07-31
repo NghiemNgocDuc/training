@@ -1,6 +1,6 @@
 ==============================================================================
   MACE-OFF23 + FreeSolv — Pipeline Status & Run Guide
-  Updated: 2026-07-30
+  Updated: 2026-07-31
 ==============================================================================
 
 == OBJECTIVE ==
@@ -13,18 +13,21 @@ FreeSolv experimental uncertainty: ~0.1-0.3 kcal/mol.
 
 Metric reference:
   MAE (mean absolute error) = avg |prediction − experiment|
-    <0.4 beats SOTA | 0.52 = DimeNet++ FT | 3.0 = zero-shot
+    <0.4 beats SOTA | 0.52 = DimeNet++ FT | 3.0 = MACE-OFF23 zero-shot
   RMSE = sqrt(avg(pred−exp)²) — penalizes outliers
     0.72 = Zhang SOTA | 0.84 = DimeNet++ FT
   R² = fraction of variance explained
     1.0 = perfect | 0.96 = excellent | 0.0 = mean baseline
 
 == FILES (mace_freesolv/) ==
-  config.py   — All hyperparameters (epochs, LR, patience, etc.)
-  data.py     — MACEFreeSolvDataset, radius_graph, collate_mace
-  model.py    — MACEFreeSolv wrapper, atomic ref fitting, calibration, LoRA
-  train.py    — WarmupWrapper, train_epoch, validate, run_fold, run_cv
-  main.py     — CLI entry, SOTA comparison table, eval_checkpoint
+  config.py            — All hyperparameters (epochs, LR, patience, etc.)
+  data.py              — MACEFreeSolvDataset, radius_graph, collate_mace
+  model.py             — MACEFreeSolv wrapper, atomic ref fitting, calibration, LoRA, init_checkpoint
+  train.py             — WarmupWrapper, train_epoch, validate, run_fold, run_cv
+  main.py              — CLI entry, SOTA comparison table, eval_checkpoint
+  aqm_data.py          — AQMMACEDataset (Stage-A loader, dG = E_sol - E_gas in eV)
+  train_stage_a.py     — Stage-A fine-tune on AQM
+  run_stage_ab.sh      — one-command two-stage launcher (detached, stage_ab.log)
 
 == CV STRATEGY ==
   Round-robin fold assignment: sort 642 molecules by target ΔG,
@@ -79,52 +82,6 @@ Metric reference:
       main.py argparse default.
   13. Dead seed variable: removed from eval_checkpoint (set but unused).
 
-== FULL SETUP & RUN (Vast AI / terminal via SSH) ==
-
-Before starting: upload freesolv_conformers.hdf5 to the instance
-(scp from your laptop — it's ~1.5 GB and NOT in git).
-Place it at ~/training/freesolv_conformers.hdf5.
-
-SSH into your instance, then run each block in order:
-
----
-
-# 1 — clone repo
-git clone https://github.com/NghiemNgocDuc/training.git
-cd training
-
-# 2 — create venv + install deps
-python3 -m venv venv
-source venv/bin/activate
-pip install mace-torch tqdm h5py
-# If you get "No module named 'mace'", you skipped this pip install step.
-# Make sure (venv) shows in your prompt, then run it.
-
-# 3 — quick test (2 folds × 2 epochs, ~5 min)
-python -m mace_freesolv.main --quick_test --device cuda
-
-# 4 — full run with screen (survives laptop shutdown)
-screen -S mace_run
-python -m mace_freesolv.main --model_size medium --epochs 500 --n_folds 5 --batch_size 32 --device cuda
-# Detach: Ctrl+A then D
-# Re-attach later: screen -r mace_run
-
-# Alternative — nohup (also survives shutdown)
-nohup python -m mace_freesolv.main --model_size medium --epochs 500 --n_folds 5 --batch_size 32 --device cuda > run.log 2>&1 &
-tail -f run.log
-
-# If run.log not showing immediately, wait a moment or check stderr too:
-# nohup python -m mace_freesolv.main ... > run.log 2>&1 &
-
-# 5 — evaluate a checkpoint later
-python -m mace_freesolv.main --eval_only results/fold_2/model.pt --eval_fold 2 --device cuda
-
-# 6 — if you already started without nohup, suspend + disown:
-#   Ctrl+Z  (suspends)
-#   bg      (backgrounds)
-#   disown  (detaches from terminal)
-# Now safe to close the tab.
-
 == BENCHMARK ==
   Zhang 2022 (A3D-PNAConv-FT)   0.417    0.719
   COSMO-RS                      0.52      —
@@ -168,6 +125,8 @@ AQM-full verified (inspect_full.py):
      ls /workspace                          # confirm repo folder (usually training/)
      cd training
      git pull                               # get the new code
+   (first time on a fresh instance, also install deps:
+     pip install mace-torch tqdm h5py       # or python3 -m venv venv && source venv/bin/activate first)
 
 3) DATA - only if AQM-sol-full.hdf5 / AQM-gas-full.hdf5 are NOT on the instance:
      wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
@@ -185,7 +144,8 @@ AQM-full verified (inspect_full.py):
      grep 'PIPELINE DONE' stage_ab.log      # finished marker
 
 6) FETCH RESULTS BACK TO LOCAL:
-     scp -r battery:/workspace/training/mace_freesolv/results mace_freesolv/results_stage_a/
+     scp -r battery:/workspace/training/mace_freesolv/results mace_freesolv/
+     scp -r battery:/workspace/training/mace_freesolv/results_stage_a mace_freesolv/
    (run from C:\Users\User\Documents\Data)
 
 Manual run - Stage A (fine-tune MACE-OFF23 on AQM dG):
