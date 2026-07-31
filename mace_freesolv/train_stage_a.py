@@ -47,6 +47,8 @@ def main():
     parser.add_argument("--loss_type", type=str, default="mse", choices=["mse", "huber"])
     parser.add_argument("--huber_delta", type=float, default=1.0)
     parser.add_argument("--quick_test", action="store_true", help="2 epochs, 2000 samples")
+    parser.add_argument("--setup_only", action="store_true",
+                        help="Fit atomic refs + calibrate output, then exit before training")
     args = parser.parse_args()
 
     if args.output_dir is None:
@@ -109,6 +111,10 @@ def main():
         target_std=t_std_kcal,
         fit_dataset=train_ds,
     ).to(device)
+
+    if args.setup_only:
+        print("\n[setup_only] refs fitted + calibration done; exiting before training loop")
+        sys.exit(0)
 
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
