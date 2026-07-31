@@ -27,7 +27,7 @@ Metric reference:
   main.py              — CLI entry, SOTA comparison table, eval_checkpoint
   aqm_data.py          — AQMMACEDataset (Stage-A loader, dG = E_sol - E_gas in eV)
   train_stage_a.py     — Stage-A fine-tune on AQM
-  run_stage_ab.sh      — one-command two-stage launcher (detached, stage_ab.log)
+  run_stage_ab.sh      — one-command two-stage launcher (git pull, wipes stale outputs, detached, stage_ab.log)
 
 == CV STRATEGY ==
   Round-robin fold assignment: sort 642 molecules by target ΔG,
@@ -131,14 +131,19 @@ Code is already pushed to GitHub. On the instance, open the Jupyter Terminal
   wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
   wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'
 
-  # 4 - OPTIONAL sanity check first (~10 min): 2 epochs on 300 samples
+  # 4 - OPTIONAL sanity check first (~10 min): 2 epochs, 2000 samples
   python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda --quick_test
+  #    Faster check that only verifies refs+calibration (no training):
+  #    python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda --setup_only
 
-  # 5 - run the whole pipeline (self-detaches via nohup - safe to close terminal)
+  # 5 - run the whole pipeline (git pulls latest code, wipes stale results, self-detaches via nohup - safe to close terminal)
   bash mace_freesolv/run_stage_ab.sh
   #    -> prints "Pipeline launched (PID ...)" and returns immediately.
   #    -> Stage A then Stage B run in the background, logging to stage_ab.log.
-  #    -> To stop it: kill $(pgrep -f run_stage_ab)
+  #    -> To stop it (NOTE: the detached child is python, not the script):
+  #       kill $(pgrep -f train_stage_a.py); kill $(pgrep -f "mace_freesolv/main.py")
+  #    -> Run B variant (scale pinned to 1.0, targets normalized):
+  #       NORMALIZE=1 bash mace_freesolv/run_stage_ab.sh
 
   # 6 - monitor (any time, even in a new terminal)
   python mace_freesolv/status.py          # progress snapshot: stage, epoch %, ETA, val MAE, fold results
@@ -147,15 +152,19 @@ Code is already pushed to GitHub. On the instance, open the Jupyter Terminal
   grep 'PIPELINE DONE' stage_ab.log       # finished marker
 
 Results land in /workspace/training/mace_freesolv/results/ (fold_N/model.pt,
-fold_metadata.json, test_preds.npz) and results_stage_a/ (stage_a.pt).
+fold_metadata.json, test_preds.npz), results_stage_a/ (stage_a.pt),
+and results_stage_a_b/ (Run B variant).
 Download them from the Vast instance files panel.
 
 Manual run - Stage A (fine-tune MACE-OFF23 on AQM dG):
-  python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda
+  RECOMMENDED (2026-07-31 protocol): lr 3e-4, warmup 20, patience 20
+  python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 \
+      --device cuda --lr 3e-4 --warmup_epochs 20 --patience 20
+  Run B (isolates gradient-magnitude mismatch): add --normalize_targets --output_dir mace_freesolv/results_stage_a_b
   (defaults: medium, 100 epochs, lr 1e-4, batch 32, patience 20, warmup 10,
    molecule-level 80/20 split - NEVER split conformers of same molecule!)
   Output: mace_freesolv/results_stage_a/stage_a.pt + stage_a_meta.json
-  quick test: add --quick_test (2 epochs, 300 samples)
+  quick test: add --quick_test (2 epochs, 2000 samples); refs-only check: --setup_only
 
 Manual run - Stage B (existing FreeSolv CV pipeline, from Stage-A weights):
   python mace_freesolv/main.py --init_checkpoint mace_freesolv/results_stage_a/stage_a.pt --device cuda
