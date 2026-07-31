@@ -113,70 +113,41 @@ AQM-full verified (inspect_full.py):
   Molecules: 2-92 atoms (mean 40.6, median 42) vs FreeSolv ~20.
   Gas/sol geometries differ slightly (RMSD 0.27 A) - paired-conformer dG is fine.
 
-== HOW TO RUN THE FULL PIPELINE (step by step) ==
-
-== RUN FROM SCRATCH ON A VAST JUPYTER INSTANCE (no local machine needed) ==
-Code is already pushed to GitHub — nothing to do locally. On the instance,
-open a terminal (or run each line in a Jupyter cell with a leading !):
+== HOW TO RUN FROM SCRATCH ON A VAST JUPYTER INSTANCE (no local machine) ==
+Code is already pushed to GitHub. On the instance, open the Jupyter Terminal
+(or run each line in a Jupyter cell with a leading !):
 
   # 1 - GPU check
   nvidia-smi
 
-  # 2 - clone repo + install deps
+  # 2 - clone repo + install deps (cu128 torch first for RTX 50-series/Blackwell)
   cd /workspace
   git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || git -C training pull
   cd training
+  pip install torch --index-url https://download.pytorch.org/whl/cu128
   pip install mace-torch tqdm h5py
 
   # 3 - download the full AQM data (~3.3 GB total, from Zenodo)
   wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
   wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'
 
-  # 4 - run the whole pipeline (detached; Stage A then Stage B, logs to stage_ab.log)
-  bash mace_freesolv/run_stage_ab.sh
+  # 4 - OPTIONAL sanity check first (~10 min): 2 epochs on 300 samples
+  python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda --quick_test
 
-  # 5 - monitor
+  # 5 - run the whole pipeline (self-detaches via nohup - safe to close terminal)
+  bash mace_freesolv/run_stage_ab.sh
+  #    -> prints "Pipeline launched (PID ...)" and returns immediately.
+  #    -> Stage A then Stage B run in the background, logging to stage_ab.log.
+  #    -> To stop it: kill $(pgrep -f run_stage_ab)
+
+  # 6 - monitor (any time, even in a new terminal)
   tail -f stage_ab.log                   # live progress
   grep 'test:' stage_ab.log | tail -20   # fold-by-fold test MAE/RMSE
   grep 'PIPELINE DONE' stage_ab.log      # finished marker
 
 Results land in /workspace/training/mace_freesolv/results/ (fold_N/model.pt,
 fold_metadata.json, test_preds.npz) and results_stage_a/ (stage_a.pt).
-
-== RUN VIA SSH FROM LOCAL MACHINE (alternative) ==
-
-1) LOCAL MACHINE - commit & push code (only needed if you changed something):
-     git add -A
-     git commit -m "two-stage protocol"
-     git push origin master
-
-2) VAST INSTANCE - start it, then SSH in:
-     ssh battery
-     ls /workspace                          # confirm repo folder (usually training/)
-     cd training
-     git pull                               # get the new code
-   (first time on a fresh instance, also install deps:
-     pip install mace-torch tqdm h5py       # or python3 -m venv venv && source venv/bin/activate first)
-
-3) DATA - only if AQM-sol-full.hdf5 / AQM-gas-full.hdf5 are NOT on the instance:
-     wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
-     wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'
-   (or from local, slower: scp AQM-sol-full.hdf5 AQM-gas-full.hdf5 battery:/workspace/training/)
-
-4) RUN THE WHOLE PIPELINE (one command, detached - safe to close SSH):
-     bash mace_freesolv/run_stage_ab.sh
-   -> runs Stage A (MACE fine-tune on AQM dG) then Stage B (FreeSolv 5-fold CV
-      from stage_a.pt), logs everything to stage_ab.log
-
-5) MONITOR:
-     tail -f stage_ab.log                   # live progress
-     grep 'test:' stage_ab.log | tail -20   # fold-by-fold test MAE/RMSE
-     grep 'PIPELINE DONE' stage_ab.log      # finished marker
-
-6) FETCH RESULTS BACK TO LOCAL:
-     scp -r battery:/workspace/training/mace_freesolv/results mace_freesolv/
-     scp -r battery:/workspace/training/mace_freesolv/results_stage_a mace_freesolv/
-   (run from C:\Users\User\Documents\Data)
+Download them from the Vast instance files panel.
 
 Manual run - Stage A (fine-tune MACE-OFF23 on AQM dG):
   python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda
