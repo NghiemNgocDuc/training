@@ -31,6 +31,14 @@ def fit_atomic_references(dataset):
     ref = torch.linalg.solve(AtA, Atb)
     ref_energies = torch.zeros(MACE_NUM_ELEMENTS)
     ref_energies[present] = ref
+    counts = A.sum(dim=0)
+    if units == "eV":
+        small = counts < 2000
+        if small.any():
+            for idx_i in small.nonzero(as_tuple=True)[0]:
+                print(f"  WARNING: element idx {int(idx_i)} has only {int(counts[int(idx_i)])} atoms; "
+                      f"zeroing its ref (ill-conditioned fit)")
+            ref_energies[small] = 0.0
     residual_std = (b - A @ ref_energies).std().item()
     if units == "eV":
         ref_energies = ref_energies * 23.0605

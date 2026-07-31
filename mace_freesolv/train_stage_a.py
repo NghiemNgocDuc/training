@@ -17,6 +17,22 @@ from model import MACEFreeSolv
 from train import WarmupWrapper, train_epoch, validate
 
 
+class ScaledTargets(torch.utils.data.Dataset):
+    """Wraps a dataset and multiplies its 'y' target by a constant (Run B)."""
+
+    def __init__(self, base, mult):
+        self.base = base
+        self.mult = mult
+
+    def __len__(self):
+        return len(self.base)
+
+    def __getitem__(self, idx):
+        item = dict(self.base[idx])
+        item["y"] = item["y"] * self.mult
+        return item
+
+
 def set_seed(seed):
     np.random.seed(seed)
     torch.manual_seed(seed)
@@ -49,6 +65,9 @@ def main():
     parser.add_argument("--quick_test", action="store_true", help="2 epochs, 2000 samples")
     parser.add_argument("--setup_only", action="store_true",
                         help="Fit atomic refs + calibrate output, then exit before training")
+    parser.add_argument("--normalize_targets", action="store_true",
+                        help="Run B: pin scale_shift.scale=1.0 and train on y/original_scale "
+                             "(isolates gradient magnitude); metrics + saved checkpoint rescaled back")
     args = parser.parse_args()
 
     if args.output_dir is None:
@@ -116,6 +135,34 @@ def main():
         print("\n[setup_only] refs fitted + calibration done; exiting before training loop")
         sys.exit(0)
 
+    metric_scale = 1.0
+    if args.normalize_targets:
+        s = float(model.model.scale_shift.scale.item())
+        if s <= 0.0 or s >= 1.0:
+            print(f"  [normalize_targets] scale={s:.6f} already >= 1.0; skipping normalization")
+            args.normalize_targets = False
+        else:
+            model.model.scale_shift.scale.requires_grad_(False)
+            model.model.scale_shift.shift.requires_grad_(False)
+            model.model.scale_shift.scale.data.fill_(1.0)
+            model.model.scale_shift.shift.data.fill_(0.0)
+            metric_scale = s
+            target_mult = 1.0 / s
+            print(f"  [normalize_targets] scale {s:.6f} -> 1.0 (scale_shift frozen); "
+                  f"train/val targets rescaled by {target_mult:.1f}x; "
+                  f"all logged metrics rescaled back by {s:.6f}")
+
+    if args.normalize_targets:
+        train_ds_w = ScaledTargets(train_ds, 1.0 / metric_scale)
+        val_ds_w = ScaledTargets(val_ds, 1.0 / metric_scale)
+        train_loader = DataLoader(
+            train_ds_w, batch_size=args.batch_size, shuffle=True, collate_fn=collate_mace, num_workers=0,
+        )
+        val_loader = DataLoader(
+            val_ds_w, batch_size=args.batch_size, shuffle=False, collate_fn=collate_mace, num_workers=0,
+        )
+        print(f"  [normalize_targets] loaders rebuilt on scaled targets (y x {target_mult:.1f})")
+
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, mode="min", factor=0.5, patience=args.patience // 2, min_lr=args.lr_min,
@@ -130,9 +177,11 @@ def main():
     os.makedirs(args.output_dir, exist_ok=True)
     checkpoint_path = os.path.join(args.output_dir, "stage_a.pt")
     best_val_mae = float("inf")
+    best_val_rmse = float("inf")
     best_epoch = -1
     stale = 0
     epoch_times = []
+    loss_scale2 = metric_scale * metric_scale if args.normalize_targets else 1.0
 
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
@@ -147,8 +196,8 @@ def main():
         remaining = args.epochs - epoch
         eta_h = remaining * avg_epoch / 3600.0
         print(f"Epoch {epoch:3d}/{args.epochs} ({100*epoch/args.epochs:4.1f}%) | "
-              f"Loss: {train_loss:.6f} | "
-              f"Val MAE: {val_mae*EV_TO_KCAL:.3f} RMSE: {val_rmse*EV_TO_KCAL:.3f} R2: {val_r2:.4f} | "
+              f"Loss: {train_loss*loss_scale2:.6f} | "
+              f"Val MAE: {val_mae*metric_scale*EV_TO_KCAL:.3f} RMSE: {val_rmse*metric_scale*EV_TO_KCAL:.3f} R2: {val_r2:.4f} | "
               f"LR: {warmup.get_lr():.2e} | {elapsed:.1f}s/epoch | ETA ~{eta_h:.1f}h")
 
         if val_mae < best_val_mae:
@@ -156,8 +205,12 @@ def main():
             best_val_rmse = val_rmse
             best_epoch = epoch
             stale = 0
+            if args.normalize_targets:
+                model.model.scale_shift.scale.data.fill_(metric_scale)
             model.save(checkpoint_path)
-            print(f"  [*] Best checkpoint saved (Val MAE={val_mae*EV_TO_KCAL:.3f} kcal/mol)")
+            if args.normalize_targets:
+                model.model.scale_shift.scale.data.fill_(1.0)
+            print(f"  [*] Best checkpoint saved (Val MAE={val_mae*metric_scale*EV_TO_KCAL:.3f} kcal/mol)")
         else:
             stale += 1
 
@@ -169,8 +222,10 @@ def main():
         "model_size": args.model_size,
         "epochs_run": epoch,
         "best_epoch": best_epoch,
-        "best_val_mae_kcal": best_val_mae * EV_TO_KCAL,
-        "best_val_rmse_kcal": best_val_rmse * EV_TO_KCAL,
+        "best_val_mae_kcal": best_val_mae * metric_scale * EV_TO_KCAL,
+        "best_val_rmse_kcal": best_val_rmse * metric_scale * EV_TO_KCAL,
+        "normalize_targets": args.normalize_targets,
+        "original_scale": metric_scale if args.normalize_targets else None,
         "n_train_conformers": len(train_ds),
         "n_val_conformers": len(val_ds),
         "n_train_molecules": len(train_mol_ids),
