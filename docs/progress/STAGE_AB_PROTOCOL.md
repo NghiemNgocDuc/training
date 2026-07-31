@@ -115,7 +115,37 @@ AQM-full verified (inspect_full.py):
 
 == HOW TO RUN THE FULL PIPELINE (step by step) ==
 
-1) LOCAL MACHINE - commit & push code (already done for this protocol):
+== RUN FROM SCRATCH ON A VAST JUPYTER INSTANCE (no local machine needed) ==
+Code is already pushed to GitHub — nothing to do locally. On the instance,
+open a terminal (or run each line in a Jupyter cell with a leading !):
+
+  # 1 - GPU check
+  nvidia-smi
+
+  # 2 - clone repo + install deps
+  cd /workspace
+  git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || git -C training pull
+  cd training
+  pip install mace-torch tqdm h5py
+
+  # 3 - download the full AQM data (~3.3 GB total, from Zenodo)
+  wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
+  wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'
+
+  # 4 - run the whole pipeline (detached; Stage A then Stage B, logs to stage_ab.log)
+  bash mace_freesolv/run_stage_ab.sh
+
+  # 5 - monitor
+  tail -f stage_ab.log                   # live progress
+  grep 'test:' stage_ab.log | tail -20   # fold-by-fold test MAE/RMSE
+  grep 'PIPELINE DONE' stage_ab.log      # finished marker
+
+Results land in /workspace/training/mace_freesolv/results/ (fold_N/model.pt,
+fold_metadata.json, test_preds.npz) and results_stage_a/ (stage_a.pt).
+
+== RUN VIA SSH FROM LOCAL MACHINE (alternative) ==
+
+1) LOCAL MACHINE - commit & push code (only needed if you changed something):
      git add -A
      git commit -m "two-stage protocol"
      git push origin master
