@@ -57,6 +57,7 @@ def main():
     parser.add_argument("--lora_unfreeze_skip_tp", action="store_true", default=LORA_UNFREEZE_SKIP_TP, help="Unfreeze skip_tp weights (hybrid)")
     parser.add_argument("--no_lora_unfreeze_skip_tp", action="store_false", dest="lora_unfreeze_skip_tp", help="Keep skip_tp weights frozen")
     parser.add_argument("--no_seed", action="store_true", help="Disable deterministic seeding")
+    parser.add_argument("--init_checkpoint", type=str, default=None, help="Start from a Stage-A (AQM) checkpoint instead of raw foundation weights")
     args = parser.parse_args()
 
     if not args.no_seed:

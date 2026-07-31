@@ -21,7 +21,7 @@ def fit_atomic_references(dataset):
     for i in range(n):
         node_attrs = dataset._get_node_attrs(i)
         A[i] = node_attrs.sum(dim=0)
-        b[i] = dataset.samples[i][1]
+        b[i] = dataset.samples[i][-1]
     present = A.sum(dim=0) > 0
     A_p = A[:, present]
     lam = 1e-6
@@ -31,7 +31,7 @@ def fit_atomic_references(dataset):
     ref_energies = torch.zeros(MACE_NUM_ELEMENTS)
     ref_energies[present] = ref
     residual_std = (b - A @ ref_energies).std().item()
-    print(f"Atomic reference fit: residual std = {residual_std:.4f} kcal/mol")
+    print(f"Atomic reference fit: residual std = {residual_std:.4f} (target units)")
     return ref_energies
 
 
@@ -58,7 +58,7 @@ class MACEFreeSolv(torch.nn.Module):
                  freeze_atomic_energies=False, target_mean=0.0, target_std=None,
                  use_lora=False, lora_rank=32, lora_alpha=2.0,
                  lora_unfreeze_readouts=True, lora_unfreeze_skip_tp=True,
-                 fit_dataset=None):
+                 fit_dataset=None, init_checkpoint=None):
         super().__init__()
         self.device = device
         self.model_size = model_size
@@ -71,6 +71,19 @@ class MACEFreeSolv(torch.nn.Module):
         base = base.float()
         for p in base.parameters():
             p.requires_grad_(True)
+
+        if init_checkpoint is not None:
+            state = torch.load(init_checkpoint, map_location=device, weights_only=True)
+            if "atomic_energies_fn.atomic_energies" in state:
+                expected_shape = base.atomic_energies_fn.atomic_energies.shape
+                loaded = state["atomic_energies_fn.atomic_energies"]
+                if loaded.shape != expected_shape:
+                    state["atomic_energies_fn.atomic_energies"] = loaded.reshape(expected_shape)
+            base.load_state_dict(state)
+            print(f"  Initialized from Stage-A checkpoint: {init_checkpoint}")
+            if fit_refs:
+                print("  fit_refs disabled (checkpoint supplies atomic energies)")
+            fit_refs = False
 
         if fit_refs:
             if fit_dataset is not None:

@@ -137,6 +137,7 @@ def run_fold(train_ids, val_ids, test_ids, fold, output_dir, device, cfg):
         lora_unfreeze_readouts=cfg.get("lora_unfreeze_readouts", True),
         lora_unfreeze_skip_tp=cfg.get("lora_unfreeze_skip_tp", True),
         fit_dataset=train_ds,
+        init_checkpoint=cfg.get("init_checkpoint"),
     ).to(device)
     if cfg.get("freeze_interactions"):
         model.freeze_interactions()
@@ -243,6 +244,7 @@ def run_cv(args):
         "lora_alpha": args.lora_alpha,
         "lora_unfreeze_readouts": args.lora_unfreeze_readouts,
         "lora_unfreeze_skip_tp": args.lora_unfreeze_skip_tp,
+        "init_checkpoint": args.init_checkpoint,
     }
 
     full_ds = MACEFreeSolvDataset(r_max=args.r_max, max_neighbors=args.max_neighbors, targets_in_ev=True)

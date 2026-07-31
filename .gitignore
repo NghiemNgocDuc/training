@@ -26,6 +26,13 @@ aqm-spice2/pipeline/results_test_atomic_ref/
 
 # MACE results
 mace_freesolv/results/
+mace_freesolv/results_stage_a/
+
+# Ad-hoc analysis scripts
+scratch/
+
+# Logs
+*.log
 
 # Data files
 AQM-gas-eval/
