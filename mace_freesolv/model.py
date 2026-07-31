@@ -33,7 +33,7 @@ def fit_atomic_references(dataset):
     ref_energies[present] = ref
     counts = A.sum(dim=0)
     if units == "eV":
-        small = counts < 2000
+        small = (counts > 0) & (counts < 2000)
         if small.any():
             for idx_i in small.nonzero(as_tuple=True)[0]:
                 print(f"  WARNING: element idx {int(idx_i)} has only {int(counts[int(idx_i)])} atoms; "
