@@ -126,6 +126,7 @@ def main():
     best_val_mae = float("inf")
     best_epoch = -1
     stale = 0
+    epoch_times = []
 
     for epoch in range(1, args.epochs + 1):
         t0 = time.time()
@@ -135,9 +136,14 @@ def main():
         if epoch > args.warmup_epochs:
             scheduler.step(val_mae)
         elapsed = time.time() - t0
-        print(f"Epoch {epoch:3d}/{args.epochs} | Loss: {train_loss:.6f} | "
+        epoch_times.append(elapsed)
+        avg_epoch = float(np.mean(epoch_times[-5:]))
+        remaining = args.epochs - epoch
+        eta_h = remaining * avg_epoch / 3600.0
+        print(f"Epoch {epoch:3d}/{args.epochs} ({100*epoch/args.epochs:4.1f}%) | "
+              f"Loss: {train_loss:.6f} | "
               f"Val MAE: {val_mae*EV_TO_KCAL:.3f} RMSE: {val_rmse*EV_TO_KCAL:.3f} R2: {val_r2:.4f} | "
-              f"LR: {warmup.get_lr():.2e} | {elapsed:.1f}s")
+              f"LR: {warmup.get_lr():.2e} | {elapsed:.1f}s/epoch | ETA ~{eta_h:.1f}h")
 
         if val_mae < best_val_mae:
             best_val_mae = val_mae

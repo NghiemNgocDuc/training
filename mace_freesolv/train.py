@@ -157,6 +157,7 @@ def run_fold(train_ids, val_ids, test_ids, fold, output_dir, device, cfg):
     best_val_rmse = float("inf")
     best_epoch = -1
     stale = 0
+    epoch_times = []
     fold_dir = os.path.join(output_dir, f"fold_{fold}")
     os.makedirs(fold_dir, exist_ok=True)
 
@@ -176,10 +177,15 @@ def run_fold(train_ids, val_ids, test_ids, fold, output_dir, device, cfg):
         val_mae_kcal = val_mae * EV_TO_KCAL
         val_rmse_kcal = val_rmse * EV_TO_KCAL
         elapsed = time.time() - t0
+        epoch_times.append(elapsed)
+        avg_epoch = float(np.mean(epoch_times[-5:]))
+        remaining = cfg["epochs"] - epoch
+        eta_min = remaining * avg_epoch / 60.0
 
-        print(f"    Epoch {epoch:3d}/{cfg['epochs']} | Loss: {train_loss:.6f} | "
+        print(f"    Epoch {epoch:3d}/{cfg['epochs']} ({100*epoch/cfg['epochs']:4.1f}%) | "
+              f"Loss: {train_loss:.6f} | "
               f"Val MAE: {val_mae_kcal:.3f} RMSE: {val_rmse_kcal:.3f} R²: {val_r2:.4f} | "
-              f"LR: {current_lr:.2e} | {elapsed:.1f}s")
+              f"LR: {current_lr:.2e} | {elapsed:.1f}s/epoch | ETA ~{eta_min:.0f}m")
 
         if val_mae < best_val_mae:
             best_val_mae = val_mae

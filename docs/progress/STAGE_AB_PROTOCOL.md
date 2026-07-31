@@ -141,9 +141,10 @@ Code is already pushed to GitHub. On the instance, open the Jupyter Terminal
   #    -> To stop it: kill $(pgrep -f run_stage_ab)
 
   # 6 - monitor (any time, even in a new terminal)
-  tail -f stage_ab.log                   # live progress
-  grep 'test:' stage_ab.log | tail -20   # fold-by-fold test MAE/RMSE
-  grep 'PIPELINE DONE' stage_ab.log      # finished marker
+  python mace_freesolv/status.py          # progress snapshot: stage, epoch %, ETA, val MAE, fold results
+  tail -f stage_ab.log                    # live raw log
+  grep 'test:' stage_ab.log | tail -20    # fold-by-fold test MAE/RMSE
+  grep 'PIPELINE DONE' stage_ab.log       # finished marker
 
 Results land in /workspace/training/mace_freesolv/results/ (fold_N/model.pt,
 fold_metadata.json, test_preds.npz) and results_stage_a/ (stage_a.pt).
