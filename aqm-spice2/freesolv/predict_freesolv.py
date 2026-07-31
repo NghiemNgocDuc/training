@@ -212,6 +212,8 @@ def main():
         methods_to_eval.append(("Option A (scratch)", "dG_A_kcal"))
     if args.method == "all" and "dG_explicit_kcal" in fieldnames:
         methods_to_eval.append(("+ Explicit (Stage 2b)", "dG_explicit_kcal"))
+    if "dG_A_kcal" not in fieldnames and "dG_B_kcal" in fieldnames:
+        methods_to_eval.append(("Option B (recommended)", "dG_B_kcal"))
 
     for label, key in methods_to_eval:
         preds = np.array([r[key] for r in all_results])

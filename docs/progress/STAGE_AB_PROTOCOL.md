@@ -83,7 +83,7 @@ Metric reference:
   13. Dead seed variable: removed from eval_checkpoint (set but unused).
 
 == BENCHMARK ==
-  Zhang 2022 (A3D-PNAConv-FT)   0.417    0.719
+  Zhang 2022 (A3D-PNAConv-FT)(SOTA)   0.417    0.719
   COSMO-RS                      0.52      —
   ReSolv                        0.63      0.96
   Fine-tuned DimeNet++ (ours)   0.52      0.84
