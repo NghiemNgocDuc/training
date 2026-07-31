@@ -156,16 +156,24 @@ AQM-full verified (inspect_full.py):
   Molecules: 2-92 atoms (mean 40.6, median 42) vs FreeSolv ~20.
   Gas/sol geometries differ slightly (RMSD 0.27 A) - paired-conformer dG is fine.
 
-Run Stage A (fine-tune MACE-OFF23 on AQM dG):
+ONE-COMMAND RUN (on Vast, from repo root - detached, logs to stage_ab.log):
+  bash mace_freesolv/run_stage_ab.sh [SOL_HDF5] [GAS_HDF5]
+  Watch:  tail -f stage_ab.log
+  Result: grep 'test:' stage_ab.log | tail -20
+
+  If AQM-sol-full.hdf5 / AQM-gas-full.hdf5 are missing on the instance, the
+  script prints how to get them (wget from Zenodo 10208010, or scp from local).
+
+Manual run - Stage A (fine-tune MACE-OFF23 on AQM dG):
   python mace_freesolv/train_stage_a.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda
   (defaults: medium, 100 epochs, lr 1e-4, batch 32, patience 20, warmup 10,
    molecule-level 80/20 split - NEVER split conformers of same molecule!)
   Output: mace_freesolv/results_stage_a/stage_a.pt + stage_a_meta.json
   quick test: add --quick_test (2 epochs, 300 samples)
 
-Run Stage B (existing FreeSolv CV pipeline, from Stage-A weights):
-  python mace_freesolv/main.py --init_checkpoint results_stage_a/stage_a.pt --device cuda
-  eval: python mace_freesolv/main.py --eval_only <fold>/model.pt --eval_fold <f> --device cuda
+Manual run - Stage B (existing FreeSolv CV pipeline, from Stage-A weights):
+  python mace_freesolv/main.py --init_checkpoint mace_freesolv/results_stage_a/stage_a.pt --device cuda
+  eval: python mace_freesolv/main.py --eval_only results/fold_N/model.pt --eval_fold N --device cuda
 
 New files: mace_freesolv/aqm_data.py (AQMMACEDataset, lazy LRU-cached, y in eV),
            mace_freesolv/train_stage_a.py; model.py: init_checkpoint param

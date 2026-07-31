@@ -1,33 +1,48 @@
 #!/bin/bash
-# Stage A + Stage B: MACE-OFF23 two-stage transfer for FreeSolv.
-# Run on the Vast instance from the repo root:
-#   bash mace_freesolv/run_stage_ab.sh
-# Logs: stage_a.log, stage_b.log (repo root)
+# Two-stage MACE-OFF23 pipeline for FreeSolv (run on the Vast instance).
+# Stage A: fine-tune MACE-OFF23 on AQM hydration free energies (dG = E_sol - E_gas).
+# Stage B: FreeSolv 5-fold CV initialized from the Stage-A checkpoint.
+#
+# Usage (from repo root, either interactively or detached):
+#   bash mace_freesolv/run_stage_ab.sh [SOL_HDF5] [GAS_HDF5]
+#
+# The whole pipeline runs detached (nohup) and logs to <repo>/stage_ab.log,
+# so you can close the SSH session. Watch progress with:
+#   tail -f stage_ab.log
 set -e
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO"
 
-SOL="AQM-sol-full.hdf5"
-GAS="AQM-gas-full.hdf5"
+SOL="${1:-AQM-sol-full.hdf5}"
+GAS="${2:-AQM-gas-full.hdf5}"
 
-if [ ! -f "$SOL" ] || [ ! -f "$GAS" ]; then
-    echo "ERROR: missing $SOL / $GAS in repo root."
-    echo "Upload from local machine:"
-    echo "  scp $SOL $GAS battery:/workspace/" 2>/dev/null || echo "  (adjust host if not 'battery')"
-    exit 1
-fi
+for f in "$SOL" "$GAS"; do
+    if [ ! -f "$f" ]; then
+        echo "ERROR: $f not found in $REPO"
+        echo ""
+        echo "Option 1 - download the full AQM files directly on the instance:"
+        echo "  wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'"
+        echo "  wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'"
+        echo ""
+        echo "Option 2 - upload from your local machine (slower):"
+        echo "  scp AQM-sol-full.hdf5 AQM-gas-full.hdf5 battery:/workspace/training/"
+        exit 1
+    fi
+done
 
-echo "=== STAGE A: MACE-OFF23 fine-tune on AQM (dG = E_sol - E_gas) ==="
-nohup python -u mace_freesolv/train_stage_a.py \
-    --hdf5_sol "$SOL" --hdf5_gas "$GAS" --device cuda \
-    > stage_a.log 2>&1
-echo "Stage A done: mace_freesolv/results_stage_a/stage_a.pt (see stage_a.log)"
+LOG="$REPO/stage_ab.log"
+export SOL GAS
 
-echo "=== STAGE B: FreeSolv 5-fold CV from Stage-A weights ==="
-nohup python -u mace_freesolv/main.py \
-    --init_checkpoint mace_freesolv/results_stage_a/stage_a.pt --device cuda \
-    > stage_b.log 2>&1
-echo "Stage B done (see stage_b.log)"
+nohup bash -c '
+    set -e
+    echo "===== STAGE A START ($(date)) ====="
+    python -u mace_freesolv/train_stage_a.py --hdf5_sol "$SOL" --hdf5_gas "$GAS" --device cuda
+    echo "===== STAGE B START ($(date)) ====="
+    python -u mace_freesolv/main.py --init_checkpoint mace_freesolv/results_stage_a/stage_a.pt --device cuda
+    echo "===== PIPELINE DONE ($(date)) ====="
+' > "$LOG" 2>&1 &
 
-tail -5 stage_b.log
+echo "Pipeline launched (PID $!) - logged to $LOG"
+echo "Watch:  tail -f $LOG"
+echo "Result: grep 'test:' $LOG | tail -20"
