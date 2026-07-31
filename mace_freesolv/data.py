@@ -70,6 +70,7 @@ class MACEFreeSolvDataset(Dataset):
         self.r_max = r_max
         self.max_neighbors = max_neighbors
         self.targets_in_ev = targets_in_ev
+        self.label_units = "kcal/mol"  # samples[] targets (FreeSolv database.json)
         self.all_labels = get_labels()
         self.samples = []
 

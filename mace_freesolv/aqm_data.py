@@ -35,6 +35,7 @@ class AQMMACEDataset(Dataset):
         self.r_max = r_max
         self.max_neighbors = max_neighbors
         self.cache_size = cache_size
+        self.label_units = "eV"  # samples[] targets (dG = E_sol - E_gas in eV)
         if element_subset is None:
             element_subset = set(ELEMENT_TO_IDX.keys())
         self.element_subset = set(element_subset)

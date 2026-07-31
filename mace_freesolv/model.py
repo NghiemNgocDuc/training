@@ -15,6 +15,7 @@ def load_mace_foundation(model_size="medium", device="cpu"):
 
 def fit_atomic_references(dataset):
     from data import MACE_NUM_ELEMENTS
+    units = getattr(dataset, "label_units", "kcal/mol")
     n = len(dataset)
     A = torch.zeros(n, MACE_NUM_ELEMENTS)
     b = torch.zeros(n)
@@ -31,7 +32,13 @@ def fit_atomic_references(dataset):
     ref_energies = torch.zeros(MACE_NUM_ELEMENTS)
     ref_energies[present] = ref
     residual_std = (b - A @ ref_energies).std().item()
-    print(f"Atomic reference fit: residual std = {residual_std:.4f} (target units)")
+    if units == "eV":
+        ref_energies = ref_energies * 23.0605
+        print(f"Atomic reference fit: residual std = {residual_std:.4f} eV = {residual_std*23.0605:.2f} kcal/mol")
+    else:
+        print(f"Atomic reference fit: residual std = {residual_std:.4f} kcal/mol")
+    print(f"  refs in kcal/mol (converted from {units} targets): "
+          f"{ref_energies[present].tolist()}")
     return ref_energies
 
 
