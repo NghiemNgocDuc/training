@@ -6,7 +6,7 @@ sys.stdout.reconfigure(line_buffering=True)
 
 import torch
 import torch.optim as optim
-from torch.utils.data import Subset, random_split
+from torch.utils.data import Subset
 from sklearn.model_selection import KFold
 from torch_geometric.loader import DataLoader
 from DimeModels import DimeNetPlus
@@ -17,7 +17,7 @@ import numpy as np
 from aqm_dataset import AQMDataset
 from aqm_config import VACUUM_ENERGY_TARGET, VACUUM_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
-from energy_reference import fit_atomic_references, save_reference_energies, load_reference_energies, compute_molecular_reference
+from energy_reference import fit_atomic_references, save_reference_energies, compute_molecular_reference
 from ddp_utils import init_ddp, is_main, cleanup, sync_barrier
 
 seed = 42
@@ -66,16 +66,38 @@ print(f"Dataset: {len(dataset)} samples")
 
 os.makedirs(args.output_dir, exist_ok=True)
 
-ref_path = os.path.join(args.output_dir, "atomic_references.json")
-if os.path.exists(ref_path):
-    print(f"Loading atomic reference energies from {ref_path}")
-    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
-else:
-    print("Fitting atomic reference energies on full dataset...")
-    ref_energies = fit_atomic_references(dataset, ELEMENT_TO_IDX, NUM_ELEMENTS)
+
+def fit_refs_on_train(train_ds, ref_tag, val_ids=None):
+    """Fit atomic references on the TRAIN split only (never val/test).
+
+    Mirrors the MACE pipeline's fit_dataset=train_ds pattern: the reference
+    energies for a fold/stage are computed exclusively from that split's
+    training molecules.
+    """
+    ref_energies = fit_atomic_references(train_ds, ELEMENT_TO_IDX, NUM_ELEMENTS)
     ref_energies = ref_energies.to(device)
-    save_reference_energies(ref_energies, ELEMENT_TO_IDX, ref_path)
-print(f"Reference energies tensor ({NUM_ELEMENTS} elements): {ref_energies.cpu().tolist()}")
+
+    train_ids = set()
+    for d in train_ds:
+        train_ids.add(d.mol_id)
+    print(f"  [refs] fit dataset: {type(train_ds).__name__} "
+          f"({len(train_ds)} samples, {len(train_ids)} molecules)")
+    if val_ids is not None:
+        overlap = train_ids & val_ids
+        print(f"  [refs] train/val molecule overlap: {len(overlap)} (must be 0)")
+
+    if ref_tag is None:
+        ref_path = os.path.join(args.output_dir, "atomic_references.json")
+    else:
+        ref_path = os.path.join(args.output_dir, f"atomic_references_{ref_tag}.json")
+    if is_main(local_rank):
+        save_reference_energies(ref_energies.cpu(), ELEMENT_TO_IDX, ref_path)
+        if ref_tag == "fold_1":
+            # Back-compat alias: stage 2 / evaluate default to this filename
+            save_reference_energies(ref_energies.cpu(), ELEMENT_TO_IDX,
+                                    os.path.join(args.output_dir, "atomic_references.json"))
+    print(f"Reference energies tensor ({NUM_ELEMENTS} elements): {ref_energies.cpu().tolist()}")
+    return ref_energies
 
 mse = torch.nn.MSELoss()
 
@@ -216,14 +238,25 @@ def train_one_fold(train_loader, val_loader, fold_idx, ref_energies, sampler=Non
 
 fold_results = []
 
+# Molecule-level splits: all conformers of a molecule stay in the same split.
+# Conformer-level KFold would leak molecule IDs into the val set, which would
+# then leak into the per-fold atomic-reference fit (see fit_refs_on_train).
+mol_id_to_idx = {}
+for i in range(len(dataset)):
+    mol_id_to_idx.setdefault(dataset[i].mol_id, []).append(i)
+mol_ids = sorted(mol_id_to_idx.keys())
+print(f"Dataset: {len(dataset)} conformers from {len(mol_ids)} molecules")
+
 if args.k_folds <= 1:
-    n_total = len(dataset)
-    n_val = int(n_total * args.val_split)
-    n_train = n_total - n_val
-    train_ds, val_ds = random_split(
-        dataset, [n_train, n_val],
-        generator=torch.Generator().manual_seed(seed),
-    )
+    n_val_mol = max(1, int(len(mol_ids) * args.val_split))
+    rng = np.random.RandomState(seed)
+    shuffled_mol_ids = list(mol_ids)
+    rng.shuffle(shuffled_mol_ids)
+    val_mol_ids = set(shuffled_mol_ids[:n_val_mol])
+    train_idx = [i for m in shuffled_mol_ids[n_val_mol:] for i in mol_id_to_idx[m]]
+    val_idx = [i for m in shuffled_mol_ids[:n_val_mol] for i in mol_id_to_idx[m]]
+    train_ds = Subset(dataset, train_idx)
+    val_ds = Subset(dataset, val_idx)
     if is_ddp:
         train_sampler = torch.utils.data.distributed.DistributedSampler(
             train_ds, shuffle=True)
@@ -232,16 +265,28 @@ if args.k_folds <= 1:
         train_loader = DataLoader(train_ds, batch_size=args.batchsize, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=args.batchsize, shuffle=False)
     if is_main(local_rank):
-        print(f"\n{'='*60}\nSingle train/val split ({n_train} train, {n_val} val)\n{'='*60}\n")
+        print(f"\n{'='*60}\nSingle train/val split "
+              f"({len(train_idx)} train / {len(val_idx)} val conformers, "
+              f"{len(mol_ids) - n_val_mol} train / {n_val_mol} val molecules)\n{'='*60}\n")
+    val_ids = set(val_mol_ids)
+    ref_energies = fit_refs_on_train(train_ds, ref_tag=None, val_ids=val_ids)
     best_loss = train_one_fold(train_loader, val_loader, 1, ref_energies,
                                 sampler=train_sampler if is_ddp else None)
     fold_results.append(best_loss)
 else:
     kf = KFold(n_splits=args.k_folds, shuffle=True, random_state=seed)
-    for fold, (train_idx, val_idx) in enumerate(kf.split(dataset)):
+    for fold, (train_mol_pos, val_mol_pos) in enumerate(kf.split(mol_ids)):
+        train_mol_ids = [mol_ids[j] for j in train_mol_pos]
+        val_mol_ids = [mol_ids[j] for j in val_mol_pos]
+        train_idx = [i for m in train_mol_ids for i in mol_id_to_idx[m]]
+        val_idx = [i for m in val_mol_ids for i in mol_id_to_idx[m]]
         if is_main(local_rank):
-            print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds}\n{'='*60}\n")
+            print(f"\n{'='*60}\nFold {fold + 1}/{args.k_folds} "
+                  f"({len(train_idx)} train / {len(val_idx)} val conformers, "
+                  f"{len(train_mol_ids)} train / {len(val_mol_ids)} val molecules)\n{'='*60}\n")
         train_subset = Subset(dataset, train_idx)
+        ref_energies = fit_refs_on_train(train_subset, ref_tag=f"fold_{fold + 1}",
+                                         val_ids=set(val_mol_ids))
         if is_ddp:
             train_sampler = torch.utils.data.distributed.DistributedSampler(
                 train_subset, shuffle=True)
@@ -250,7 +295,7 @@ else:
             train_loader = DataLoader(train_subset, batch_size=args.batchsize, shuffle=True)
         val_loader = DataLoader(Subset(dataset, val_idx), batch_size=args.batchsize, shuffle=False)
         best_loss = train_one_fold(train_loader, val_loader, fold + 1, ref_energies,
-                                    sampler=train_sampler if (is_ddp and fold == 0) else (train_sampler if is_ddp else None))
+                                    sampler=(train_sampler if is_ddp else None))
         fold_results.append(best_loss)
         if is_main(local_rank):
             print(f"Fold {fold + 1} best val loss: {best_loss:.6f}\n")

@@ -27,6 +27,8 @@ aqm-spice2/pipeline/results_test_atomic_ref/
 # MACE results
 mace_freesolv/results/
 mace_freesolv/results_stage_a/
+mace_freesolv/results_stage_a_b/
+mace_freesolv/results_stage_a_scratch/
 
 # Ad-hoc analysis scripts
 scratch/

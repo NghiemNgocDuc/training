@@ -6,7 +6,7 @@ sys.stdout.reconfigure(line_buffering=True)
 
 import torch
 import torch.optim as optim
-from torch.utils.data import random_split
+from torch.utils.data import Subset
 from torch_geometric.loader import DataLoader
 from DimeModels import DimeNetPlus
 import argparse
@@ -26,6 +26,8 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--hdf5", type=str, default="../aqm_data/AQM-sol.hdf5",
                     help="Path to AQM-sol.hdf5")
+parser.add_argument("--gas_hdf5", type=str, default="../aqm_data/AQM-gas.hdf5",
+                    help="Path to AQM-gas.hdf5 for paired dG target (E_sol - E_gas)")
 parser.add_argument("--vacuum_ckpt", type=str, default="results/stage1_fold_1.pt",
                     help="Path to trained vacuum model checkpoint")
 parser.add_argument("--batchsize", "-b", type=int, default=16)
@@ -85,16 +87,23 @@ def build_dimenet(num_blocks=None):
     ).to(device)
 
 
-# ---- Dataset: ONLY AQM-sol, no gas pairing (Option B) ----
+# ---- Dataset: AQM-sol paired with AQM-gas (Option B) ----
+# The correction target is the true solvation free energy dG = E_sol - E_gas,
+# computed from the paired gas conformer's energy (see AQMDataset.gas_energy).
 dataset = AQMDataset(
     root="../Data/AQM-sol",
     hdf5_path=args.hdf5,
-    gas_hdf5_path=None,
+    gas_hdf5_path=args.gas_hdf5,
     energy_key=SOLVATED_ENERGY_TARGET,
     forces_key=SOLVATED_FORCES_TARGET,
     max_structures=args.max_structures,
 )
-print(f"Dataset: {len(dataset)} samples")
+# Keep only conformers that have a gas-paired energy (dG target requires it)
+paired_idx = [i for i in range(len(dataset)) if hasattr(dataset[i], "gas_energy")]
+if len(paired_idx) != len(dataset):
+    print(f"NOTE: dropping {len(dataset) - len(paired_idx)} conformers without gas pairing")
+dataset = dataset[paired_idx]
+print(f"Dataset: {len(dataset)} samples (gas-paired)")
 
 ref_path = os.path.join(os.path.dirname(args.vacuum_ckpt), "atomic_references.json")
 if not os.path.exists(ref_path):
@@ -107,14 +116,24 @@ ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, d
 print(f"Reference energies: {ref_energies.cpu().tolist()}")
 
 n_total = len(dataset)
-n_val = int(n_total * args.val_split)
-n_train = n_total - n_val
-train_dataset, val_dataset = random_split(
-    dataset, [n_train, n_val],
-    generator=torch.Generator().manual_seed(seed),
-)
+# Molecule-level split: all conformers of a molecule stay in one split
+# (conformer-level random_split would leak molecule IDs into val)
+mol_id_to_idx = {}
+for i in range(len(dataset)):
+    mol_id_to_idx.setdefault(dataset[i].mol_id, []).append(i)
+mol_ids = sorted(mol_id_to_idx.keys())
+n_val_mol = max(1, int(len(mol_ids) * args.val_split))
+rng = np.random.RandomState(seed)
+shuffled_mol_ids = list(mol_ids)
+rng.shuffle(shuffled_mol_ids)
+val_mol_ids = set(shuffled_mol_ids[:n_val_mol])
+train_idx = [i for m in shuffled_mol_ids[n_val_mol:] for i in mol_id_to_idx[m]]
+val_idx = [i for m in shuffled_mol_ids[:n_val_mol] for i in mol_id_to_idx[m]]
+train_dataset = Subset(dataset, train_idx)
+val_dataset = Subset(dataset, val_idx)
 if is_main(local_rank):
-    print(f"  Train: {n_train}  Val: {n_val}")
+    print(f"  Train: {len(train_idx)} conformers / {len(mol_ids) - n_val_mol} molecules  "
+          f"Val: {len(val_idx)} conformers / {n_val_mol} molecules")
 
 if is_ddp:
     train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -195,7 +214,9 @@ def train_epoch(loader):
         )[0]
 
         n_atoms = torch.bincount(data.batch).float()
-        dG_true = data.y_esolv - data.y_energy
+        # True solvation free energy: E_solvated - E_gas (paired conformer).
+        # NOT y_esolv (eSOLV sits on the total-energy scale, ~corr 0.2 with dG).
+        dG_true = data.y_energy - data.gas_energy
         loss = combined_loss(
             total_energy.view(-1), y_energy_shifted,
             forces_pred, data.y_forces,
@@ -245,7 +266,8 @@ def validate_epoch(loader):
         )[0]
 
         n_atoms = torch.bincount(data.batch).float()
-        dG_true = data.y_esolv - data.y_energy
+        # True solvation free energy: E_solvated - E_gas (paired conformer).
+        dG_true = data.y_energy - data.gas_energy
         loss = combined_loss(
             total_energy.view(-1), y_energy_shifted,
             forces_pred, data.y_forces,

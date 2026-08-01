@@ -119,11 +119,10 @@ dataset = AQMDataset(
 )
 print(f"Dataset: {len(dataset)} samples")
 
-from torch.utils.data import random_split
-n_val = max(1, int(len(dataset) * 0.1))
-n_test = max(1, len(dataset) - n_val)
-_, test_dataset = random_split(dataset, [n_val, n_test],
-                               generator=torch.Generator().manual_seed(42))
+# Evaluate on the FULL dataset. (Previously a random_split discarded a
+# "val" chunk that nothing downstream used, silently dropping 10% of the
+# evaluation data.)
+test_dataset = dataset
 test_loader = DataLoader(test_dataset, batch_size=args.batchsize, shuffle=False)
 print(f"Test samples: {len(test_dataset)}")
 

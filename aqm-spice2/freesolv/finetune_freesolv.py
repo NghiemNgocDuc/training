@@ -96,6 +96,8 @@ def main():
     parser.add_argument("--option_a_ckpt", default="option_a.pt",
                         help="Option A model checkpoint")
     parser.add_argument("--test_size", type=float, default=0.2)
+    parser.add_argument("--val_size", type=float, default=0.2,
+                        help="Fraction of TRAIN molecules held out for early stopping")
     parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--min_lr", type=float, default=1e-6)
     parser.add_argument("--weight_decay", type=float, default=1e-5)
@@ -140,11 +142,23 @@ def main():
                and isinstance(all_labels[m].get("expt"), (int, float))]
     print(f"Available molecules with labels: {len(mol_ids)}")
 
-    # ── Train/test split (fixed seed for reproducibility) ──
+    # ── Train/val/test split (fixed seed for reproducibility) ──
+    # Test held out entirely; val carved from train for early stopping
+    # (early stopping on the test set would optimistically bias the
+    # reported number — same leak class fixed in cv_finetune.py).
     train_ids, test_ids = train_test_split(
         mol_ids, test_size=args.test_size, random_state=args.seed
     )
-    print(f"Train: {len(train_ids)}, Test: {len(test_ids)}")
+    train_ids, val_ids = train_test_split(
+        train_ids, test_size=args.val_size, random_state=args.seed
+    )
+    print(f"Train: {len(train_ids)}, Val: {len(val_ids)}, Test: {len(test_ids)}")
+    assert not (set(train_ids) & set(val_ids))
+    assert not (set(train_ids) & set(test_ids))
+    assert not (set(val_ids) & set(test_ids))
+    for name, ids in (("train", train_ids), ("val", val_ids), ("test", test_ids)):
+        ex = np.array([all_labels[m]["expt"] for m in ids])
+        print(f"  [{name}] target mean={ex.mean():+.3f} std={ex.std():.3f} kcal/mol")
 
     # ── Build model(s) and load checkpoint(s) ──
     if args.option_a:
@@ -182,9 +196,11 @@ def main():
 
     # ── Datasets and loaders ──
     train_ds = FreeSolvFineTuneDataset(args.conformers, train_ids, all_labels)
+    val_ds = FreeSolvFineTuneDataset(args.conformers, val_ids, all_labels)
     test_ds = FreeSolvFineTuneDataset(args.conformers, test_ids, all_labels)
 
     train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+    val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False)
 
     # ── Optimizer, scheduler ──
@@ -199,8 +215,8 @@ def main():
     # ── Save checkpoint name ──
     ckpt_name = "finetuned_option_a.pt" if args.option_a else "finetuned_correction.pt"
 
-    # ── Training loop ──
-    best_test_mae = float("inf")
+    # ── Training loop (early stopping + model selection on VAL only) ──
+    best_val_mae = float("inf")
     best_epoch = -1
     patience_counter = 0
 
@@ -222,36 +238,36 @@ def main():
             optimizer.step()
             train_loss += loss.item() * valid.sum().item()
 
-        # ── Evaluation ──
+        # ── Validation (early stopping) ──
         model.eval()
-        test_preds, test_expts = [], []
+        val_preds, val_expts = [], []
         with torch.no_grad():
-            for data in test_loader:
+            for data in val_loader:
                 data = data.to(device)
                 x = build_one_hot(data, device)
                 pred = forward_fn(model, vacuum_model, x, data.pos, data.batch).view(-1) * EV_TO_KCAL
                 dG_exp = data.y_dG.view(-1).to(device)
                 valid = ~torch.isnan(dG_exp)
-                test_preds.append(pred[valid].cpu())
-                test_expts.append(dG_exp[valid].cpu())
+                val_preds.append(pred[valid].cpu())
+                val_expts.append(dG_exp[valid].cpu())
 
-        test_preds = torch.cat(test_preds).numpy()
-        test_expts = torch.cat(test_expts).numpy()
-        test_mae = float(np.mean(np.abs(test_preds - test_expts)))
-        test_rmse = float(np.sqrt(np.mean((test_preds - test_expts) ** 2)))
+        val_preds = torch.cat(val_preds).numpy()
+        val_expts = torch.cat(val_expts).numpy()
+        val_mae = float(np.mean(np.abs(val_preds - val_expts)))
+        val_rmse = float(np.sqrt(np.mean((val_preds - val_expts) ** 2)))
         train_loss_avg = train_loss / len(train_ids)
 
-        scheduler.step(test_mae)
+        scheduler.step(val_mae)
         current_lr = optimizer.param_groups[0]["lr"]
 
         epoch_msg = (f"Epoch {epoch:3d} | Train loss: {train_loss_avg:.6f} "
-                     f"| Test MAE: {test_mae:.3f} RMSE: {test_rmse:.3f} "
+                     f"| Val MAE: {val_mae:.3f} RMSE: {val_rmse:.3f} "
                      f"| LR: {current_lr:.2e}")
         print(epoch_msg)
 
-        # Best checkpoint
-        if test_mae < best_test_mae:
-            best_test_mae = test_mae
+        # Best checkpoint (on val)
+        if val_mae < best_val_mae:
+            best_val_mae = val_mae
             best_epoch = epoch
             patience_counter = 0
             ckpt_out = os.path.join(output_dir, ckpt_name)
@@ -264,10 +280,10 @@ def main():
             break
 
     print(f"\n{'='*60}")
-    print(f"Best test MAE: {best_test_mae:.3f} kcal/mol at epoch {best_epoch}")
+    print(f"Best val MAE: {best_val_mae:.3f} kcal/mol at epoch {best_epoch}")
     print(f"{'='*60}")
 
-    # ── Final evaluation on test set with best model ──
+    # ── Final evaluation on held-out test set with best-val model (once) ──
     model.load_state_dict(
         torch.load(os.path.join(output_dir, ckpt_name),
                    map_location=device)

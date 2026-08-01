@@ -1,7 +1,7 @@
 """5-fold CV + ensemble for FreeSolv fine-tuning.
 
 Usage:
-  python cv_finetune.py --quick_test              # 2 epochs, 2 folds — verify setup
+  python cv_finetune.py --quick_test              # 2 epochs, 2 folds - verify setup
   python cv_finetune.py                            # full run
   python cv_finetune.py --n_conformers 20          # + conformer test-time augmentation
 """
@@ -11,7 +11,6 @@ import sys
 import json
 import argparse
 import numpy as np
-from sklearn.model_selection import KFold
 
 # Add the project to path
 _script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -71,7 +70,23 @@ def main():
     sort_idx = np.argsort(expts_arr)
     mol_ids_sorted = [mol_ids[i] for i in sort_idx]
 
-    kf = KFold(n_splits=args.n_folds, shuffle=True, random_state=42)
+    # Round-robin fold assignment over target-sorted molecules.
+    # NOT KFold(shuffle=True) after a sort: shuffle discards the sort order,
+    # which silently destroys the target stratification (fold means were
+    # -3.2..-4.1 kcal/mol in the audit). Mirrors MACE train.py pattern:
+    # sorted_index % n_folds.
+    n_folds = args.n_folds
+    fold_mol_ids = [[] for _ in range(n_folds)]
+    for i, mol_id in enumerate(mol_ids_sorted):
+        fold_mol_ids[i % n_folds].append(mol_id)
+
+    # Stratification-quality log: fold target means (same metric as the audit)
+    fold_means = [np.mean([all_labels[m]["expt"] for m in fold_mol_ids[f]]) for f in range(n_folds)]
+    print(f"  Fold target means: {[f'{v:.3f}' for v in fold_means]} kcal/mol, "
+          f"spread={max(fold_means) - min(fold_means):.3f} (audit pre-fix: 0.950)")
+
+    # Val fraction of the train_val pool (MACE VAL_SPLIT = 0.2)
+    VAL_SPLIT = 0.2
 
     # Resolve paths
     ckpt_dir = os.path.join(_script_dir, args.checkpoint_dir)
@@ -87,17 +102,37 @@ def main():
         print(f"  FOLD {fold}")
         print(f"{'='*60}")
 
-        train_idx, test_idx = list(kf.split(mol_ids_sorted))[fold]
-        train_ids = [mol_ids_sorted[i] for i in train_idx]
-        test_ids = [mol_ids_sorted[i] for i in test_idx]
-        print(f"  Train: {len(train_ids)}, Test: {len(test_ids)}")
+        test_ids = fold_mol_ids[fold]
+        train_val_ids = []
+        for f_idx, mids in enumerate(fold_mol_ids):
+            if f_idx != fold:
+                train_val_ids.extend(mids)
+
+        # Three-way split: train / val / test (val for early stopping only)
+        rng = np.random.RandomState(42 + fold)
+        indices = np.arange(len(train_val_ids))
+        rng.shuffle(indices)
+        n_val = max(1, int(len(train_val_ids) * VAL_SPLIT))
+        val_ids = [train_val_ids[i] for i in indices[:n_val]]
+        train_ids = [train_val_ids[i] for i in indices[n_val:]]
+        print(f"  Train: {len(train_ids)}, Val: {len(val_ids)}, Test: {len(test_ids)}")
+        assert len(set(train_ids) & set(val_ids)) == 0
+        assert len(set(train_ids) & set(test_ids)) == 0
+        assert len(set(val_ids) & set(test_ids)) == 0
+        for name, ids in (("train", train_ids), ("val", val_ids), ("test", test_ids)):
+            ex = np.array([all_labels[m]["expt"] for m in ids])
+            print(f"  [{name}] target mean={ex.mean():+.3f} std={ex.std():.3f} kcal/mol")
 
         fold_dir = os.path.join(output_dir, f"fold_{fold}")
         os.makedirs(fold_dir, exist_ok=True)
 
-        # Save test ids
+        # Save split ids (reproducibility + disjointness verification)
         with open(os.path.join(fold_dir, "test_ids.json"), "w") as f:
             json.dump(test_ids, f)
+        with open(os.path.join(fold_dir, "val_ids.json"), "w") as f:
+            json.dump(val_ids, f)
+        with open(os.path.join(fold_dir, "train_ids.json"), "w") as f:
+            json.dump(train_ids, f)
 
         # Build model
         model = DimeNetPlus(
@@ -140,8 +175,10 @@ def main():
                 return data
 
         train_ds = SimpleDataset(train_ids, args.conformers, all_labels)
+        val_ds = SimpleDataset(val_ids, args.conformers, all_labels)
         test_ds = SimpleDataset(test_ids, args.conformers, all_labels)
         train_loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True)
+        val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False)
         test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False)
 
         # Optimizer
@@ -150,9 +187,27 @@ def main():
             optimizer, mode="min", factor=0.5, patience=patience // 2, min_lr=1e-6)
         mse = torch.nn.MSELoss()
 
-        best_mae = float("inf")
+        best_val_mae = float("inf")
         best_epoch = -1
         stale = 0
+
+        def evaluate_loader(loader):
+            model.eval()
+            all_p, all_e = [], []
+            with torch.no_grad():
+                for data in loader:
+                    data = data.to(device)
+                    x = build_one_hot(data, device)
+                    pred = model(x, data.pos, data.batch).view(-1) * EV_TO_KCAL
+                    dG_exp = data.y_dG.view(-1).to(device)
+                    valid = ~torch.isnan(dG_exp)
+                    all_p.append(pred[valid].cpu())
+                    all_e.append(dG_exp[valid].cpu())
+            preds = torch.cat(all_p).numpy()
+            expts = torch.cat(all_e).numpy()
+            mae = float(np.mean(np.abs(preds - expts)))
+            rmse = float(np.sqrt(np.mean((preds - expts) ** 2)))
+            return mae, rmse, preds, expts
 
         for epoch in range(1, epochs + 1):
             model.train()
@@ -170,36 +225,17 @@ def main():
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
                 optimizer.step()
 
-            # Evaluate
-            model.eval()
-            all_p, all_e = [], []
-            with torch.no_grad():
-                for data in test_loader:
-                    data = data.to(device)
-                    x = build_one_hot(data, device)
-                    pred = model(x, data.pos, data.batch).view(-1) * EV_TO_KCAL
-                    dG_exp = data.y_dG.view(-1).to(device)
-                    valid = ~torch.isnan(dG_exp)
-                    all_p.append(pred[valid].cpu())
-                    all_e.append(dG_exp[valid].cpu())
-            test_preds = torch.cat(all_p).numpy()
-            test_expts = torch.cat(all_e).numpy()
-            test_mae = float(np.mean(np.abs(test_preds - test_expts)))
-            test_rmse = float(np.sqrt(np.mean((test_preds - test_expts) ** 2)))
+            # Early stopping + model selection on VAL only (never test)
+            val_mae, val_rmse, _, _ = evaluate_loader(val_loader)
 
-            scheduler.step(test_mae)
-            print(f"    Epoch {epoch:3d} | Test MAE: {test_mae:.3f} RMSE: {test_rmse:.3f}", end="\r")
+            scheduler.step(val_mae)
+            print(f"    Epoch {epoch:3d} | Val MAE: {val_mae:.3f} RMSE: {val_rmse:.3f}", end="\r")
 
-            if test_mae < best_mae:
-                best_mae = test_mae
+            if val_mae < best_val_mae:
+                best_val_mae = val_mae
                 best_epoch = epoch
                 stale = 0
                 torch.save(model.state_dict(), os.path.join(fold_dir, "finetuned.pt"))
-                # Save test predictions
-                with open(os.path.join(fold_dir, "ft_test_predictions.csv"), "w") as f:
-                    f.write("dG_pred_kcal,dG_exp_kcal\n")
-                    for p, e in zip(test_preds, test_expts):
-                        f.write(f"{p:.6f},{e:.6f}\n")
             else:
                 stale += 1
 
@@ -207,10 +243,21 @@ def main():
                 print(f"\n    Early stopping at epoch {epoch}")
                 break
 
-        print(f"\n  Best: MAE={best_mae:.3f} at epoch {best_epoch}")
-        fold_metrics.append((best_mae, test_rmse))
+        # Final: single test pass with the best-val checkpoint (evaluated once)
+        model.load_state_dict(torch.load(os.path.join(fold_dir, "finetuned.pt"),
+                                         map_location=device, weights_only=True))
+        model.eval()
+        test_mae, test_rmse, test_preds, test_expts = evaluate_loader(test_loader)
+        with open(os.path.join(fold_dir, "ft_test_predictions.csv"), "w") as f:
+            f.write("dG_pred_kcal,dG_exp_kcal\n")
+            for p, e in zip(test_preds, test_expts):
+                f.write(f"{p:.6f},{e:.6f}\n")
 
-    # ── Conformer test-time augmentation ──
+        print(f"\n  Best val: MAE={best_val_mae:.3f} at epoch {best_epoch} | "
+              f"Test (best-val ckpt, once): MAE={test_mae:.3f} RMSE={test_rmse:.3f}")
+        fold_metrics.append((test_mae, test_rmse))
+
+    # -- Conformer test-time augmentation --
     if args.n_conformers > 1:
         print(f"\n{'='*60}")
         print(f"  CONFORMER ENSEMBLE ({args.n_conformers} conformers/mol)")
@@ -310,7 +357,7 @@ def main():
 
         print(f"  Conformer-averaged predictions saved.")
 
-    # ── Aggregate results ──
+    # -- Aggregate results --
     print(f"\n{'='*60}")
     print(f"  CROSS-VALIDATION RESULTS")
     print(f"{'='*60}")
@@ -330,7 +377,7 @@ def main():
         m, r, r2 = evaluate(preds, expts)
         print(f"  {'Fold '+str(fold):<8} {len(tids):<6} {m:<10.3f} {r:<10.3f} {r2:<10.4f}")
 
-    # ── Ensemble ──
+    # -- Ensemble --
     print(f"\n{'='*60}")
     print(f"  ENSEMBLE (average across folds)")
     print(f"{'='*60}")
@@ -363,7 +410,7 @@ def main():
     maes = [m for m, _ in fold_metrics]
     print(f"\n  Mean ± std: MAE = {np.mean(maes):.3f} ± {np.std(maes):.3f}")
 
-    # ── Comparison table ──
+    # -- Comparison table --
     print(f"\n{'='*60}")
     print(f"  COMPARISON WITH PUBLISHED METHODS")
     print(f"{'='*60}")
@@ -381,15 +428,15 @@ def main():
         ("GBn2 (this baseline)", 19.83, None),
     ]
     for name, mae_val, rmse_val in refs:
-        m_str = f"{mae_val:.3f}" if mae_val is not None else "—"
-        r_str = f"{rmse_val:.3f}" if rmse_val is not None else "—"
+        m_str = f"{mae_val:.3f}" if mae_val is not None else "-"
+        r_str = f"{rmse_val:.3f}" if rmse_val is not None else "-"
         print(f"  {name:<34} {m_str:<10} {r_str:<10}")
     em_str = f"{em:.3f}"
     er_str = f"{er:.3f}"
-    print(f"  {'─'*52}")
+    print(f"  {'-'*52}")
     print(f"  {'This work (fine-tuned ensemble)':<32} {em_str:<10} {er_str:<10}")
 
-    # ── Parity plot ──
+    # -- Parity plot --
     try:
         import matplotlib
         matplotlib.use("Agg")
@@ -412,7 +459,7 @@ def main():
         plt.close(fig)
         print(f"\n  Parity plot saved: {plot_path}")
     except ImportError:
-        print("\n  matplotlib not available — skipping parity plot")
+        print("\n  matplotlib not available - skipping parity plot")
 
 
 if __name__ == "__main__":
