@@ -38,6 +38,7 @@ scratch/
 
 # Data files
 AQM-gas-eval/
+AQM-gas/
 AQM-sol/
 Data/
 Data/FreeSolv/

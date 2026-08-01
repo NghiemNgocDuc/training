@@ -16,10 +16,30 @@ import numpy as np
 from aqm_dataset import AQMDataset
 from aqm_config import SOLVATED_ENERGY_TARGET, SOLVATED_FORCES_TARGET
 from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
-from energy_reference import load_reference_energies, compute_molecular_reference
+from energy_reference import (
+    fit_atomic_references,
+    load_reference_energies,
+    compute_molecular_reference,
+    save_reference_energies,
+)
 from ddp_utils import init_ddp, is_main, cleanup, sync_barrier
 
 seed = 42
+
+
+class _CachedListDataset(torch.utils.data.Dataset):
+    """Wraps a pre-built list of torch_geometric Data objects so each conformer
+    is materialized exactly once (filter pass) instead of being re-sliced and
+    re-built by every subsequent pass (grouping, ref fit, DataLoaders)."""
+
+    def __init__(self, items):
+        self.items = items
+
+    def __len__(self):
+        return len(self.items)
+
+    def __getitem__(self, idx):
+        return self.items[idx]
 
 parser = argparse.ArgumentParser(
     description="Stage 2 (Option B): Train Correction DimeNetPlus on AQM-sol with frozen vacuum model"
@@ -98,22 +118,18 @@ dataset = AQMDataset(
     forces_key=SOLVATED_FORCES_TARGET,
     max_structures=args.max_structures,
 )
-# Keep only conformers that have a gas-paired energy (dG target requires it)
-paired_idx = [i for i in range(len(dataset)) if hasattr(dataset[i], "gas_energy")]
-if len(paired_idx) != len(dataset):
-    print(f"NOTE: dropping {len(dataset) - len(paired_idx)} conformers without gas pairing")
-dataset = dataset[paired_idx]
-print(f"Dataset: {len(dataset)} samples (gas-paired)")
-
-ref_path = os.path.join(os.path.dirname(args.vacuum_ckpt), "atomic_references.json")
-if not os.path.exists(ref_path):
-    raise FileNotFoundError(
-        f"Atomic reference file not found at {ref_path}. "
-        f"Train Stage 1 first to generate it."
-    )
-print(f"Loading atomic reference energies from {ref_path}")
-ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
-print(f"Reference energies: {ref_energies.cpu().tolist()}")
+# ---- Gas-pairing filter + in-memory item cache (each conformer is built
+# exactly once; the filter, the molecule grouping, the ref fit and the
+# DataLoaders all reuse the cached items instead of re-indexing).
+paired_items = []
+for i in range(len(dataset)):
+    item = dataset[i]
+    if hasattr(item, "gas_energy"):
+        paired_items.append(item)
+if len(paired_items) != len(dataset):
+    print(f"NOTE: dropping {len(dataset) - len(paired_items)} conformers without gas pairing")
+dataset = _CachedListDataset(paired_items)
+print(f"Dataset: {len(dataset)} samples (gas-paired, cached in memory)")
 
 n_total = len(dataset)
 # Molecule-level split: all conformers of a molecule stay in one split
@@ -132,8 +148,30 @@ val_idx = [i for m in shuffled_mol_ids[:n_val_mol] for i in mol_id_to_idx[m]]
 train_dataset = Subset(dataset, train_idx)
 val_dataset = Subset(dataset, val_idx)
 if is_main(local_rank):
+    train_mol_ids = set(shuffled_mol_ids[n_val_mol:])
     print(f"  Train: {len(train_idx)} conformers / {len(mol_ids) - n_val_mol} molecules  "
-          f"Val: {len(val_idx)} conformers / {n_val_mol} molecules")
+          f"Val: {len(val_idx)} conformers / {n_val_mol} molecules  "
+          f"train/val molecule overlap: {len(train_mol_ids & val_mol_ids)}")
+
+# ---- Stage-2 atomic references: fit on Stage-2's OWN train split.
+# (2026-08-01 decision: no longer aliased from Stage 1 fold 1. These refs
+# anchor the lambda_total regularizer on the SOLVATED total energy, so fitting
+# them on solvated train-split energies is the physically consistent, leak-free
+# choice, and no downstream stage depends on Stage-1 fold ordering.)
+if is_main(local_rank):
+    print(f"Fitting Stage-2 atomic references on train split "
+          f"({len(train_dataset)} conformers)...")
+    ref_energies = fit_atomic_references(train_dataset, ELEMENT_TO_IDX, NUM_ELEMENTS)
+    ref_path = os.path.join(args.output_dir, "atomic_references.json")
+    save_reference_energies(ref_energies, ELEMENT_TO_IDX, ref_path)
+    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
+    print(f"Reference energies: {ref_energies.cpu().tolist()}")
+else:
+    ref_energies = None
+sync_barrier(is_ddp)
+if ref_energies is None:
+    ref_path = os.path.join(args.output_dir, "atomic_references.json")
+    ref_energies = load_reference_energies(ref_path, ELEMENT_TO_IDX, NUM_ELEMENTS, device)
 
 if is_ddp:
     train_sampler = torch.utils.data.distributed.DistributedSampler(
@@ -311,9 +349,15 @@ for epoch in range(1, args.epochs + 1):
             train_dG_eV = np.sqrt(train_dG)
             dG_str = (f"  |  dG MAE: {train_dG_eV:.6f} / {val_dG_eV:.6f} eV  "
                       f"({train_dG_eV*23.0605:.3f} / {val_dG_eV*23.0605:.3f} kcal/mol)")
+        lr_now = optimizer.param_groups[0]["lr"]
+        finite_ok = (
+            np.isfinite(train_loss) and np.isfinite(val_loss)
+            and all(torch.isfinite(p).all().item() for p in correction_model.parameters())
+        )
         print(
             f"  Epoch {epoch:3d}/{args.epochs}  |  "
             f"Loss: {train_loss:.6f} / {val_loss:.6f}{dG_str}  |  "
+            f"LR: {lr_now:.1e}  finite: {'OK' if finite_ok else 'NAN!'}  |  "
             f"{elapsed:.2f}s"
         )
         print()
@@ -343,6 +387,9 @@ for epoch in range(1, args.epochs + 1):
                 print(f"    [x] Early stopping after {epoch} epochs")
                 print()
             break
+    if is_main(local_rank):
+        print(f"    [stale counter] epochs_no_improve = {epochs_no_improve} "
+              f"(patience={patience}, best val dG = {np.sqrt(best_val_dG_mae)*23.0605:.3f} kcal/mol)")
     sync_barrier(is_ddp)
 
 cleanup(is_ddp)

@@ -1,8 +1,13 @@
 #!/bin/bash
 # =============================================================================
-#  DimeNet+ FULL PIPELINE — Stage 1 (vacuum DimeNetPlus, from scratch, full
-#  AQM-gas) then Stage 2 (correction DimeNetPlus on full AQM-sol, dG target)
-#  then Stage 3 (FreeSolv 5-fold CV fine-tune + conformer ensemble).
+#  DimeNet+ FULL PIPELINE (authorized plan, per scratch/fix_report.md):
+#    Stage 1: vacuum DimeNetPlus from scratch on full AQM-gas, 4-fold CV
+#             (per-fold train/val disjointness + fold stats logged at launch)
+#    Stage 2: correction DimeNetPlus on full AQM-sol, dG = E_sol - E_gas target,
+#             refs SELF-FIT on its own train split (no stage-1 refs needed),
+#             gas-paired conformers cached in memory once
+#    Stage 3: FreeSolv single 5-fold CV fine-tune + 20-conformer ensemble
+#             (fold-mean target stratification logged at start)
 #
 #  Usage (Vast Jupyter terminal, repo root):  bash run_dimenet_full.sh [quick]
 #  Self-detaches via nohup -> safe to close the laptop. PID + log printed.
@@ -43,11 +48,11 @@ pip install torch_geometric scikit-learn h5py numpy tqdm scipy pandas matplotlib
 [ -f AQM-gas-full.hdf5 ] || wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
 ls -lh AQM-*-full.hdf5
 
-# ---- Stage 1: vacuum DimeNetPlus from scratch on AQM-gas --------------------
-echo "=== $(date) STAGE 1 (vacuum, full AQM-gas) start"
+# ---- Stage 1: vacuum DimeNetPlus from scratch on AQM-gas, 4-fold CV --------
+echo "=== $(date) STAGE 1 (vacuum, full AQM-gas, 4-fold CV) start"
 S1=""; [ "$QUICK" = "quick" ] && S1="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage1_vacuum.py \
-        --hdf5 AQM-gas-full.hdf5 --k_folds 1 \
+        --hdf5 AQM-gas-full.hdf5 --k_folds 4 \
         --epochs 200 --lr 0.001 --batchsize 32 \
         --output_dir "$R" $S1 > stage1.log 2>&1; then
     echo "STAGE 1 DONE rc=0"

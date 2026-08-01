@@ -34,7 +34,8 @@ PREREQUISITE
   cd /workspace
   git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || git -C training pull
   cd training
-
+  pip install torch --index-url https://download.pytorch.org/whl/cu128
+  pip install mace-torch tqdm h5py
   # 3. Install deps (cu128 wheels for RTX 50-series/Blackwell;
   #    on older GPUs just `pip install torch` works too)
   #    NOTE: not needed manually - each run_*_full.sh installs its own
