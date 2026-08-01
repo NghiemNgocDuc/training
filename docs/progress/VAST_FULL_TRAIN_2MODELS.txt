@@ -1,0 +1,129 @@
+==============================================================================
+  FULL TRAINING — TWO ARCHITECTURES ON TWO VAST.AI INSTANCES (detached)
+  MACE-OFF23-medium (FROM SCRATCH, random init)  |  DimeNet+ (Option B pipeline)
+  Updated: 2026-08-01
+==============================================================================
+
+WHAT RUNS WHERE
+  INSTANCE 1 (GPU 1)  ->  MACE from-scratch:  Stage A (full AQM dG training,
+                          random init via train_stage_a_scratch.py)
+                          then Stage B (FreeSolv 5-fold CV fine-tune)
+  INSTANCE 2 (GPU 2)  ->  DimeNet+:  Stage 1 (vacuum, from scratch on AQM-gas)
+                          then Stage 2 (correction, dG target on AQM-sol)
+                          then FreeSolv 5-fold CV fine-tune
+
+Both instances: code from github.com/NghiemNgocDuc/training (already pushed,
+includes the audit fixes and the MACE from-scratch files). Full AQM data
+(~3.0 GB) is downloaded from Zenodo on each instance. Everything runs under
+nohup in the Jupyter terminal -> safe to close the laptop.
+
+PREREQUISITE
+  Rent 2 Vast.ai instances, each with a >= 24 GB GPU (RTX 4090/3090/A6000/A100
+  or any 50-series). Use a pytorch/pytorch CUDA image (>= CUDA 12.4), and open
+  the Jupyter Terminal (or use a cell with leading !).
+
+==============================================================================
+  PART 0 — SETUP (run on BOTH instances)
+==============================================================================
+
+  # 1. GPU check (must show your GPU + CUDA)
+  nvidia-smi
+  python -c "import torch; print(torch.__version__, torch.version.cuda)"
+
+  # 2. Clone repo (first time) / update (re-runs)
+  cd /workspace
+  git clone https://github.com/NghiemNgocDuc/training.git 2>/dev/null || git -C training pull
+  cd training
+
+  # 3. Install deps (cu128 wheels for RTX 50-series/Blackwell;
+  #    on older GPUs just `pip install torch` works too)
+  #    NOTE: not needed manually - each run_*_full.sh installs its own
+  #    complete dependency list (audited against STAGE_AB_PROTOCOL.md).
+  #    (manual fallback: torch cu128 + mace-torch/h5py/tqdm for MACE;
+  #     torch_geometric/scikit-learn for DimeNet+)
+
+  # 4. Download FULL AQM data (~3.0 GB total, Zenodo) - same on both instances
+  wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'
+  wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
+  ls -lh AQM-*-full.hdf5        # expect ~1.5 GB each
+
+  # 5. OPTIONAL 10-min sanity check per architecture (skip for time)
+  #    MACE (from scratch, refs+calibration only, no training):
+  python mace_freesolv/train_stage_a_scratch.py --hdf5_sol AQM-sol-full.hdf5 --hdf5_gas AQM-gas-full.hdf5 --device cuda --setup_only
+  #    DimeNet+ quick (4000 structures, 30 epochs):
+  python aqm-spice2/pipeline/train_stage1_vacuum.py --hdf5 AQM-gas-full.hdf5 --k_folds 1 --max_structures 4000 --epochs 30 --output_dir aqm-spice2/pipeline/results_full
+
+==============================================================================
+  INSTANCE 1 — MACE (FROM SCRATCH, random init) + FreeSolv fine-tune
+==============================================================================
+
+  # ONE command. The script itself: pulls latest code, installs all deps
+  # (torch cu128, mace-torch, h5py, tqdm, numpy, scipy, e3nn, requests),
+  # downloads full AQM if missing, runs Stage A then Stage B, and
+  # SELF-DETACHES (nohup) -> prints a PID and returns; safe to close laptop.
+  bash run_mace_full.sh            # full run
+  bash run_mace_full.sh quick      # ~15-min sanity: Stage A quick + Stage B quick
+
+  # Monitor (any time, even in a new terminal)
+  tail -f launcher_mace.log        # stage markers
+  tail -f stage_a_scratch.log      # live Stage A progress
+  tail -f stage_b.log              # after A finishes
+  python mace_freesolv/status.py   # MACE progress snapshot (needs logs in cwd)
+  grep 'STAGE [AB] DONE' launcher_mace.log
+  grep 'test:' stage_b.log | tail -20     # fold-by-fold test MAE/RMSE
+
+  # Stop if needed
+  kill $(pgrep -f train_stage_a_scratch.py); kill $(pgrep -f "mace_freesolv/main.py")
+
+  # Results (download from Vast files panel)
+  #    Stage A:  /workspace/training/mace_freesolv/results_stage_a_scratch/stage_a.pt
+  #    Stage B:  /workspace/training/mace_freesolv/results/ (fold_N/model.pt,
+  #              fold_metadata.json, test_preds.npz) + comparison table in log
+
+==============================================================================
+  INSTANCE 2 — DimeNet+ (full Option-B pipeline) + FreeSolv fine-tune
+==============================================================================
+
+  # ONE command. The script itself: pulls latest code, installs all deps
+  # (torch cu128, torch_geometric, scikit-learn, h5py, numpy, tqdm, scipy,
+  # pandas, matplotlib, requests), downloads full AQM if missing, runs
+  # Stage 1 -> Stage 2 -> Stage 3 sequentially, and SELF-DETACHES (nohup)
+  # -> prints a PID and returns; safe to close laptop.
+  bash run_dimenet_full.sh         # full run
+  bash run_dimenet_full.sh quick   # ~15-min sanity (4000 structures, 30 ep, quick FT)
+
+  # Monitor (any time, even in a new terminal)
+  tail -f launcher_dimenet.log     # stage markers
+  tail -f stage1.log               # vacuum stage
+  tail -f stage2.log               # correction stage (needs stage1 done)
+  tail -f freesolv_ft.log          # FreeSolv fine-tune (needs stage2 done)
+  grep 'STAGE [0-9] DONE' launcher_dimenet.log
+  grep 'test:' freesolv_ft.log | tail -20
+  grep 'PIPELINE DONE' launcher_dimenet.log
+
+  # Stop if needed
+  kill $(pgrep -f train_stage1_vacuum.py); kill $(pgrep -f train_stage2_correction.py); kill $(pgrep -f cv_finetune.py)
+
+  # Results (download from Vast files panel)
+  #    /workspace/training/aqm-spice2/pipeline/results_full/stage1_fold_1.pt
+  #    /workspace/training/aqm-spice2/pipeline/results_full/stage2_correction.pt
+  #    /workspace/training/aqm-spice2/freesolv/cv_results_full/ (5 folds, ensemble)
+
+==============================================================================
+  NOTES
+==============================================================================
+  - Stage B on each instance only starts after Stage A of the SAME instance
+    finishes (sequential chaining inside the script) - the two instances are
+    independent, so both can run simultaneously.
+  - First DimeNet run builds the processed graph cache
+    (/workspace/training/Data/AQM-gas, Data/AQM-sol) - takes ~10-30 min, disk
+    a few GB. MACE Stage A builds no cache (lazy LRU HDF5 reads).
+  - Jupyter terminal closes freely: nohup + & keeps the python processes alive
+    on the instance. To be extra safe you can also wrap with `screen -S train`.
+  - If `pip install torch --index-url .../cu128` fails (old driver), fall back
+    to plain `pip install torch`.
+  - Expected scale: full AQM Stage A (MACE, ~60k conformers) is many hours on
+    one GPU; DimeNet stage1+2 similar. That is expected - they run unattended.
+  - After both finish, the comparison to report: FreeSolv test MAE of MACE
+    (from-scratch) vs DimeNet+ (Option B) - target: beat 0.417 (Zhang 2022 SOTA).
+==============================================================================
