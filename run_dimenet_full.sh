@@ -54,7 +54,7 @@ echo "=== $(date) STAGE 1 (vacuum, 20k structurally, 1-fold <1-day config) start
 S1=""; [ "$QUICK" = "quick" ] && S1="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage1_vacuum.py \
         --hdf5 AQM-gas-full.hdf5 --k_folds 1 \
-        --epochs 30 --lr 0.001 --batchsize 32 --max_structures 20000 \
+        --epochs 24 --lr 0.001 --batchsize 32 --max_structures 20000 \
         --output_dir "$R" $S1 > stage1.log 2>&1; then
     echo "STAGE 1 DONE rc=0"
 else
@@ -67,7 +67,7 @@ S2=""; [ "$QUICK" = "quick" ] && S2="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage2_correction.py \
         --hdf5 AQM-sol-full.hdf5 --gas_hdf5 AQM-gas-full.hdf5 \
         --vacuum_ckpt "$R/stage1_fold_1.pt" \
-        --epochs 20 --lr 0.001 --batchsize 16 --max_structures 20000 \
+        --epochs 14 --lr 0.001 --batchsize 16 --max_structures 20000 \
         --output_dir "$R" $S2 > stage2.log 2>&1; then
     echo "STAGE 2 DONE rc=0"
 else
