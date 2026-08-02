@@ -48,12 +48,12 @@ pip install torch_geometric scikit-learn h5py numpy tqdm scipy pandas matplotlib
 [ -f AQM-gas-full.hdf5 ] || wget -O AQM-gas-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-gas.hdf5?download=1'
 ls -lh AQM-*-full.hdf5
 
-# ---- Stage 1: vacuum DimeNetPlus from scratch on AQM-gas, 4-fold CV --------
-echo "=== $(date) STAGE 1 (vacuum, full AQM-gas, 4-fold CV) start"
+# ---- Stage 1: vacuum DimeNetPlus from scratch on AQM-gas, 1-fold (1-day) ----
+echo "=== $(date) STAGE 1 (vacuum, full AQM-gas, 1-fold <1-day config) start"
 S1=""; [ "$QUICK" = "quick" ] && S1="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage1_vacuum.py \
-        --hdf5 AQM-gas-full.hdf5 --k_folds 4 \
-        --epochs 200 --lr 0.001 --batchsize 32 \
+        --hdf5 AQM-gas-full.hdf5 --k_folds 1 \
+        --epochs 60 --lr 0.001 --batchsize 64 \
         --output_dir "$R" $S1 > stage1.log 2>&1; then
     echo "STAGE 1 DONE rc=0"
 else
@@ -66,7 +66,7 @@ S2=""; [ "$QUICK" = "quick" ] && S2="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage2_correction.py \
         --hdf5 AQM-sol-full.hdf5 --gas_hdf5 AQM-gas-full.hdf5 \
         --vacuum_ckpt "$R/stage1_fold_1.pt" \
-        --epochs 200 --lr 0.001 --batchsize 16 \
+        --epochs 60 --lr 0.001 --batchsize 32 \
         --output_dir "$R" $S2 > stage2.log 2>&1; then
     echo "STAGE 2 DONE rc=0"
 else
@@ -81,7 +81,7 @@ if python aqm-spice2/freesolv/cv_finetune.py \
         --correction_ckpt "$R/stage2_correction.pt" \
         --checkpoint_dir "$R" \
         --output_dir "$ROOT/aqm-spice2/freesolv/cv_results_full" \
-        --n_conformers 20 $S3 > freesolv_ft.log 2>&1; then
+        --n_conformers 5 $S3 > freesolv_ft.log 2>&1; then
     echo "STAGE 3 DONE rc=0"
 else
     echo "STAGE 3 FAILED rc=$? -> tail -f freesolv_ft.log"; exit 1
