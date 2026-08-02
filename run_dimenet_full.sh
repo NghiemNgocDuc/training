@@ -22,6 +22,7 @@ set -e
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"
 export PYTHONUNBUFFERED=1
+export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 QUICK="$1"
 LAUNCHER=launcher_dimenet.log
 R="$ROOT/aqm-spice2/pipeline/results_full"
@@ -49,11 +50,11 @@ pip install torch_geometric scikit-learn h5py numpy tqdm scipy pandas matplotlib
 ls -lh AQM-*-full.hdf5
 
 # ---- Stage 1: vacuum DimeNetPlus from scratch on AQM-gas, 1-fold (1-day) ----
-echo "=== $(date) STAGE 1 (vacuum, full AQM-gas, 1-fold <1-day config) start"
+echo "=== $(date) STAGE 1 (vacuum, 20k structurally, 1-fold <1-day config) start"
 S1=""; [ "$QUICK" = "quick" ] && S1="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage1_vacuum.py \
         --hdf5 AQM-gas-full.hdf5 --k_folds 1 \
-        --epochs 60 --lr 0.001 --batchsize 64 \
+        --epochs 60 --lr 0.001 --batchsize 32 --max_structures 20000 \
         --output_dir "$R" $S1 > stage1.log 2>&1; then
     echo "STAGE 1 DONE rc=0"
 else
@@ -66,7 +67,7 @@ S2=""; [ "$QUICK" = "quick" ] && S2="--max_structures 4000 --epochs 30"
 if python aqm-spice2/pipeline/train_stage2_correction.py \
         --hdf5 AQM-sol-full.hdf5 --gas_hdf5 AQM-gas-full.hdf5 \
         --vacuum_ckpt "$R/stage1_fold_1.pt" \
-        --epochs 60 --lr 0.001 --batchsize 32 \
+        --epochs 60 --lr 0.001 --batchsize 16 --max_structures 20000 \
         --output_dir "$R" $S2 > stage2.log 2>&1; then
     echo "STAGE 2 DONE rc=0"
 else
