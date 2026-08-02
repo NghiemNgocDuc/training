@@ -16,6 +16,7 @@ from mace.modules import ScaleShiftMACE
 
 import e3nn.o3 as o3
 
+from model import load_state_dict_cueq_tolerant
 from mace_off23_medium_arch_config import (
     R_MAX,
     NUM_RADIAL_BASIS,
@@ -106,7 +107,7 @@ class MACEFreeSolvScratch(MACEFreeSolv):
                 loaded = state["atomic_energies_fn.atomic_energies"]
                 if loaded.shape != expected_shape:
                     state["atomic_energies_fn.atomic_energies"] = loaded.reshape(expected_shape)
-            base.load_state_dict(state)
+            load_state_dict_cueq_tolerant(base, state, tag="[init_checkpoint] ")
             print(f"  Initialized from Stage-A checkpoint: {init_checkpoint}")
             if fit_refs:
                 print("  fit_refs disabled (checkpoint supplies atomic energies)")

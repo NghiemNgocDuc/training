@@ -6,6 +6,41 @@ from torch.utils.data import DataLoader
 
 from data import collate_mace
 
+CUEQ_ZEROED_SUFFIX = "_zeroed"
+
+
+def load_state_dict_cueq_tolerant(module, state, tag="", strict=True):
+    """load_state_dict that tolerates mace's cuEQ bookkeeping buffers.
+
+    mace's SymmetricContraction registers one-element *_zeroed buffers
+    (e.g. products.0.symmetric_contractions.contractions.0.weights_0_zeroed)
+    when cuequivariance is available, to flag contraction paths pruned during
+    cuEQ conversion. Those buffers therefore appear in checkpoints saved on
+    machines with cuequivariance installed but NOT in plain-e3nn models, so a
+    plain machine rejects such a checkpoint ("Unexpected key(s)") and a
+    cuEQ-accelerated load of a plain checkpoint rejects the model
+    ("Missing key(s)"). The flags are pure bookkeeping: pruned paths carry
+    zero-filled weights of the same shape (EmptyParam), so stripping the flags
+    reproduces identical numerics. Any other mismatch is still an error.
+    """
+    dropped = {k: v for k, v in state.items() if k.endswith(CUEQ_ZEROED_SUFFIX)}
+    if dropped:
+        pruned = sum(1 for v in dropped.values() if bool(v.item()))
+        print(f"  {tag}stripped {len(dropped)} cuEQ bookkeeping buffer(s) (*_zeroed)"
+              + (f" [{pruned} pruned]" if pruned else ""))
+        state = {k: v for k, v in state.items() if k not in dropped}
+    missing, unexpected = module.load_state_dict(state, strict=strict)
+    if strict:
+        missing = [k for k in missing if not k.endswith(CUEQ_ZEROED_SUFFIX)]
+        unexpected = [k for k in unexpected if not k.endswith(CUEQ_ZEROED_SUFFIX)]
+        if missing or unexpected:
+            raise RuntimeError(
+                f"Error(s) in loading state_dict for {type(module).__name__}: "
+                + (f"Missing key(s): {missing[:10]}; " if missing else "")
+                + (f"Unexpected key(s): {unexpected[:10]}" if unexpected else "")
+            )
+    return module
+
 
 def load_mace_foundation(model_size="medium", device="cpu"):
     model = mace_off(model_size, return_raw_model=True, device=device)
@@ -94,7 +129,7 @@ class MACEFreeSolv(torch.nn.Module):
                 loaded = state["atomic_energies_fn.atomic_energies"]
                 if loaded.shape != expected_shape:
                     state["atomic_energies_fn.atomic_energies"] = loaded.reshape(expected_shape)
-            base.load_state_dict(state)
+            load_state_dict_cueq_tolerant(base, state, tag="[init_checkpoint] ")
             print(f"  Initialized from Stage-A checkpoint: {init_checkpoint}")
             if fit_refs:
                 print("  fit_refs disabled (checkpoint supplies atomic energies)")
@@ -190,5 +225,5 @@ class MACEFreeSolv(torch.nn.Module):
             loaded = state["atomic_energies_fn.atomic_energies"]
             if loaded.shape != expected_shape:
                 state["atomic_energies_fn.atomic_energies"] = loaded.reshape(expected_shape)
-        self.model.load_state_dict(state, strict=strict)
+        load_state_dict_cueq_tolerant(self.model, state, strict=strict)
         print(f"Loaded checkpoint: {path}")
