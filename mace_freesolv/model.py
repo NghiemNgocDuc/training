@@ -10,26 +10,27 @@ CUEQ_ZEROED_SUFFIX = "_zeroed"
 
 
 def load_state_dict_cueq_tolerant(module, state, tag="", strict=True):
-    """load_state_dict that tolerates mace's cuEQ bookkeeping buffers.
+    """load_state_dict that tolerates mace's scratch/constructor bookkeeping buffers.
 
     mace's SymmetricContraction registers one-element *_zeroed buffers
     (e.g. products.0.symmetric_contractions.contractions.0.weights_0_zeroed)
-    when cuequivariance is available, to flag contraction paths pruned during
-    cuEQ conversion. Those buffers therefore appear in checkpoints saved on
-    machines with cuequivariance installed but NOT in plain-e3nn models, so a
-    plain machine rejects such a checkpoint ("Unexpected key(s)") and a
-    cuEQ-accelerated load of a plain checkpoint rejects the model
-    ("Missing key(s)"). The flags are pure bookkeeping: pruned paths carry
-    zero-filled weights of the same shape (EmptyParam), so stripping the flags
-    reproduces identical numerics. Any other mismatch is still an error.
+    when the model is instantiated through its constructor (as in the
+    from-scratch path, scratch_model.build_scratch_mace), but NOT in the
+    checkpoint-era serialized OFF23 model that mace_off() torch.loads. So a
+    scratch-produced checkpoint carries those keys while the plain e3nn
+    consumer model lacks them ("Unexpected key(s)"), and a plain checkpoint
+    loaded into a scratch-constructed model would report "Missing key(s)".
+    The flags are pure bookkeeping: pruned paths carry zero-filled weights of
+    the same shape (EmptyParam), so stripping/tolerating them reproduces
+    identical numerics. Any other mismatch is still an error.
     """
     dropped = {k: v for k, v in state.items() if k.endswith(CUEQ_ZEROED_SUFFIX)}
     if dropped:
         pruned = sum(1 for v in dropped.values() if bool(v.item()))
-        print(f"  {tag}stripped {len(dropped)} cuEQ bookkeeping buffer(s) (*_zeroed)"
+        print(f"  {tag}stripped {len(dropped)} bookkeeping buffer(s) (*_zeroed)"
               + (f" [{pruned} pruned]" if pruned else ""))
         state = {k: v for k, v in state.items() if k not in dropped}
-    missing, unexpected = module.load_state_dict(state, strict=strict)
+    missing, unexpected = module.load_state_dict(state, strict=False)
     if strict:
         missing = [k for k in missing if not k.endswith(CUEQ_ZEROED_SUFFIX)]
         unexpected = [k for k in unexpected if not k.endswith(CUEQ_ZEROED_SUFFIX)]
