@@ -42,7 +42,7 @@ python -c "import torch; print('torch', torch.__version__, '| cuda', torch.versi
 # ---- repo + installs --------------------------------------------------------
 git pull -q || echo "  git pull skipped (dirty/offline), continuing with local code"
 pip install torch --index-url https://download.pytorch.org/whl/cu128 || pip install torch
-pip install torch_geometric scikit-learn h5py numpy tqdm scipy pandas matplotlib requests
+pip install torch_geometric scikit-learn h5py numpy tqdm scipy pandas matplotlib requests rdkit
 
 # ---- full AQM data (Zenodo, ~3.0 GB; skip if already downloaded) ------------
 [ -f AQM-sol-full.hdf5 ] || wget -O AQM-sol-full.hdf5 'https://zenodo.org/records/10208010/files/AQM-sol.hdf5?download=1'

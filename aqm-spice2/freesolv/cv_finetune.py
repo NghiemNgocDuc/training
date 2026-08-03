@@ -264,11 +264,19 @@ def main():
         print(f"{'='*60}")
         print(f"  Generating conformers with RDKit and averaging predictions...")
 
-        from rdkit import Chem
-        from rdkit.Chem import rdDistGeom, rdForceFieldHelpers
+        try:
+            from rdkit import Chem
+            from rdkit.Chem import rdDistGeom, rdForceFieldHelpers
+        except ImportError:
+            Chem = rdDistGeom = rdForceFieldHelpers = None
+            print("  WARNING: rdkit not installed - conformer ensemble disabled;")
+            print("           falling back to the stored FreeSolv conformer.")
+            print("           Install with:  pip install rdkit")
         from torch_geometric.data import Data
 
         def _gen_confs(smiles, n):
+            if Chem is None:
+                return None
             mol = Chem.MolFromSmiles(smiles)
             if mol is None:
                 return None
