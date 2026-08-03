@@ -51,8 +51,11 @@ def main():
     # Resolve relative paths against the repo root, not the chdir'd CWD
     # (line 21) or the script dir, so bare names like "freesolv_conformers.hdf5"
     # and the default "results"/"cv_results" dirs behave like the pipeline
-    # invocation from the repo root.
-    for arg_name in ("conformers", "checkpoint_dir", "output_dir"):
+    # invocation from the repo root. correction_ckpt is os.path.join()ed onto
+    # ckpt_dir, and join() with an absolute second arg yields the second arg,
+    # so resolving it here also makes repo-relative values like
+    # "aqm-spice2/pipeline/results_full/stage2_correction.pt" work.
+    for arg_name in ("conformers", "checkpoint_dir", "output_dir", "correction_ckpt"):
         val = getattr(args, arg_name)
         if not os.path.isabs(val):
             setattr(args, arg_name, os.path.join(REPO_ROOT, val))
