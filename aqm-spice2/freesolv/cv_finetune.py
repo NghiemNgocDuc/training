@@ -15,9 +15,12 @@ import numpy as np
 # Add the project to path
 _script_dir = os.path.dirname(os.path.abspath(__file__))
 _parent = os.path.dirname(_script_dir)
+REPO_ROOT = os.path.dirname(_parent)
 sys.path.append(_parent)
 sys.path.append(_script_dir)
 
+# NOTE: chdir changes the CWD to aqm-spice2/ for the rest of the process,
+# so any bare relative paths in CLI args would resolve to the wrong place.
 os.chdir(_parent)
 
 
@@ -44,6 +47,15 @@ def main():
     parser.add_argument("--n_conformers", type=int, default=1,
                         help="Number of conformers per molecule for test-time averaging (default: 1 = no ensemble)")
     args = parser.parse_args()
+
+    # Resolve relative paths against the repo root, not the chdir'd CWD
+    # (line 21) or the script dir, so bare names like "freesolv_conformers.hdf5"
+    # and the default "results"/"cv_results" dirs behave like the pipeline
+    # invocation from the repo root.
+    for arg_name in ("conformers", "checkpoint_dir", "output_dir"):
+        val = getattr(args, arg_name)
+        if not os.path.isabs(val):
+            setattr(args, arg_name, os.path.join(REPO_ROOT, val))
 
     import torch
     import h5py
