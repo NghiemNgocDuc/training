@@ -224,8 +224,22 @@ class HybridEmbeddingBlock(torch.nn.Module):
         self.lin.reset_parameters()
 
     def forward(self, x, rbf, i, j):
-        # Split input into atom types and continuous features
-        atom_types = x[:, 0].int()  # First dimension as atom types
+        # Split input into atom types and continuous features. The pipeline
+        # feeds a one-hot element encoding (17-dim) here, so column 0 is NOT an
+        # atom-type index - it is the "is H" flag, and every non-H atom would
+        # collapse to embedding index 1. Recover the element index from the
+        # one-hot via argmax; fall back to the legacy x[:, 0] convention when
+        # the input is not one-hot (e.g. [At.#, ...] feature rows).
+        if x.dim() == 2 and x.size(1) > 1:
+            is_onehot = bool(
+                torch.all((x == 0) | (x == 1)).item() and
+                torch.all(x.sum(dim=1) == 1).item())
+        else:
+            is_onehot = False
+        if is_onehot:
+            atom_types = x.argmax(dim=1)
+        else:
+            atom_types = x[:, 0].int()
 
         # Get embeddings for atom types
         atom_emb = self.atom_embedding(atom_types)
