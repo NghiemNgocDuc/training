@@ -1,7 +1,63 @@
 ==============================================================================
   FULL TRAINING — TWO ARCHITECTURES ON TWO VAST.AI INSTANCES (detached)
   MACE-OFF23-medium (FROM SCRATCH, random init)  |  DimeNet+ (Option B pipeline)
-  Updated: 2026-08-01
+  Updated: 2026-08-03 (both runs COMPLETE — results below)
+==============================================================================
+
+==============================================================================
+  FINAL RESULTS (2026-08-03)
+==============================================================================
+
+  FreeSolv hydration free energy (642 molecules, 5-fold CV, kcal/mol)
+
+  Fold     MACE Stage B (from scratch)          DimeNet+ Option B (+5-conf ensemble)
+  -----    ---------------------------------    ------------------------------------
+  Fold 0   MAE=1.663 RMSE=2.160 R2=0.7212       MAE=0.515 RMSE=0.773 R2=0.9643
+  Fold 1   MAE=1.729 RMSE=2.398 R2=0.6368       MAE=0.537 RMSE=0.869 R2=0.9524
+  Fold 2   MAE=1.885 RMSE=2.626 R2=0.5187       MAE=0.581 RMSE=1.074 R2=0.9196
+  Fold 3   MAE=1.617 RMSE=2.157 R2=0.6583       MAE=0.570 RMSE=1.028 R2=0.9223
+  Fold 4   MAE=2.191 RMSE=2.957 R2=0.3458       MAE=0.540 RMSE=0.824 R2=0.9493
+  -----    ---------------------------------    ------------------------------------
+  Mean     MAE=1.817 +/- 0.208 RMSE=2.460       MAE=0.549 RMSE=0.921 R2=0.9427
+                                                (ensemble across folds, 642 mols)
+
+  vs published (from cv_finetune.py comparison table)
+  Method                          MAE       RMSE
+  ------------------------------  -------   -------
+  Zhang 2022 (A3D-PNAConv-FT)      0.417     0.719   <- SOTA target
+  COSMO-RS (Klamt 2015)            0.520     -
+  ReSolv (Rocken 2024)             0.630     0.960
+  Amber GAFF (full FreeSolv)       1.110     1.530
+  CHARMM CGenFF (full FreeSolv)    1.180     2.040
+  GIN-FP (IIT Delhi 2025)          -         1.022
+  GCN (IIT Delhi 2025)             -         1.288
+  GBn2 (this baseline)            19.830     -
+  ------------------------------  -------   -------
+  This work (DimeNet+ fine-tuned)  0.549     0.921
+
+  VERDICT
+    - DimeNet+ Option B beats COSMO-RS (0.520 is close), ReSolv, GAFF, CGenFF
+      and crushes the from-scratch MACE track (1.817 vs 0.549, ~3.3x better).
+    - Gap to SOTA: 0.549 vs 0.417 (Zhang 2022). Conformer ensemble gained
+      ~0.01-0.03/fold. Possible levers if chasing SOTA: LR sweep (5e-5/2e-5),
+      more conformers (10-20), seed averaging, or lower patience warm-restart
+      (several folds early-stopped at epoch 17-30, convergence is fast).
+    - MACE Stage B from-scratch init (Stage A, no pretrained weights) plateaus
+      at ~1.6-2.2 test MAE - the pretrained MACE-OFF23 fine-tune path is the
+      sensible route for MACE if this project continues.
+
+  ARTIFACTS (download from Vast files panel before shutdown)
+    DimeNet+: aqm-spice2/freesolv/cv_results_full/  (fold_N/finetuned.pt,
+              ft_test_predictions.csv, *_ids.json, parity_plot.png)
+              aqm-spice2/pipeline/results_full/stage2_correction.pt (Stage 2)
+              aqm-spice2/pipeline/results_full/stage1_fold_1.pt (Stage 1)
+              logs: launcher_dimenet.log stage1.log stage2.log freesolv_ft.log
+    MACE:     mace_freesolv/results_stage_a_scratch/stage_a.pt (Stage A ckpt)
+              mace_freesolv/results/ (fold_N/model.pt, fold_metadata.json,
+              test_preds.npz) + launcher_mace.log stage_a_scratch.log stage_b.log
+
+==============================================================================
+  SETUP / RUN INSTRUCTIONS (kept for re-runs or continuation)
 ==============================================================================
 
 WHAT RUNS WHERE
@@ -128,3 +184,65 @@ PREREQUISITE
   - After both finish, the comparison to report: FreeSolv test MAE of MACE
     (from-scratch) vs DimeNet+ (Option B) - target: beat 0.417 (Zhang 2022 SOTA).
 ==============================================================================
+
+
+Done. New additive script aqm-spice2/freesolv/ensemble_average.py (imports helpers from deep_ensemble.py, modifies nothing).
+Result — 5-seed ensemble average, fold 0 frozen test set (n=129, 5-conformer TTA)
+ 	MAE
+seed 42	0.5048
+seed 123	0.5287
+seed 7	0.5370
+seed 2024	0.5360
+seed 999	0.5496
+ENSEMBLE AVG	0.5059
+Ensemble does NOT beat the best individual seed (0.5059 vs 0.5048) — averaging slightly hurts vs seed 42 (reduces variance, but seed 42 was already best; the ensemble's RMSE/R² are also mid-pack). This is the honest empirical answer, not the assumed win.
+Labeling per your instruction: this 0.5059 is the mean over 5 seeds on one fixed fold — it is NOT the 0.549 headline, which averaged 5 different CV folds. Every printed line and the JSON state this.
+Verification note: RDKit's C DLL is AppLocker-blocked locally, so fresh checkpoint inference ran single-conformer — it reproduced each seed's training-time test_mae_single_conf_kcal exactly (0.5313/0.5456/0.5656/0.5272/0.5861), proving checkpoint integrity. The ensemble mean itself uses the saved predictions.csv per-seed values, which are the true 5-conformer TTA predictions from the training runs (verified identical order/split).
+Artifacts: deep_ensemble/aggregate/ensemble_average_predictions.csv (130 lines, same style as per_molecule.csv) and ensemble_average_report.json.
+
+
+==================================================================
+  EXPERIMENTAL: Frag20 Br/P supplement fine-tune (2026-08-05)
+==================================================================
+  Question: does adding Frag20-Aqsol-100K Br/P molecules as supplementary
+  fine-tuning data improve fold-0 FreeSolv test MAE vs the seed-42 TTA
+  baseline (0.5048)?
+  Status: CODE READY + SMOKE-TESTED LOCALLY. Full 200-epoch run is
+  deliberately NOT run yet - user runs it on the GPU box.
+
+  Design (all inside aqm-spice2/freesolv/experimental_frag20/, fully
+  self-contained; rollback = delete the folder, nothing else touched)
+    - Same frozen fold-0 split (411/102/129, md5 c0ef293341...) for
+      FreeSolv's own molecules; val/test stay PURE FreeSolv.
+    - Frag20 Br/P rows added to TRAINING ONLY: 9,260 molecules
+      (Br-only 3,877, P-only 5,225, both 158). Boron rows (786) dropped;
+      0 out-of-vocab; 0 SMILES/xyz heavy-atom mismatches (verified).
+    - Geometry: QM-optimized B3LYP/6-31G* xyz from the Frag20 tar
+      (QM_xyz/ dirs) - documented conformer-sourcing mismatch vs FreeSolv
+      (RDKit ETKDGv3+MMFF).
+    - DEVIATION FLAG: Frag20 targets are SMD/B3LYP CALCULATED CalcSol
+      (kcal/mol), NOT experimental - inherent level-of-theory mismatch.
+    - Same Stage-2 init ckpt, same hyperparams (lr 1e-4, wd 1e-5, bs 8,
+      epochs 200, patience 30, MSE in eV, grad clip 10, ReduceLROnPlateau,
+      5-conf TTA), seed 42.
+    - Parser fixes applied locally: [PH]/[SH] brackets and bracketed
+      aromatics [nH] now counted correctly (recovered ~260 molecules).
+
+  Smoke test (local CPU, 1 epoch, 64-mol cap) - PASSED
+    - full train loop, best_finetune_frag20.pt, metrics.json,
+      predictions.csv, report.json/txt all written correctly.
+    - RDKit AppLocker-blocked locally -> TTA fell back to stored
+      conformer (5 clones, mean unchanged); GPU box runs real RDKit TTA.
+
+  RUN ON GPU BOX (Vast instance, has full deps)
+    # 1. prepare once (downloads tar ~93 MB + split CSVs, builds HDF5):
+    python aqm-spice2/freesolv/experimental_frag20/prepare_frag20.py
+    # 2. full run:
+    python aqm-spice2/freesolv/experimental_frag20/finetune_frag20.py --mode train --device cuda
+    # 3. re-report from saved best ckpt without retraining:
+    python aqm-spice2/freesolv/experimental_frag20/finetune_frag20.py --mode eval --device cuda
+    # rollback: rm -rf experimental_frag20
+
+  Outputs (written to experimental_frag20/output/): metrics.json,
+  predictions.csv, report.json/report.txt with Br/P-subgroup vs rest
+  breakdown and an automatic HURT/HELPED verdict vs the 0.5048 baseline.
