@@ -44,6 +44,8 @@ import random
 import sys
 import time
 
+sys.stdout.reconfigure(line_buffering=True)  # live logs when stdout is a file (nohup)
+
 import numpy as np
 
 _script_dir = os.path.dirname(os.path.abspath(__file__))

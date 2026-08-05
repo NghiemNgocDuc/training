@@ -5,7 +5,8 @@
 # Tested: Python 3.12, torch 2.12.1, torch_geometric 2.8.0, rdkit 2026.03.4.
 
 # ---------------------------------------------------------------------------
-# WHAT ALREADY EXISTS (deep_ensemble.py defaults point at exactly these)
+# WHAT ALREADY EXISTS (deep_ensemble.py defaults point at exactly these;
+# all are COMMITTED to the repo, so a fresh clone has everything):
 # ---------------------------------------------------------------------------
 #   init checkpoint  : aqm-spice2/pipeline/results_full/stage2_correction.pt
 #                      (the same ckpt the verified fold-0 run started from)
@@ -19,9 +20,11 @@
 
 # ---------------------------------------------------------------------------
 # 1. CLONE THE REPO (the ensemble code - deep_ensemble.py - lives here)
+#    Already cloned? -> just 'git pull' to get the latest code + artifacts.
 # ---------------------------------------------------------------------------
 git clone https://github.com/NghiemNgocDuc/training.git
 cd training
+git pull
 
 # ---------------------------------------------------------------------------
 # 2. ENVIRONMENT (only needs the packages)
@@ -29,41 +32,48 @@ cd training
 pip install torch torch_geometric h5py scikit-learn scipy matplotlib numpy rdkit
 
 # ---------------------------------------------------------------------------
-# 3. TRAIN THE 5 ENSEMBLE MEMBERS
-#    Same train/val/test split for all members; ONLY the seed changes:
-#    seeds = 42 123 7 2024 999
-#    Everything else is byte-for-byte the verified fold-0 setup:
-#    DimeNetPlus arch, lr=1e-4, wd=1e-5, batch=8, MSE-in-eV,
-#    grad-clip 10.0, ReduceLROnPlateau(f=0.5, pat=15, min_lr=1e-6),
-#    early stop pat=30 on val MAE, 5-conformer RDKit TTA.
-#    Run from anywhere - the script chdirs into aqm-spice2/ itself.
+# 3. TRAIN + ANALYZE THE 5-MEMBER DEEP ENSEMBLE (runs in the background -
+#    detach-friendly)
+#
+#    TRAIN: same train/val/test split for all members; ONLY the seed changes:
+#    seeds = 42 123 7 2024 999. Everything else is byte-for-byte the verified
+#    fold-0 setup: DimeNetPlus arch, lr=1e-4, wd=1e-5, batch=8, MSE-in-eV,
+#    grad-clip 10.0, ReduceLROnPlateau(f=0.5, pat=15, min_lr=1e-6), early stop
+#    pat=30 on val MAE, 5-conformer RDKit TTA. Run from anywhere - the script
+#    chdirs into aqm-spice2/ itself.
+#
+#    The nohup '&' + output redirect keeps training alive after you close the
+#    SSH/Jupyter terminal, so you can shut down your own computer.
+#    (It does NOT survive a full instance restart / container reboot.)
+#
+#    ANALYZE: run after training finishes - sanity checks + UQ analysis.
 # ---------------------------------------------------------------------------
-python aqm-spice2/freesolv/deep_ensemble.py --mode train --seeds 42 123 7 2024 999 --device cuda
+nohup python aqm-spice2/freesolv/deep_ensemble.py --mode train --seeds 42 123 7 2024 999 --device cuda \
+  > deep_ensemble_train.log 2>&1 &
 
-# per-member outputs -> aqm-spice2/freesolv/deep_ensemble/seed_<seed>/
-#   ensemble_seed<seed>.pt   best-val checkpoint
-#   predictions.csv          TTA predictions + experimentals (129 test rows)
-#   metrics.json             best val MAE, test MAE/RMSE/R2 (single + TTA)
-#   split.md5                md5 of the frozen split (sanity anchor)
-#   *_ids.json               copies of the frozen split (byte-identical)
+# watch progress any time (Ctrl+C just stops the view, not the training):
+tail -f deep_ensemble_train.log
 
-# one member at a time (e.g. resume/interrupt-friendly):
-# python aqm-spice2/freesolv/deep_ensemble.py --mode train --seed 42 --device cuda
+# one member at a time (e.g. resume/interrupt-friendly, also nohup-able):
+# nohup python aqm-spice2/freesolv/deep_ensemble.py --mode train --seed 42 --device cuda > seed42.log 2>&1 &
 
-# ---------------------------------------------------------------------------
-# 4. SANITY CHECKS + UQ ANALYSIS (needs >= 2 trained members)
-# ---------------------------------------------------------------------------
+# ANALYZE after training finishes (needs >= 2 members; also nohup-able):
 python aqm-spice2/freesolv/deep_ensemble.py --mode analyze
+#   -> 'analyze' prints the same sanity + Spearman + Br/I results to stdout;
+#      for a background copy: nohup ... --mode analyze > analyze.log 2>&1 &
 
-# outputs -> aqm-spice2/freesolv/deep_ensemble/aggregate/
-#   per_molecule.csv          mol_id, pred per seed, ensemble_mean,
-#                             ensemble_std, true_value, abs_error
-#   ensemble_report.txt/json  sanity (split md5 identical, ckpt sha256
-#                             distinct), per-seed vs ensemble MAE/RMSE,
-#                             Spearman(ensemble_std, |error|) + p,
-#                             Pearson + p, Br/I vs non-halogen
-#                             Mann-Whitney U on std and |error|
-#   scatter_uncertainty.png   ensemble_std vs |error| (halogens highlighted)
+# outputs (default: aqm-spice2/freesolv/deep_ensemble/)
+#   per-member (seed_<seed>/) | aggregate/
+#   ensemble_seed<seed>.pt    | per_molecule.csv   mol_id, pred per seed,
+#   predictions.csv           |                     ensemble_mean, ensemble_std,
+#   metrics.json              |                     true_value, abs_error
+#   split.md5, *_ids.json     | ensemble_report.txt/json  sanity (split md5
+#   (per member)              |   identical, ckpt sha256 distinct), per-seed vs
+#                             |   ensemble MAE/RMSE, Spearman(ensemble_std,
+#                             |   |error|)+p, Pearson+p, Br/I vs non-halogen
+#                             |   Mann-Whitney U on std and |error|
+#                             | scatter_uncertainty.png  ensemble_std vs |error|
+#                             |   (halogens highlighted)
 
 # ---------------------------------------------------------------------------
 # EXPECTED NUMBERS (verified fold-0 reference, N=129 test, 5-conf TTA)
