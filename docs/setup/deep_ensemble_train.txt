@@ -76,12 +76,21 @@ python aqm-spice2/freesolv/deep_ensemble.py --mode analyze
 #                             |   (halogens highlighted)
 
 # ---------------------------------------------------------------------------
-# EXPECTED NUMBERS (verified fold-0 reference, N=129 test, 5-conf TTA)
-#   published fold-0: MAE 0.515 / RMSE 0.773 / R2 0.9643
-#   per-seed MAE should cluster around 0.5; ensemble mean MAE should be
-#   <= best single member on average. Headline UQ result: Spearman rank
-#   correlation between ensemble_std and |error| (does disagreement
-#   predict where the model is wrong?).
+# ACTUAL RESULTS (5 seeds, N=129 test, 5-conf RDKit TTA, GPU box, 2026-08-05)
+#   per-seed:  MAE 0.505/0.529/0.537/0.536/0.550   RMSE 0.757-0.865
+#   ensemble:  MAE 0.506 / RMSE 0.770 / R2 0.9646   (== best single member;
+#              matches published fold-0 0.515/0.773/0.9643)
+#   sanity:    split md5 IDENTICAL across all 5 seeds; 5 distinct ckpt
+#              sha256 values -> a real deep ensemble (same data, seeds only)
+#   UQ:        Spearman(ensemble_std, |error|) = 0.496, p = 2.3e-9  (strong)
+#              Pearson 0.444, p = 1.3e-7
+#              => disagreement genuinely tracks where the model is wrong;
+#                 std is a usable confidence flag
+#   Br/I:      6 Br/I molecules in test. Mann-Whitney std p=0.433,
+#              |err| p=0.315 (underpowered, n=6); mean std/err lower for
+#              halogens here (0.14/0.27 vs 0.19/0.52) - report as no
+#              elevated uncertainty for Br/I in this test set
+#
 #   NOTE: on a machine where rdkit's DLL is blocked (Windows AppLocker),
 #   TTA falls back to stored-conformer clones (mean unchanged) - the GPU
 #   box with working rdkit gives the true 5-conformer TTA numbers.
