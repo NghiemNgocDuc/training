@@ -3,91 +3,53 @@
 Everything lives in this folder (`frag20/`) — self-contained, nothing imports
 from the pipeline. Full runs go on a GPU box (Vast) under nohup per AGENTS.md.
 The repo IS on GitHub, so you clone it; the Frag20 dataset and the FreeSolv
-label JSON are NOT in the repo and must be downloaded by the scripts (they
-auto-download if missing — no manual step required).
+label JSON are NOT in the repo and are downloaded by `run_all.sh`/the scripts.
 
 VOCAB DECISION: 17-element AQM vocab already includes B (idx 9) -> B rows are
 KEPT. I (Z=53) has ZERO Frag20 instances (dataset fact), reported, not hidden.
 
----
-
-## 0) Fresh machine: clone the repo (Linux/Vast)
+## QUICKSTART — ONE bash command runs the WHOLE pipeline
 
 ```bash
 git clone https://github.com/NghiemNgocDuc/training.git
-cd training/frag20
+cd training
+nohup bash frag20/run_all.sh > frag20/pipeline.log 2>&1 &
+tail -f frag20/pipeline.log
 ```
 
-If the code is NOT on GitHub for your copy, copy the folder over and jump to
-step 1. Dependencies: `pip install torch torch-geometric h5py numpy rdkit`.
+`run_all.sh` chains every step (0: FreeSolv labels curl if missing;
+1: prepare + dataset download; 2: stage1 vacuum; 3: stage2 correction;
+4: fold-0 fine-tune + TTA). It is resume-safe (skips any step whose output
+already exists), auto-detects CUDA (override: `DEVICE=cpu bash frag20/run_all.sh`),
+and writes individual step logs to `frag20/logs/{prepare,stage1,stage2,finetune}.log`.
 
-## 1) Build the dataset (auto-downloads if missing)
+## What `run_all.sh` does (step-by-step)
 
-Downloads Frag20-Aqsol-100K.tar.bz2 (88.9 MB, MIT, NYU IMA) + split CSVs from
-whoYouWith91. NOTE: pick `--csv_dir`/`--tar_path` INSIDE this folder so the
-downloads are local (defaults are `frag20/data/`).
+0. **FreeSolv labels** — if `Data/FreeSolv/database.json` is missing (NOT in
+   git), curls it from `raw.githubusercontent.com/MobleyLab/FreeSolv/master/database.json`.
+1. **Prepare** — `prepare_frag20_scratch.py --geom qm`; auto-downloads
+   Frag20-Aqsol-100K.tar.bz2 (88.9 MB, MIT, NYU IMA) + split CSVs into
+   `frag20/data/`, then writes `data/frag20_full.hdf5` (atNUM/atXYZ +
+   gas_eV/wat_eV), `data/frag20_full_labels.json`, `data/frag20_filter_report.json`.
+2. **Stage 1 (vacuum)** — `pretrain_stage1_frag20.py --device $DEVICE --output_dir output`
+   -> `output/stage1_scratch.pt` + `output/stage1_scratch_refs.json`.
+3. **Stage 2 (solvation)** — `pretrain_stage2_frag20.py` with frozen vacuum
+   ckpt -> `output/stage2_scratch.pt`.
+4. **Fine-tune** — `finetune_freesolv.py --init_ckpt output/stage2_scratch.pt
+   --output_dir output_finetune --n_conformers 5` -> `output_finetune/metrics.json`
+   + `predictions.csv`.
 
+The FreeSolv conformers (`freesolv_conformers.hdf5`) and the frozen fold-0
+split arrive via git. Dependencies: `pip install torch torch-geometric h5py numpy rdkit`.
+
+## Debug a specific step
+
+Each step is a plain python call; logs land in `frag20/logs/`. To re-run one
+step only (e.g. after a fix), resume from it:
 ```bash
-# full dataset (~100k mols); first run downloads + parses the tar (few min)
-nohup python prepare_frag20_scratch.py --geom qm \
-      > frag00_prepare.log 2>&1 &
-
-tail -f frag00_prepare.log
+bash frag20/run_all.sh stage2      # runs stage2 + finetune only
+tail -f frag20/logs/stage2.log
 ```
-
-Wait until you see `DONE` and:
-- `data/frag20_full.hdf5` (~.hdf5 with atNUM/atXYZ + gas_eV/wat_eV)
-- `data/frag20_full_labels.json`
-- `data/frag20_filter_report.json`
-
-The FreeSolv labels (`Data/FreeSolv/database.json`) and conformers
-(`freesolv_conformers.hdf5`) + the frozen fold-0 split arrive via the repo
-(git). If `database.json` is missing, fetch:
-```bash
-mkdir -p ../../Data/FreeSolv
-curl -L -o ../../Data/FreeSolv/database.json \
-  https://raw.githubusercontent.com/MobleyLab/FreeSolv/master/database.json
-```
-
-## 2) Stage 1 — vacuum (gas energy), from scratch
-
-```bash
-nohup python pretrain_stage1_frag20.py --device cuda \
-      --output_dir stage1_out \
-      > frag01_stage1.log 2>&1 &
-
-tail -f frag01_stage1.log
-```
-
-Wait for `DONE` -> `stage1_out/stage1_scratch.pt` + `stage1_scratch_refs.json`.
-
-## 3) Stage 2 — solvation correction (watEnergy - gasEnergy), frozen vacuum
-
-```bash
-nohup python pretrain_stage2_frag20.py --device cuda \
-      --stage1_ckpt stage1_out/stage1_scratch.pt \
-      --stage1_refs stage1_out/stage1_scratch_refs.json \
-      --output_dir stage2_out \
-      > frag02_stage2.log 2>&1 &
-
-tail -f frag02_stage2.log
-```
-
--> `stage2_out/stage2_scratch.pt`.
-
-## 4) Fine-tune on the frozen FreeSolv fold-0 split + TTA eval
-
-```bash
-nohup python finetune_freesolv.py --device cuda \
-      --init_ckpt stage2_out/stage2_scratch.pt \
-      --output_dir finetune_out \
-      --n_conformers 5 \
-      > frag03_finetune.log 2>&1 &
-
-tail -f frag03_finetune.log
-```
-
--> `finetune_out/metrics.json`, `predictions.csv`.
 
 ## 5) Results vs baselines (fold-0 test, kcal/mol)
 
