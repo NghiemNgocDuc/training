@@ -85,15 +85,8 @@ def train_ensemble_std(train_ids, ensemble_dir, conformers, labels, device,
     return stats
 
 
-def make_weights(train_std, alpha, hard_mask=None):
-    """weight = 1 + alpha*(std/mean_std).  alpha==0 => all-1 (control).
-
-    hard_mask (float 0<f<=1): binary regime - the top `f` fraction of molecules
-    by ensemble_std get weight 1 (learned), the rest weight 0 (gradients
-    frozen).  alpha is ignored in this mode."""
-    if hard_mask is not None and hard_mask > 0:
-        thr = float(np.quantile([s for _, s in train_std.values()], 1.0 - hard_mask))
-        return {mid: 1.0 if s >= thr else 0.0 for mid, (_, s) in train_std.items()}
+def make_weights(train_std, alpha):
+    """weight = 1 + alpha*(std/mean_std).  alpha==0 => all-1 (control)."""
     mean_std = float(np.mean([s for _, s in train_std.values()])) if train_std else 0.0
     if alpha == 0.0 or mean_std == 0.0:
         return {mid: 1.0 for mid in train_std}
@@ -251,14 +244,8 @@ def cli():
     ap.add_argument("--n_conformers", type=int, default=5)
     ap.add_argument("--seeds", type=int, nargs="*", default=[42])
     ap.add_argument("--alphas", type=float, nargs="*", default=[0.0, 0.5, 1.0, 2.0])
-    ap.add_argument("--hard_mask", type=float, default=None,
-                    help="retrain ONLY the top-f fraction of train molecules by "
-                         "ensemble_std (binary weight 1/0, others frozen); alpha ignored")
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
-
-    if args.hard_mask is not None:
-        args.output_dir = os.path.join(args.output_dir, f"hardmask{args.hard_mask}")
 
     os.makedirs(args.output_dir, exist_ok=True)
 
@@ -292,17 +279,13 @@ def cli():
     v = np.array([s for _, s in train_std.values()])
     print(f"     train ensemble_std  mean {v.mean():.4f}  min {v.min():.4f}  max {v.max():.4f}")
 
-    # ---- Steps 2-4: alpha sweep (or hard-mask regime) ----
+    # ---- Steps 2-4: alpha sweep ----
     results = []
     for seed in args.seeds:
         set_seed(seed)
-        for alpha in (args.alphas if args.hard_mask is None else [0.0]):
-            print(f"\n === seed {seed} alpha={alpha} "
-                  f"{'(hard-mask)' if args.hard_mask else ''} ===")
-            weights = make_weights(train_std, alpha, hard_mask=args.hard_mask)
-            n_learned = int(sum(1 for w in weights.values() if w > 0))
-            print(f"    retraining on {n_learned}/{len(weights)} train molecules "
-                  f"({100.0*n_learned/len(weights):.1f}%, others frozen)")
+        for alpha in args.alphas:
+            print(f"\n === seed {seed} alpha={alpha} ===")
+            weights = make_weights(train_std, alpha)
             meta, tta_preds = weighted_train(
                 seed=seed, alpha=alpha, weights=weights,
                 train_ids=train_ids, val_ids=val_ids, test_ids=test_ids,
@@ -319,13 +302,9 @@ def cli():
 
     # ---- report ----
     c0 = next((r for r in results if r.get("alpha") == 0.0), None)
-    if args.hard_mask is not None:
-        control_ok = None
-    else:
-        control_ok = c0 is not None and abs(c0["test_mae_tta_kcal"] - 0.505) < 0.03
+    control_ok = c0 is not None and abs(c0["test_mae_tta_kcal"] - 0.505) < 0.03
     report = {"method": "approach1_weighted",
-              "hard_mask": args.hard_mask,
-              "control_repro_matches_baseline": control_ok,
+              "control_repro_matches_baseline": bool(control_ok),
               "runs": results}
     with open(os.path.join(args.output_dir, "report.json"), "w") as fv:
         json.dump(report, fv, indent=2)
@@ -340,7 +319,7 @@ def cli():
     if c0 is not None:
         print(f"\n  control alpha=0.0 MAE_tta = {c0['test_mae_tta_kcal']:.4f} "
               f"(published baseline 0.5048) -> "
-              f"{'reproduced' if control_ok else ('MISMATCH!' if not args.hard_mask else 'n/a (hard-mask)')}")
+              f"{'reproduced' if control_ok else 'MISMATCH!'}")
     print(f"\n  report -> {os.path.join(args.output_dir, 'report.json')}")
 
 
