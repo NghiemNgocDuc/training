@@ -1,0 +1,35 @@
+DEEP ENSEMBLE UNCERTAINTY REPORT
+============================================================
+seeds: [42, 123, 7, 2024, 999]
+sanity: split_identical=True, checkpoints_distinct=True
+
+individual test (kcal/mol):
+  seed     MAE        RMSE      
+  42       0.505      0.757     
+  123      0.529      0.773     
+  7        0.537      0.818     
+  2024     0.536      0.803     
+  999      0.550      0.865     
+  ensemble mean MAE 0.506 RMSE 0.770 R2 0.9646
+
+Spearman(std, |error|): rho=0.4960 p=2.2704e-09 N=129
+Pearson (std, |error|):  r=0.4443 p=1.3295e-07 N=129
+
+halogen Br/I: n=6  non: n=123
+  mean std: halogen 0.1416 | non 0.1902
+  median std: halogen 0.0921 | non 0.1497
+  mean |err|: halogen 0.2695 | non 0.5174
+  Mann-Whitney std: U=297.0 p=0.4334
+  Mann-Whitney |err|: U=277.0 p=0.3145
+
+VERDICT
+  Spearman(ensemble_std, |error|) = 0.496 (p=0.000).
+  Statistically meaningful: molecules the 5 models disagree on are
+  disproportionately wrong. A user told to trust/disregard predictions
+  by std would beat chance.
+
+  Halogen vs non-halogen disagreement does not differ significantly
+  (p=0.433) - no clean confirmation either way; if halogen errors are
+  also not elevated here, this check is simply underpowered or moot.
+
+artifacts: {'per_molecule_csv': '/workspace/training/aqm-spice2/freesolv/deep_ensemble/aggregate/per_molecule.csv', 'scatter_png': '/workspace/training/aqm-spice2/freesolv/deep_ensemble/aggregate/scatter_uncertainty.png'}

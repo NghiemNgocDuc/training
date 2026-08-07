@@ -1,0 +1,51 @@
+{
+  "kind": "5-seed ensemble average, fold 0 frozen test set",
+  "not_to_be_confused_with": "0.549 headline = average across 5 DIFFERENT CV FOLDS (not 5 seeds on one fold)",
+  "seeds": [
+    42,
+    123,
+    7,
+    2024,
+    999
+  ],
+  "n_test": 129,
+  "n_conformers_tta": 5,
+  "split_dir": "C:\\Users\\User\\Documents\\Data\\aqm-spice2\\aqm-spice2\\freesolv\\cv_results_full\\fold_0",
+  "individual_seed_mae_rmse_r2_kcal": {
+    "42": {
+      "mae": 0.5047679302325581,
+      "rmse": 0.7567626764677777,
+      "r2": 0.9657690359150917
+    },
+    "123": {
+      "mae": 0.5287199689922479,
+      "rmse": 0.7734221772386698,
+      "r2": 0.9642453143870254
+    },
+    "7": {
+      "mae": 0.5370327674418605,
+      "rmse": 0.8182912987577866,
+      "r2": 0.9599764517372371
+    },
+    "2024": {
+      "mae": 0.5360328062015505,
+      "rmse": 0.8025259461527341,
+      "r2": 0.961503797833076
+    },
+    "999": {
+      "mae": 0.5495637751937984,
+      "rmse": 0.8654068698462639,
+      "r2": 0.9552348134518044
+    }
+  },
+  "best_individual_seed": 42,
+  "best_individual_mae_kcal": 0.5047679302325581,
+  "ensemble_average_mae_kcal": 0.5058912945736433,
+  "ensemble_average_rmse_kcal": 0.7696002883687619,
+  "ensemble_average_r2": 0.9645978070046223,
+  "ensemble_beats_best_individual": false,
+  "ensemble_vs_best_individual_delta_mae_kcal": 0.0011233643410852867,
+  "fresh_inference_run": true,
+  "fresh_inference_note": "local RDKit AppLocker-blocked; fresh pass is single-conformer and matched metrics.json single-conf MAE exactly for all 5 seeds, verifying checkpoint integrity; ensemble uses the saved 5-conformer TTA predictions",
+  "per_molecule_csv": "C:\\Users\\User\\Documents\\Data\\aqm-spice2\\freesolv\\deep_ensemble\\aggregate\\ensemble_average_predictions.csv"
+}

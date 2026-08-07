@@ -1,0 +1,70 @@
+{
+  "seeds": [
+    42,
+    123,
+    7,
+    2024,
+    999
+  ],
+  "sanity": {
+    "split_identical": true,
+    "split_copies_identical": true,
+    "checkpoints_distinct": true
+  },
+  "individual_test": {
+    "42": {
+      "mae_kcal": 0.5047679302325581,
+      "rmse_kcal": 0.7567626764677777
+    },
+    "123": {
+      "mae_kcal": 0.5287199689922479,
+      "rmse_kcal": 0.7734221772386698
+    },
+    "7": {
+      "mae_kcal": 0.5370327674418605,
+      "rmse_kcal": 0.8182912987577866
+    },
+    "2024": {
+      "mae_kcal": 0.5360328062015505,
+      "rmse_kcal": 0.8025259461527341
+    },
+    "999": {
+      "mae_kcal": 0.5495637751937984,
+      "rmse_kcal": 0.8654068698462639
+    }
+  },
+  "ensemble_mean": {
+    "mae_kcal": 0.5058912945736433,
+    "rmse_kcal": 0.7696002883687619,
+    "r2": 0.9645978070046223
+  },
+  "spearman_std_vs_abs_error": {
+    "rho": 0.49600849731663693,
+    "p": 2.2704201573983507e-09,
+    "N": 129
+  },
+  "pearson_std_vs_abs_error": {
+    "r": 0.4443209943774723,
+    "p": 1.3295245351342922e-07,
+    "N": 129
+  },
+  "halogen": {
+    "halogen_count": 6,
+    "non_halogen_count": 123,
+    "mean_std_halogen": 0.1416173625040709,
+    "mean_std_non_halogen": 0.19022994935371823,
+    "median_std_halogen": 0.09206340866583594,
+    "median_std_non_halogen": 0.14973233076961034,
+    "mean_abs_error_halogen": 0.26945379999999997,
+    "mean_abs_error_non_halogen": 0.5174248308943089,
+    "mannwhitney_std_U": 297.0,
+    "mannwhitney_std_p": 0.4334337753448485,
+    "mannwhitney_abs_error_U": 277.0,
+    "mannwhitney_abs_error_p": 0.3145037760424358
+  },
+  "artifacts": {
+    "per_molecule_csv": "/workspace/training/aqm-spice2/freesolv/deep_ensemble/aggregate/per_molecule.csv",
+    "scatter_png": "/workspace/training/aqm-spice2/freesolv/deep_ensemble/aggregate/scatter_uncertainty.png"
+  },
+  "verdict": "  Spearman(ensemble_std, |error|) = 0.496 (p=0.000).\n  Statistically meaningful: molecules the 5 models disagree on are\n  disproportionately wrong. A user told to trust/disregard predictions\n  by std would beat chance.\n\n  Halogen vs non-halogen disagreement does not differ significantly\n  (p=0.433) - no clean confirmation either way; if halogen errors are\n  also not elevated here, this check is simply underpowered or moot."
+}

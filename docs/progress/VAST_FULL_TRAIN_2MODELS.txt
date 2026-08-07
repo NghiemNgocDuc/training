@@ -1,7 +1,7 @@
-==============================================================================
-  FULL TRAINING — TWO ARCHITECTURES ON TWO VAST.AI INSTANCES (detached)
+﻿==============================================================================
+  FULL TRAINING â€” TWO ARCHITECTURES ON TWO VAST.AI INSTANCES (detached)
   MACE-OFF23-medium (FROM SCRATCH, random init)  |  DimeNet+ (Option B pipeline)
-  Updated: 2026-08-03 (both runs COMPLETE — results below)
+  Updated: 2026-08-03 (both runs COMPLETE â€” results below)
 ==============================================================================
 
 ==============================================================================
@@ -79,7 +79,7 @@ PREREQUISITE
   the Jupyter Terminal (or use a cell with leading !).
 
 ==============================================================================
-  PART 0 — SETUP (run on BOTH instances)
+  PART 0 â€” SETUP (run on BOTH instances)
 ==============================================================================
 
   # 1. GPU check (must show your GPU + CUDA)
@@ -111,7 +111,7 @@ PREREQUISITE
   python aqm-spice2/pipeline/train_stage1_vacuum.py --hdf5 AQM-gas-full.hdf5 --k_folds 1 --max_structures 4000 --epochs 30 --output_dir aqm-spice2/pipeline/results_full
 
 ==============================================================================
-  INSTANCE 1 — MACE (FROM SCRATCH, random init) + FreeSolv fine-tune
+  INSTANCE 1 â€” MACE (FROM SCRATCH, random init) + FreeSolv fine-tune
 ==============================================================================
 
   # ONE command. The script itself: pulls latest code, installs all deps
@@ -138,7 +138,7 @@ PREREQUISITE
   #              fold_metadata.json, test_preds.npz) + comparison table in log
 
 ==============================================================================
-  INSTANCE 2 — DimeNet+ (full Option-B pipeline) + FreeSolv fine-tune
+  INSTANCE 2 â€” DimeNet+ (full Option-B pipeline) + FreeSolv fine-tune
 ==============================================================================
 
   # ONE command. The script itself: pulls latest code, installs all deps
@@ -187,7 +187,7 @@ PREREQUISITE
 
 
 Done. New additive script aqm-spice2/freesolv/ensemble_average.py (imports helpers from deep_ensemble.py, modifies nothing).
-Result — 5-seed ensemble average, fold 0 frozen test set (n=129, 5-conformer TTA)
+Result â€” 5-seed ensemble average, fold 0 frozen test set (n=129, 5-conformer TTA)
  	MAE
 seed 42	0.5048
 seed 123	0.5287
@@ -195,9 +195,9 @@ seed 7	0.5370
 seed 2024	0.5360
 seed 999	0.5496
 ENSEMBLE AVG	0.5059
-Ensemble does NOT beat the best individual seed (0.5059 vs 0.5048) — averaging slightly hurts vs seed 42 (reduces variance, but seed 42 was already best; the ensemble's RMSE/R² are also mid-pack). This is the honest empirical answer, not the assumed win.
-Labeling per your instruction: this 0.5059 is the mean over 5 seeds on one fixed fold — it is NOT the 0.549 headline, which averaged 5 different CV folds. Every printed line and the JSON state this.
-Verification note: RDKit's C DLL is AppLocker-blocked locally, so fresh checkpoint inference ran single-conformer — it reproduced each seed's training-time test_mae_single_conf_kcal exactly (0.5313/0.5456/0.5656/0.5272/0.5861), proving checkpoint integrity. The ensemble mean itself uses the saved predictions.csv per-seed values, which are the true 5-conformer TTA predictions from the training runs (verified identical order/split).
+Ensemble does NOT beat the best individual seed (0.5059 vs 0.5048) â€” averaging slightly hurts vs seed 42 (reduces variance, but seed 42 was already best; the ensemble's RMSE/RÂ² are also mid-pack). This is the honest empirical answer, not the assumed win.
+Labeling per your instruction: this 0.5059 is the mean over 5 seeds on one fixed fold â€” it is NOT the 0.549 headline, which averaged 5 different CV folds. Every printed line and the JSON state this.
+Verification note: RDKit's C DLL is AppLocker-blocked locally, so fresh checkpoint inference ran single-conformer â€” it reproduced each seed's training-time test_mae_single_conf_kcal exactly (0.5313/0.5456/0.5656/0.5272/0.5861), proving checkpoint integrity. The ensemble mean itself uses the saved predictions.csv per-seed values, which are the true 5-conformer TTA predictions from the training runs (verified identical order/split).
 Artifacts: deep_ensemble/aggregate/ensemble_average_predictions.csv (130 lines, same style as per_molecule.csv) and ensemble_average_report.json.
 
 
@@ -246,3 +246,55 @@ Artifacts: deep_ensemble/aggregate/ensemble_average_predictions.csv (130 lines, 
   Outputs (written to experimental_frag20/output/): metrics.json,
   predictions.csv, report.json/report.txt with Br/P-subgroup vs rest
   breakdown and an automatic HURT/HELPED verdict vs the 0.5048 baseline.
+
+=====================================================================
+  ONE-SHOT SCRIPT — RETRAIN WITH EXISTING CHECKPOINTS (2026-08-07)
+=====================================================================
+
+  The whole uncertainty experiment is now ONE script:
+      run_uncertainty_full.sh        (repo root)
+
+  What it does, IN ORDER:
+    1. pip installs EVERYTHING needed (torch cu128, torch_geometric,
+       scikit-learn, h5py, numpy, scipy, rdkit) - starts from scratch,
+       nothing assumed pre-installed.
+    2. Clones the repo if not present, else pulls latest.
+    3. Checks every dataset/checkpoint exists == LOADS them, does NOT
+       re-train. Auto-fetches what can be fetched (FreeSolv labels via
+       the MobleyLab raw JSON or the committed copy); the 5 ensemble
+       checkpoints + per_molecule.csv have NO public URL -> aborts with
+       a clear scp hint so nothing is silently re-trained.
+    4. Runs Approach 0 (iteration-variance, loads seed-42 member +
+       wrapped adapter) then Approach 1 (uncertainty-weighted re-train,
+       5 seeds x alpha 0.0/0.5/1.0/2.0). Both on CUDA; progress bars
+       stream to logs.
+    5. Self-detaches via nohup -> safe to close the laptop.
+
+  USAGE (Vast Jupyter terminal, repo root):
+    bash run_uncertainty_full.sh            # full run
+    bash run_uncertainty_full.sh quick      # ~5-min smoke slices
+
+  REQUIRED ON THE BOX BEFORE RUN (all already-trained, do NOT re-train):
+    - 5 ensemble ckpts:  aqm-freesolv/deep_ensemble/seed_{42,123,7,2024,999}/ensemble_seed*.pt
+    - stage2 init ckpt:  aqm-spice2-freesolv/pipeline/results_full/stage2_correction.pt
+    - frozen fold-0      aqm-spice2-freesolv/cv_results_full/fold_0/*_ids.json
+    - per-molecule.csv   aqm-spice2-freesolv/deep_ensemble/aggregate/per_molecule.csv
+    - conformers         freesolv_conformers.hdf5 (repo root)
+    - FreeSolv database  Data/FreeSolv/database.json  (auto-wget if missing)
+
+  The script checks every artifact; if any is missing it prints exactly
+  which one and how to bring it up (scp for checkpoints), and refuses to
+  run. It never retrains stage 1/2 or the 5 ensemble members.
+
+=====================================================================
+  WAS TESTED / OWNED
+
+  - Approach 0/1 scripts: smoke-tested on local CPU (8/10 molecules,
+    6 epochs), compile-clean, checkpoint load paths verified.
+- run_uncertainty_full.sh mirrors run_dimenet_full.sh launcher
+  style (self-detach, stage logs approach0.log/approach1.log, fail-fast).
+  - Full GPU expected: alpha=0.0 control reproduces seed-42 baseline
+    (~0.5048 TTA / 0.5313 single-conf); report.json per output dir.
+  - Rollback: nothing new trained; only this sh + docs added.
+=====================================================================
+

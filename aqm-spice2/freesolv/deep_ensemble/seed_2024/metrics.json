@@ -1,0 +1,27 @@
+{
+  "seed": 2024,
+  "n_train": 411,
+  "n_val": 102,
+  "n_test": 129,
+  "split_md5": "c0ef2933417413f7d9837987421e7ceb",
+  "split_source": "/workspace/training/aqm-spice2/aqm-spice2/freesolv/cv_results_full/fold_0",
+  "correction_ckpt": "/workspace/training/aqm-spice2/aqm-spice2/pipeline/results_full/stage2_correction.pt",
+  "hyperparams": {
+    "lr": 0.0001,
+    "weight_decay": 1e-05,
+    "batch_size": 8,
+    "epochs": 200,
+    "patience": 30,
+    "device": "cuda"
+  },
+  "best_val_mae_kcal": 0.464543879032135,
+  "best_val_epoch": 23,
+  "early_stop_epoch": 53,
+  "total_min": 7.2,
+  "test_mae_single_conf_kcal": 0.5272333025932312,
+  "test_rmse_single_conf_kcal": 0.802665114402771,
+  "test_mae_tta_kcal": 0.5360328135786588,
+  "test_rmse_tta_kcal": 0.8025259598171848,
+  "n_conformers_tta": 5,
+  "checkpoint_sha256": "25ad28c861df9cc978fa972d4fee7a1a3a6c567fb099887836b42d442d8dca83"
+}
