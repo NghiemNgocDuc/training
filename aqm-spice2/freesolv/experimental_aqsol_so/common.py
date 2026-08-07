@@ -228,7 +228,13 @@ def conformer_average(model, device, test_ids, all_labels, conformers, n_conform
     flat_data, flat_mid = [], []
     hdf5_cache = {}
     import h5py
-    for mid in test_ids:
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        tqdm = lambda it, *a, **kw: it
+    for mid in tqdm(test_ids,
+                    desc=f"TTA conformers ({n_conformers}x{len(test_ids)})",
+                    unit="mol", mininterval=1.0):
         confs = _gen_confs(all_labels[mid]["smiles"], n_conformers)
         if confs is None:
             if mid not in hdf5_cache:

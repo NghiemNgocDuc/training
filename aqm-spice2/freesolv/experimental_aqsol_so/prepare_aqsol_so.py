@@ -52,6 +52,12 @@ from collections import Counter
 import h5py
 import numpy as np
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(it, *a, **kw):
+        return it
+
 # ---------------------------------------------------------------------------
 # paths
 # ---------------------------------------------------------------------------
@@ -334,7 +340,7 @@ def main():
     dropped_no_so = 0
     candidates = []
     subtype_hist = Counter()
-    for r in rows:
+    for r in tqdm(rows, desc="SMILES filter (100k rows)", unit="row", mininterval=2.0):
         smi = r["QM_SMILES"]
         zc, _ = smiles_elements(smi)
         zs = set(zc.keys())
@@ -375,7 +381,16 @@ def main():
     os.makedirs(os.path.dirname(args.out_h5), exist_ok=True)
     with h5py.File(args.out_h5, "w") as h5, \
             tarfile.open(tar_path, "r:bz2") as tf:
-        for member in tf:
+        it = tf
+        bar = None
+        if "tqdm" in globals() and tf.__class__.__name__ == "TarFile":
+            bar = tqdm(tf, desc="tar scan (~400k members)", unit="mem",
+                       mininterval=1.0)
+            it = bar
+        for member in it:
+            if bar is not None:
+                bar.set_postfix(extracted=n_extracted, wanted=len(wanted),
+                                refresh=False)
             if member.name not in wanted:
                 continue
             mid, r, st = wanted[member.name]

@@ -46,6 +46,12 @@ sys.stdout.reconfigure(line_buffering=True)
 
 import numpy as np
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(it, *a, **kw):
+        return it
+
 from common import (EV_TO_KCAL, DEFAULT_SEED, DEFAULT_SPLIT_DIR,
                     DEFAULT_CORRECTION_CKPT, DEFAULT_FREESOLV_CONFORMERS,
                     DEFAULT_FREESOLV_LABELS, S_Z,
@@ -197,7 +203,9 @@ def train(split_dir, freesolv_h5, freesolv_labels_json, aqsol_h5,
     for epoch in range(1, epochs + 1):
         t0 = time.time()
         model.train()
-        for data in train_loader:
+        train_bar = tqdm(train_loader, desc=f"    seed {seed} ep {epoch}/{epochs}",
+                         unit="batch", mininterval=1.0, leave=False)
+        for data in train_bar:
             data = data.to(device)
             x = build_one_hot(data, device)
             pred = model(x, data.pos, data.batch).view(-1)
@@ -210,6 +218,8 @@ def train(split_dir, freesolv_h5, freesolv_labels_json, aqsol_h5,
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
             optimizer.step()
+            train_bar.set_postfix(loss=round(float(loss.detach().cpu()), 4),
+                                  refresh=False)
 
         val_mae, val_rmse, _, _ = evaluate_loader(val_loader)
         scheduler.step(val_mae)
