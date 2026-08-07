@@ -36,6 +36,18 @@ python flexisol_sandbox/build_hdf5.py --repo data/flexisol_repo --out flexisol_s
 python flexisol_sandbox/inspect_data.py --out flexisol_sandbox/out
 ```
 
+## Vast (GPU): train + coverage in one shot
+
+```bash
+cd flexisol_sandbox
+nohup bash run_vast.sh > all.log 2>&1 &
+tail -f all.log
+```
+
+`run_vast.sh` trains the 5-seed ensemble (`--device cuda`, `--out out/ensemble_full`,
+skips if the aggregate already exists) then runs the Approach-3 coverage
+diagnostic. ~30 min – 1.5 h total on a mid-tier GPU.
+
 Observed build (2026-08-07): 297 molecules, expt [-23.63, +4.86] kcal/mol,
 11 distinct elements all inside the 17-element vocab, no geometry skips,
 train/val/test = 239/29/29.
