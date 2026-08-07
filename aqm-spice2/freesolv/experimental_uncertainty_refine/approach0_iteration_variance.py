@@ -231,7 +231,7 @@ def main():
 
     # published anchor: seed-42 single-conf test MAE from the verified run
     t0 = torch.cat([forward_pass(model, d.to(device), device, None)
-                    for d in test_loader]).numpy()
+                    for d in test_loader]).cpu().numpy()
     expts = np.array([per_mol[m]["exp"] for m in test_ids if m in per_mol])
     t0_full = np.array([t0[i] for i, m in enumerate(test_ids) if m in per_mol])
     mae0 = float(np.mean(np.abs(t0_full - expts)))
