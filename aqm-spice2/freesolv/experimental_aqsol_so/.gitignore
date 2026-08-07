@@ -1,0 +1,5 @@
+# Heavy / regenerable artifacts - never commit
+data/
+output/
+__pycache__/
+*.pyc

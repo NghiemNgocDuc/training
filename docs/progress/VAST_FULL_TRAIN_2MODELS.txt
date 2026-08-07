@@ -298,3 +298,179 @@ Artifacts: deep_ensemble/aggregate/ensemble_average_predictions.csv (130 lines, 
   - Rollback: nothing new trained; only this sh + docs added.
 =====================================================================
 
+tail -f launcher_uncertainty.log
+tail -f approach0.log
+tail -f approach1.log
+
+cd /workspace/training && git pull && nohup python aqm-spice2/freesolv/experimental_uncertainty_refine/approach1_weighted_retrain.py --hard_mask 0.2 --epochs 200 --device cuda > hardmask.log 2>&1 &
+
+=====================================================================
+  FRIDAY 7 AUGUST — OUTLIER AUDIT + SULFUR TAIL + AQSOL COVERAGE
+=====================================================================
+  MOTIVATION: the pipeline's worst-case outlier was quoted as 6.75
+  kcal/mol (>12x the 0.549 mean MAE). Before building anything new
+  on top of the pipeline, we audited what that molecule actually is.
+  Verdict: it is REAL chemistry (sulfur-oxygen), not a bug.
+
+  ------------------------------------------------------------------
+  1. THE OUTLIER: mobley_8578590 = DMSO (methylsulfinylmethane)
+  ------------------------------------------------------------------
+    - SMILES CS(=O)C, a tiny 4-heavy-atom SULFOXIDE.
+    - exp -9.28 kcal/mol vs pred -2.53 (model under-solvates ~3.7x).
+    - Lives in fold-2's test set -> NEVER in the fold-0 deep-ensemble
+      table, which is why the 6.75 was invisible in the ensemble
+      results (per_molecule.csv, ensemble_average_predictions.csv).
+    - NOT a halogen, NOT a zwitterion, no conformer ensemble to
+      smooth (near-rigid small molecule). Groups: ['sulfoxide'].
+
+  ------------------------------------------------------------------
+  2. SULFUR-OXYGEN IS THE REAL TAIL (5-fold test union, n=642)
+  ------------------------------------------------------------------
+      group                 n    MAE    RMSE   MAX
+      S-containing          38   1.256  1.908  6.75
+      non-S                604   0.504  0.820  5.35
+      sulfoxide/sulfone/
+      thio groups           30   1.251    --   6.75
+    => S-containing molecules are 2.5x worse than the rest.
+    => The earlier "halogen subgroup" hypothesis is WRONG for this
+       outlier: fold-0 halogen rows were all <= 0.61 (worst
+       mobley_7732703 0.609). The tail is S=O chemistry, not Br/I.
+
+    TOP-15 molecules by worst-fold |err| (fold-union):
+      mobley_8578590  6.75  methylsulfinylmethane      (sulfoxide)
+      mobley_4371692  5.35  1-amino-4-hydroxyanthraqu  (ketone, phenol, prim. amine)
+      mobley_2523689  5.01  pyrazon                    (aryl chloride, prim. amine)
+      mobley_2518989  4.85  dialifor                   (thiophosphate ester)
+      mobley_1708457  4.38  methylsulfonylmethane      (sulfone)
+      mobley_1723043  4.26  octafluorocyclobutane      (alkyl fluoride)
+      mobley_6334915  3.99  trichlorfon                (phosphonate + halogen)
+      mobley_1929982  3.79  hydrogen sulfide
+      mobley_8207196  3.49  simazine                   (aryl chloride)
+      mobley_4587267  3.44  mannitol                   (polyol)
+      mobley_3201701  3.42  pirimor                    (urethane)
+      mobley_4936555  2.97  mefenamic acid             (carbox. acid, diarylamine)
+      mobley_194273   2.93  bromacil                   (aryl bromide)
+      mobley_2913224  2.85  acetylsalicylic acid
+      mobley_3323117  2.63  sulfolane                  (sulfone)
+    Tail >2.0 kcal/mol by functional group: aromatic 15, heterocyclic
+    13, aryl chloride 4, primary amine 2, oxo(het)arene 3, alkyl
+    chloride 3, secondary amine 3, carboxylic acid 3, ketone 2,
+    sulfoxide 1. Tail is sulfur-heavy but not exclusively S.
+
+  ------------------------------------------------------------------
+  3. AQSOL-100K S=O COVERAGE (100K = train 80K + valid 10K + test 10K)
+  ------------------------------------------------------------------
+      counted from the split CSVs (aqm-spice2/freesolv/
+      experimental_frag20/data/split/frag20_{train,valid,test}.csv):
+        any S                       25,552
+        any S(=O) group              3,992   (>=1,264 sulfoxide +
+                                              >=2,728 sulfone; string
+                                              count is a lower bound)
+        sulfonamide                    844
+        sulfate ester OS(=O)(=O)       256
+        thioether C-S-C              6,681
+        disulfide S-S                  898
+      => The S=O chemistry missing from the fine-tune tail is
+         ABUNDANT here (~4,000 sulfoxides/sulfones, ~1,000x the
+         S=O population the 5-fold test pool even sees).
+    - CAVEAT: the existing experimental_frag20 supplement pulled
+      ONLY Br/P rows (frag20_brp.hdf5: Br-only 3,877, P-only 5,225,
+      both 158, B dropped 786). S(=O) rows were never included -
+      the wrong subset for this tail.
+
+  ------------------------------------------------------------------
+  4. LEVEL-OF-THEORY CHECK: SMD/B3LYP vs EXPERIMENT (proper match)
+  ------------------------------------------------------------------
+    - PITFALL FOUND: joining Frag20 by PubChem ID is BROKEN - Frag20's
+      ID column is the PARENT molecule's CID (Frag20 = fragments), so
+      naive joins compare different molecules (garbage MAE 6.5 with
+      diff +/-24). Always match by canonical SMILES.
+    - Proper join (RDKit MolToSmiles, isomericSmiles=False):
+      FreeSolv mols matched in Aqsol train+valid: 74 / 639.
+        ALL matched  n=74  MAE=1.146  bias=-0.863  RMSE=1.450  max|d|=3.78
+        non-S       n=73  MAE=1.147  bias=-0.860  RMSE=1.455  max|d|=3.78
+        S=O/thio     n=1  MAE=1.101  bias=-1.101  RMSE=1.101  max|d|=1.10
+          (only 1 S=O overlap: methylsulfanylethane diff +1.10)
+      => SMD/B3LYP is a SOLID ~1.1-1.5 kcal/mol surrogate, with a
+         systematic -0.86 kcal/mol bias (SMD over-solvates).
+    - NONE of the S-tail molecules are in Aqsol train+valid (DMSO,
+      DMSO2, sulfolane, H2S, dialifor, ethion, propanethiol all
+      absent) -> any S(=O) supplement is BLIND-STRUCTURE: it teaches
+      S=O chemistry on molecules we will never see at test time.
+
+  ------------------------------------------------------------------
+  5. BOTTOM LINE / DECISION INPUT
+  ------------------------------------------------------------------
+    - Item #2 (Frag20/Aqsol supplement) has a STRONGER rationale than
+      "halogen gap": the real tail is S=O chemistry and Aqsol is the
+      direct fix (~4,000 S(=O) molecules).
+    - The SMD -0.86 bias is ALIGNED with fixing the tail: the model
+      under-solvates DMSO by 6.75 (pred -2.53 vs exp -9.28); SMD
+      values land near experiment, so mixing pulls errors toward the
+      ~1.2 kcal/mol SMD-vs-exp floor - a ~5x tail improvement.
+    - HOW TO USE (if pursued): MIX, not replace. Add Aqsol S=O rows
+      to TRAINING ONLY (val/test stay pure FreeSolv), keep FreeSolv
+      experimental molecules in-batch as calibration anchors so the
+      model does not drift to SMD's systematic bias.
+    - Level-of-theory mismatch remains documented (role 2 only, per
+      DATASET_AUDIT_SOLVTUM_FRAG20.md).
+    - Iodine still at zero coverage everywhere (AQM 0, Frag20 0).
+      Public datasets cannot close the I gap; a ~30-60 molecule
+      PBE0+MBD reference computation is the only sound path.
+
+=====================================================================
+  AQSOL S(=O) SUPPLEMENT SANDBOX - THE FIX FOR THE SULFUR TAIL (2026-08-07)
+=====================================================================
+  Status: CODE READY + SMOKE-TESTED LOCALLY (prepare filter: 3,980 S=O
+  molecules; finetune full loop + metrics/report written correctly).
+  Full 200-epoch run NOT run yet - user runs it on the GPU box.
+
+  New self-contained sandbox: aqm-spice2/freesolv/experimental_aqsol_so/
+  (sibling of experimental_frag20/, nothing else touched; rollback =
+  delete this folder). Implements the audit's BOTTOM LINE: add Aqsol-100K
+  S(=O) molecules to TRAINING ONLY, MIXED in the same batches with the
+  FreeSolv experimental anchors so the model stays calibrated to
+  experiment instead of drifting to SMD's -0.86 kcal/mol bias.
+
+  Design:
+    - Same frozen fold-0 split (411/102/129, md5 c0ef29334174...);
+      val/test stay PURE FreeSolv.
+    - Supplement = Frag20-Aqsol-100K rows whose SMILES contains S(=O):
+      sulfoxides/sulfones/sulfonamides/sulfonic+sulfate esters = 3,980
+      mols (subtypes: sulfone 1,579, sulfoxide 1,110, sulfonamide_sulfone
+      973, sulfonic_ester 171, sulfate_ester 84, sulfonamide 63).
+      Boron rows dropped (786); 0 out-of-vocab (verified).
+    - Geometry: QM-optimized B3LYP/6-31G* xyz from the Frag20 tar (same
+      conformer-sourcing mismatch vs FreeSolv as in experimental_frag20).
+    - DEVIATION FLAG: supplement targets are SMD/B3LYP CALCULATED
+      CalcSol (kcal/mol), NOT experimental (MAE ~1.15, bias -0.86 vs
+      FreeSolv experiment on the overlap - documented level-of-theory).
+    - Same Stage-2 init ckpt, same hyperparams (lr 1e-4, bs 8, epochs
+      200, patience 30, MSE in eV, grad clip 10, ReduceLROnPlateau,
+      5-conf TTA), seed 42.
+
+  RUN ON GPU BOX (Vast instance, has full deps + Frag20 tar/CSVs):
+    # 1. prepare once (reuses the sibling experimental_frag20 tar/CSVs,
+    #    builds data/aqsol_so.hdf5 + labels; ~4k geo extractions):
+    python aqm-spice2/freesolv/experimental_aqsol_so/prepare_aqsol_so.py
+    # 2. full run, DETACHED (safe to close laptop):
+    cd /workspace/training && git pull && nohup python aqm-spice2/freesolv/experimental_aqsol_so/finetune_aqsol_so.py --mode train --device cuda > aqsol_so.log 2>&1 &
+    # 3. monitor:
+    tail -f aqsol_so.log
+    # 4. re-report from saved best ckpt without retraining:
+    python aqm-spice2/freesolv/experimental_aqsol_so/finetune_aqsol_so.py --mode eval --device cuda
+    # rollback: rm -rf experimental_aqsol_so
+
+  Outputs (experimental_aqsol_so/output/): metrics.json, predictions.csv
+  (with has_sulfur column), report.json/report.txt - overall + sulfur-vs-
+  rest subgroup vs the verified seed-42 TTA baseline (0.5048).
+  report.txt prints overall MAE/RMSE/R2 vs the baseline + auto verdict.
+
+  HONEST EXPECTATION (from the audit gain calc): overall fold-0 MAE moves
+  only ~0.01-0.04 kcal/mol (S mols are 6/129 in the fold-0 test); the
+  real win is on the SULFUR SUBGROUP (the fold-2 DMSO-class 6.75 errors)
+  and on tail robustness / RMSE.
+
+
+
+      
