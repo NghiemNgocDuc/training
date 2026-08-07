@@ -257,6 +257,9 @@ def cli():
     ap.add_argument("--smoke", action="store_true")
     args = ap.parse_args()
 
+    if args.hard_mask is not None:
+        args.output_dir = os.path.join(args.output_dir, f"hardmask{args.hard_mask}")
+
     os.makedirs(args.output_dir, exist_ok=True)
 
     labels_all = load_freesolv_labels(args.labels_json)
