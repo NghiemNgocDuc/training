@@ -18,11 +18,9 @@ import numpy as np
 EV_TO_KCAL = 23.0605
 DEFAULT_SEED = 42
 
-# Frozen fold-0 FreeSolv split from the VERIFIED full run. This sandbox lives
-# at .../aqm-spice2/freesolv/experimental_frag20_scratch/common_scratch.py so
-# 4x dirname lands on the repo root (.../Data).
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+# Frozen fold-0 FreeSolv split from the VERIFIED full run. This code lives at
+# <repo-root>/frag20/common_scratch.py so 2x dirname lands on the repo root.
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_SPLIT_DIR = os.path.join(
     REPO_ROOT, "aqm-spice2", "aqm-spice2", "freesolv", "cv_results_full", "fold_0")
 

@@ -6,8 +6,8 @@ vacuum + stage 2 correction, mirroring the verified AQM pipeline) entirely on
 Frag20-Aqsol-100K, then fine-tune on the frozen FreeSolv fold-0 split and compare
 against the from-scratch AQM init under identical conditions.
 
-Folder: `aqm-spice2/freesolv/experimental_frag20_scratch/` (self-contained;
-delete for rollback; no imports from pipeline files).
+Folder: `frag20/` at the repo root (self-contained; delete for rollback; no
+imports from pipeline files). Run pipeline + nohup commands: `frag20/RUN_PIPELINE.md`.
 
 ## Vocabulary decision (explicit)
 The 17-element AQM vocab (element_vocab.py) ALREADY includes B
@@ -76,10 +76,11 @@ first for the direct baseline comparison.
 - single seed 42 first; 5-seed ensemble later if the single-seed signal is
   in the right direction vs AQM-from-scratch.
 
-## Files
+## Files (all inside repo-root `frag20/`)
 - prepare_frag20_scratch.py (builds data/frag20_full.hdf5 + labels + report)
 - pretrain_stage1_frag20.py (stage 1 vacuum, gas energy)
 - pretrain_stage2_frag20.py (stage 2 correction, dG = wat-gas)
 - finetune_freesolv.py (fold-0 fine-tune + single/TTA eval)
 - common_scratch.py (self-contained copies of pipeline helpers, adapted)
 - element_vocab.py / energy_reference.py / DimeModels.py (verbatim copies)
+- RUN_PIPELINE.md (full nohup run pipeline: clone -> download -> stage1/2 -> finetune -> tail -f)
