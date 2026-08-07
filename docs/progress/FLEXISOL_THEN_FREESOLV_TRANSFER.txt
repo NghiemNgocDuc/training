@@ -1,0 +1,52 @@
+Pipeline expectation: train on FlexiSol-water first, then fine-tune on FreeSolv
+Status: scoping (not implemented)
+Date: 2026-08-07
+
+------------------------------------------------------------------------
+Setup
+------------------------------------------------------------------------
+Two-step transfer, SAME task (both are experimental aqueous dG-solv in
+kcal/mol at 298.15 K; same units, same solvent).
+
+  1. init:             stage2_correction.pt  (the AQM pipeline correction ckpt)
+  2. step A:           tune FlexiSol-water  (239 train mols), save flexisol_tuned.pt
+  3. step B (continue): flexisol_tuned.pt -> FreeSolv fold-0 (411 train), TTA eval
+
+Baselines to compare against:
+  - direct FreeSolv fine-tune   ~0.550 TTA (0.531 single)  [fair control]
+  - frozen stage2 member        -> 0.5048 TTA  (goal to approach/beat)
+
+--------------------------------------------------------------------------
+Expected outcome (honest)
+--------------------------------------------------------------------------
+- Same ballpark band: ~0.505-0.55 TTA, most likely within noise of direct
+  FreeSolv fine-tune. Reasons: same-task transfer, and FlexiSol's 239 mols is
+  a small add-on on top of FreeSolv 411.
+- No theory mismatch and no polarity mismatch (no AQM-style gap here; both
+  datasets are experimental) -> catastrophic forgetting low, gain bounded.
+- Two things the experiment can actually catch:
+   * label compilation drift between Flexi vs FreeSolv -> small negative shift
+   * halogen-ish / low-coverage subset gain in FreeSol observationiles that
+     FlexSol already over-covers -> small positive effect on a subset table.
+
+------------------------------------------------------------------------
+What it will NOT do
+------------------------------------------------------------------------
+- It will not "create signal": previous experiments (approaches 0/1/1m/3) show
+  disagreement/labels do not buy accuracy above the 0.50 TTA band. A second
+  fine-tune is a warm-start benefit (a few %) at best, not a new source of
+  information.
+
+------------------------------------------------------------------------
+Deliverables (if implemented)
+------------------------------------------------------------------------
+- per-step checkpoints: stageA_flexisol.pt, stageB_freesolv.pt
+- report: FreeSolv fold-0 test MAE/RMSE single + TTA for stageB,
+  plus subset table (F/Cl/Br region) computed by the existing subset_report.
+- compare log + tail # save figures.
+
+------------------------------------------------------------------------
+Decision
+------------------------------------------------------------------------
+Open. To implement inside a sandbox (transfer_cascade/), keeping all existing
+experiment code untouched. Waiting for go-ahead.
