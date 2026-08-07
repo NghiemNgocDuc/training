@@ -450,20 +450,22 @@ cd /workspace/training && git pull && nohup python aqm-spice2/freesolv/experimen
       5-conf TTA), seed 42.
 
   RUN ON GPU BOX (Vast instance, has full deps + Frag20 tar/CSVs):
-    # 0. install any missing libs (tqdm is the only new one; everything
-    #    else is already on the box from the Frag20 run):
-    pip install tqdm h5py numpy torch torch_geometric rdkit 2>&1 | tail -n 2
-    # 1. prepare once (reuses the sibling experimental_frag20 tar/CSVs,
-    #    builds data/aqsol_so.hdf5 + labels; ~4k geo extractions;
-    #    progress bar shows the 100k-row SMILES filter then the tar scan):
-    python aqm-spice2/freesolv/experimental_aqsol_so/prepare_aqsol_so.py
-    # 2. full run, DETACHED (safe to close laptop):
-    cd /workspace/training && git pull && nohup python aqm-spice2/freesolv/experimental_aqsol_so/finetune_aqsol_so.py --mode train --device cuda > aqsol_so.log 2>&1 &
-    # 3. monitor (train loop shows a per-epoch batch progress bar +
-    #    loss; TTA shows a conformer progress bar):
-    tail -f aqsol_so.log
-    # 4. re-report from saved best ckpt without retraining:
-    python aqm-spice2/freesolv/experimental_aqsol_so/finetune_aqsol_so.py --mode eval --device cuda
+    # ONE FILE - the runner does everything (pip install, git pull,
+    # prepare, detached train, re-report), then tails the log:
+    bash aqm-spice2/freesolv/experimental_aqsol_so/run_aqsol_so.sh
+    # (equivalent manual steps, if you prefer stepping through them:
+    #   # 0. install any missing libs (tqdm is the only new one):
+    #   pip install tqdm h5py numpy torch torch_geometric rdkit
+    #   # 1. prepare once (reuses sibling experimental_frag20 tar/CSVs,
+    #   #    builds data/aqsol_so.hdf5 + labels; ~4k geo extractions):
+    #   python aqm-spice2/freesolv/experimental_aqsol_so/prepare_aqsol_so.py
+    #   # 2. full run, DETACHED (safe to close laptop):
+    #   cd /workspace/training && git pull && nohup python aqm-spice2/freesolv/experimental_aqsol_so/finetune_aqsol_so.py --mode train --device cuda > aqsol_so.log 2>&1 &
+    #   # 3. monitor (train loop shows per-epoch batch bar + loss; TTA bar):
+    #   tail -f aqsol_so.log
+    #   # 4. re-report from saved best ckpt without retraining:
+    #   python aqm-spice2/freesolv/experimental_aqsol_so/finetune_aqsol_so.py --mode eval --device cuda )
+    # after it exits, re-view progress anytime with: tail -f aqsol_so.log
     # rollback: rm -rf experimental_aqsol_so
 
   Outputs (experimental_aqsol_so/output/): metrics.json, predictions.csv
