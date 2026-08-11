@@ -104,8 +104,11 @@ class AQMMACEDataset(Dataset):
         node_attrs = torch.zeros(n_atoms, MACE_NUM_ELEMENTS, dtype=torch.float32)
         for i, zi in enumerate(z):
             idx_e = ELEMENT_TO_IDX.get(zi.item())
-            if idx_e is not None:
-                node_attrs[i, idx_e] = 1.0
+            if idx_e is None:
+                raise ValueError(
+                    f"Unknown element Z={zi.item()} in {mol_id}/{conf_id} — not in "
+                    f"MACE vocab {sorted(ELEMENT_TO_IDX.keys())}")
+            node_attrs[i, idx_e] = 1.0
 
         edge_index = radius_graph(pos, r=self.r_max, max_num_neighbors=self.max_neighbors)
         n_edges = edge_index.size(1)

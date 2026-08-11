@@ -7,7 +7,7 @@ sys.stdout.reconfigure(line_buffering=True)
 import json
 import torch
 import torch.optim as optim
-from torch.utils.data import random_split
+from torch.utils.data import Subset
 from torch_geometric.loader import DataLoader
 from DimeModels import DimeNetPlus
 import argparse
@@ -145,15 +145,20 @@ dataset = SPICE2Dataset(
 if is_main(local_rank):
     print(f"Dataset: {len(dataset)} samples")
 
+# ---- Molecule-level split (conformer-level splits would leak) ----
 n_total = len(dataset)
-n_val = max(1, int(n_total * args.val_split))
-n_train = n_total - n_val
-train_dataset, val_dataset = random_split(
-    dataset, [n_train, n_val],
-    generator=torch.Generator().manual_seed(seed),
-)
+mol_ids = list(dict.fromkeys(dataset.data.mol_id))
+rng_split = np.random.RandomState(seed)
+rng_split.shuffle(mol_ids)
+n_val_mol = max(1, int(len(mol_ids) * args.val_split))
+val_mol_set = set(mol_ids[:n_val_mol])
+val_idx = sorted(i for i in range(n_total) if dataset.data.mol_id[i] in val_mol_set)
+train_idx = sorted(i for i in range(n_total) if dataset.data.mol_id[i] not in val_mol_set)
+train_dataset = Subset(dataset, train_idx)
+val_dataset = Subset(dataset, val_idx)
 if is_main(local_rank):
-    print(f"  Train: {n_train}  Val: {n_val}")
+    print(f"  Molecules: {len(mol_ids)}  Train: {len(train_idx)} conf  Val: {len(val_idx)} conf "
+          f"({len(mol_ids) - n_val_mol}/{n_val_mol} mols)")
 
 if is_ddp:
     train_sampler = torch.utils.data.distributed.DistributedSampler(

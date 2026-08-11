@@ -19,6 +19,7 @@ def radius_graph(pos, r, batch=None, max_num_neighbors=32):
     if batch is None:
         batch = pos.new_zeros(pos.size(0), dtype=torch.long)
     rows, cols = [], []
+    base = 0
     for b in range(batch.max().item() + 1):
         mask = batch == b
         p = pos[mask]
@@ -40,11 +41,12 @@ def radius_graph(pos, r, batch=None, max_num_neighbors=32):
                     keep.append(torch.zeros(c - k, dtype=torch.bool))
             keep = torch.cat(keep)
             i, j = i_sorted[keep], j_sorted[keep]
-        rows.append(i)
-        cols.append(j)
+        rows.append(i + base)
+        cols.append(j + base)
+        base += p.size(0)
     if len(rows) == 0:
         return torch.empty((2, 0), dtype=torch.long)
-    return torch.stack([torch.cat(cols), torch.cat(rows)], dim=0)
+    return torch.stack([torch.cat(rows), torch.cat(cols)], dim=0)
 
 
 def get_labels(cache_dir="Data/FreeSolv"):
@@ -101,8 +103,11 @@ class MACEFreeSolvDataset(Dataset):
         node_attrs = torch.zeros(n_atoms, MACE_NUM_ELEMENTS, dtype=torch.float32)
         for i, zi in enumerate(z):
             idx_e = ELEMENT_TO_IDX.get(zi.item())
-            if idx_e is not None:
-                node_attrs[i, idx_e] = 1.0
+            if idx_e is None:
+                raise ValueError(
+                    f"Unknown element Z={zi.item()} in {mol_id} — not in MACE "
+                    f"vocab {sorted(ELEMENT_TO_IDX.keys())}")
+            node_attrs[i, idx_e] = 1.0
 
         edge_index = radius_graph(pos, r=self.r_max, max_num_neighbors=self.max_neighbors)
         n_edges = edge_index.size(1)

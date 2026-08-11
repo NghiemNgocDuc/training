@@ -13,6 +13,10 @@ def main():
     parser.add_argument("--input", default="freesolv_predictions.csv")
     parser.add_argument("--output", default=None,
                         help="Save calibrated predictions CSV")
+    parser.add_argument("--pred_col", default="dG_B_kcal",
+                        help="Name of the predicted-dG column in the input CSV")
+    parser.add_argument("--exp_col", default="dG_exp_kcal",
+                        help="Name of the experimental-dG column in the input CSV")
     parser.add_argument("--test_size", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
@@ -22,8 +26,8 @@ def main():
     with open(args.input) as f:
         reader = csv.DictReader(f)
         for row in reader:
-            p = float(row["dG_B_kcal"])
-            e = float(row["dG_exp_kcal"])
+            p = float(row[args.pred_col])
+            e = float(row[args.exp_col])
             preds.append(p)
             expts.append(e)
 

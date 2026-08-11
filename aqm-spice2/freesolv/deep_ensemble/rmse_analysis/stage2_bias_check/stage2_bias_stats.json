@@ -1,0 +1,90 @@
+{
+  "confidently_wrong": {
+    "n": 18,
+    "mean_abs_err_kcal": 19.021011492477523,
+    "median_abs_err_kcal": 5.900582756400109,
+    "p25_kcal": 2.6449608421325683,
+    "p75_kcal": 19.2256171131134,
+    "min_kcal": 0.06931041717529318,
+    "max_kcal": 85.07135650634766,
+    "mean_signed_err_kcal": -13.618804925216569,
+    "n_abs_err_gt_10_kcal": 7,
+    "n_abs_err_gt_20_kcal": 5
+  },
+  "control": {
+    "n": 18,
+    "mean_abs_err_kcal": 11.775730209725873,
+    "median_abs_err_kcal": 3.476679904460907,
+    "p25_kcal": 0.5988672161102292,
+    "p75_kcal": 5.180151124894619,
+    "min_kcal": 0.1889504218101501,
+    "max_kcal": 150.02610229492188,
+    "mean_signed_err_kcal": -10.351172481179237,
+    "n_abs_err_gt_10_kcal": 3,
+    "n_abs_err_gt_20_kcal": 1
+  },
+  "mannwhitney_abs_err": {
+    "U": 211.0,
+    "p": 0.12491355360268398
+  },
+  "hdf5_protocol": {
+    "confidently_wrong": {
+      "median_kcal": 4.526003162860871,
+      "mean_kcal": 18.690990386274127,
+      "max_kcal": 85.07135650634766,
+      "n_abs_err_gt_10_kcal": 7
+    },
+    "control": {
+      "median_kcal": 3.37004403591156,
+      "mean_kcal": 11.769873682061831,
+      "max_kcal": 143.12042602539063,
+      "n_abs_err_gt_10_kcal": 3
+    },
+    "mannwhitney_p": 0.26136517590616637
+  },
+  "spearman_stage2_abs_err_vs_finetuned_seed_rmse": {
+    "rho": 0.33513513513513515,
+    "p": 0.04571160263439203
+  },
+  "n_tta": 5,
+  "stage2_ckpt": "aqm-spice2\\aqm-spice2\\pipeline\\results_full\\stage2_correction.pt",
+  "tta_fallback_mids": [],
+  "n_confs_per_molecule": {
+    "mobley_4639255": 1,
+    "mobley_6257907": 1,
+    "mobley_4883284": 1,
+    "mobley_3359593": 4,
+    "mobley_3682850": 1,
+    "mobley_4620651": 2,
+    "mobley_8449031": 4,
+    "mobley_7150646": 1,
+    "mobley_3269565": 1,
+    "mobley_7690440": 2,
+    "mobley_5052949": 5,
+    "mobley_1563176": 4,
+    "mobley_4483973": 1,
+    "mobley_9913368": 1,
+    "mobley_1449384": 1,
+    "mobley_766666": 1,
+    "mobley_4252724": 1,
+    "mobley_8885088": 1,
+    "mobley_2689721": 1,
+    "mobley_3546460": 5,
+    "mobley_5518547": 1,
+    "mobley_6102880": 3,
+    "mobley_3573480": 5,
+    "mobley_5346580": 1,
+    "mobley_7977115": 3,
+    "mobley_5973402": 3,
+    "mobley_7708038": 1,
+    "mobley_2245668": 2,
+    "mobley_3802803": 5,
+    "mobley_1636752": 1,
+    "mobley_5157661": 1,
+    "mobley_6250025": 4,
+    "mobley_2487143": 4,
+    "mobley_1662128": 2,
+    "mobley_1075836": 2,
+    "mobley_7943327": 5
+  }
+}

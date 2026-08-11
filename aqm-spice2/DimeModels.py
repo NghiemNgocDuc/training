@@ -92,7 +92,8 @@ class Envelope(torch.nn.Module):
         x_pow_p0 = x.pow(p - 1)
         x_pow_p1 = x_pow_p0 * x
         x_pow_p2 = x_pow_p1 * x
-        return (1.0 / x + a * x_pow_p0 + b * x_pow_p1 +
+        inv_x = torch.where(x > 1e-8, 1.0 / x, torch.zeros_like(x))
+        return (inv_x + a * x_pow_p0 + b * x_pow_p1 +
                 c * x_pow_p2) * (x < 1.0).to(x.dtype)
 
 

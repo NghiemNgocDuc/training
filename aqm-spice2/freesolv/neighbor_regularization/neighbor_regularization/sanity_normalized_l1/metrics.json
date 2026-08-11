@@ -1,0 +1,30 @@
+{
+  "seed": 42,
+  "lambda_nbr": 1.0,
+  "k_nbr": 5,
+  "min_sim": 0.1,
+  "n_train": 411,
+  "n_val": 102,
+  "n_test": 129,
+  "graph_nodes": 642,
+  "hyperparams": {
+    "lr": 0.0001,
+    "weight_decay": 1e-05,
+    "batch_size": 8,
+    "epochs": 1,
+    "patience": 30,
+    "device": "cpu"
+  },
+  "best_val_mae_kcal": 16.577709197998047,
+  "best_val_epoch": 1,
+  "early_stop_epoch": 1,
+  "total_min": 4.2,
+  "test_mae_single_conf_kcal": 16.579805374145508,
+  "test_rmse_single_conf_kcal": 38.39321517944336,
+  "test_mae_tta_kcal": 16.668915157870316,
+  "test_rmse_tta_kcal": 38.487265702878474,
+  "n_conformers_tta": 5,
+  "nan_inf_seen": false,
+  "checkpoint_sha256": "1896857e3950f5e7b52e7b33f7321f1a980ad677a0ded982901aa3fb533f0292",
+  "stage2_init_sha256": "23a8da343cd77875a8db775f58c0977fd911dbc484a4bd641e6977a938b67685"
+}

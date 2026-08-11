@@ -1,0 +1,19 @@
+{
+  "chosen": 10,
+  "chosen_by": "heldout_validation_ll_max",
+  "n_components_grid": [
+    1,
+    5,
+    10,
+    20,
+    50
+  ],
+  "latent_dim": 1024,
+  "k_pca": 13,
+  "n_train_atoms": 7389,
+  "cond_raw": 4.228643981582477e+24,
+  "cond_standardized": 1.0593365249777596e+16,
+  "pca_n95": 13,
+  "pca_n99": 31,
+  "pca_variance_kept": 0.950523316860199
+}

@@ -183,6 +183,10 @@ val_loader = DataLoader(val_dataset, batch_size=args.batchsize, shuffle=False)
 
 # ---- Build models ----
 # Vacuum: +1 block (larger)
+# NOTE: the vacuum checkpoint architecture is COUPLED to --num_blocks here:
+# vacuum = num_blocks+1, correction = num_blocks. If the checkpoint was
+# trained with a different block count, load_state_dict below will fail with
+# a size mismatch — keep these two consistent with Stage 1's config.
 vacuum_model = build_dimenet(num_blocks=args.num_blocks + 1)
 vacuum_model.load_state_dict(torch.load(args.vacuum_ckpt, map_location=device, weights_only=True))
 # Dual freeze: no gradients AND exclude from optimizer
@@ -220,6 +224,12 @@ def combined_loss(
     loss_f = mse(forces_pred, forces_true)
     loss = loss_f * lambda_force
     if dG_pred is not None and dG_true is not None:
+        # Dual-target: the correction model is trained BOTH against the
+        # total-energy residual (vacuum+correction vs E_solv, scaled by
+        # lambda_total) AND directly against dG = E_sol - E_gas (primary,
+        # unscaled). Changing lambda_total silently shifts how much the dG
+        # scale is diluted by the total-energy term — compare metrics across
+        # runs with identical lambda_total.
         loss += lambda_total * loss_total
         loss += mse(dG_pred, dG_true)  # primary: correction_model → dG_solv directly
     else:
@@ -347,7 +357,7 @@ for epoch in range(1, args.epochs + 1):
         if val_dG is not None:
             val_dG_eV = np.sqrt(val_dG)
             train_dG_eV = np.sqrt(train_dG)
-            dG_str = (f"  |  dG MAE: {train_dG_eV:.6f} / {val_dG_eV:.6f} eV  "
+            dG_str = (f"  |  dG RMSE: {train_dG_eV:.6f} / {val_dG_eV:.6f} eV  "
                       f"({train_dG_eV*23.0605:.3f} / {val_dG_eV*23.0605:.3f} kcal/mol)")
         lr_now = optimizer.param_groups[0]["lr"]
         finite_ok = (

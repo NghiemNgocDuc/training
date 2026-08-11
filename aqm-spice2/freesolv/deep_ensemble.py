@@ -579,8 +579,14 @@ def analyze(output_dir, conformers, seeds=DEFAULT_SEEDS, n_expected=5):
     e_hal = abserr[halogen]
     e_non = abserr[~halogen]
     n_hal = int(halogen.sum())
-    stat_u, p_u = mannwhitneyu(g_hal, g_non, alternative="two-sided")
-    stat_u_err, p_u_err = mannwhitneyu(e_hal, e_non, alternative="two-sided")
+    if n_hal > 0 and len(g_non) > 0:
+        stat_u, p_u = mannwhitneyu(g_hal, g_non, alternative="two-sided")
+        stat_u_err, p_u_err = mannwhitneyu(e_hal, e_non, alternative="two-sided")
+    else:
+        stat_u, p_u = float("nan"), float("nan")
+        stat_u_err, p_u_err = float("nan"), float("nan")
+        print(f"  WARNING: no halogen molecules (n_hal={n_hal}); "
+              f"skipping halogen vs non-halogen Mann-Whitney test")
 
     # ---- honest verdict ----
     verdict = compose_verdict(rho, pval, n_hal, g_hal, g_non, e_hal, e_non, stat_u, p_u)

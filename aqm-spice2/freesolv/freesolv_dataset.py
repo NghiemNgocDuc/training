@@ -13,7 +13,7 @@ from tqdm import tqdm
 FREESOLV_URL = "https://raw.githubusercontent.com/MobleyLab/FreeSolv/master/database.json"
 FREESOLV_GROUPS_URL = "https://raw.githubusercontent.com/MobleyLab/FreeSolv/master/groups.txt"
 
-MODEL_ELEMENTS = {1, 6, 7, 8, 9, 15, 16, 17}
+MODEL_ELEMENTS = {1, 6, 7, 8, 9, 15, 16, 17, 35, 53}
 
 ELEMENT_TO_IDX = {
     1: 0, 6: 1, 7: 2, 8: 3, 9: 4, 15: 5, 16: 6, 17: 7,

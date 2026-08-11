@@ -1,0 +1,30 @@
+{
+  "_question": "Do gradient-12 molecules show anomalous per-epoch training dynamics (late convergence, oscillation, plateau-then-drift) vs a matched sample from certain-47?",
+  "result": "NOT LOGGED - the check cannot be answered from existing artifacts; requires a new instrumented training run",
+  "what_exists": {
+    "per_epoch_aggregate_val_mae_rmse": {
+      "source": "aqm-spice2/aqm-spice2/freesolv_ft.log (original cross-validation run, folds 0-4) and stdout-only prints in deep_ensemble.py train_member (seed runs)",
+      "granularity": "single scalar per epoch pooled over ALL 102 validation molecules (e.g. 'Epoch 59 | Val MAE: 0.511')",
+      "useful_for": "global convergence behavior only; CANNOT be decomposed to per-molecule trajectories because predictions per epoch were neither stored nor logged"
+    },
+    "checkpoints": {
+      "source": "seed_*/ensemble_seed*.pt, cv_results_full/fold_*/finetuned.pt",
+      "granularity": "ONE checkpoint per run (best-val epoch only), selected inside the source code (torch.save only on best-val improvement)",
+      "useful_for": "no per-epoch snapshots exist, so no trajectory can be reconstructed by reloading intermediate weights"
+    },
+    "final_outputs": {
+      "seed_42/metrics.json, predictions.csv, per_molecule.csv": "final-epoch (best-val ckpt) predictions only; no time axis"
+    },
+    "epoch_history_csv_files": {
+      "found_in": "freesolv/neighbor_regularization/{baseline,raw,sanity_normalized_l1} runs",
+      "columns": "epoch, task_mse_train_eV2, l_nbr_raw_eV2, l_nbr_used, var_p_eV2, n_active",
+      "caveat": "different experiment family (neighbor-regularization ablation, not the Stage-3 fine-tune), aggregate train losses only, not per molecule; cannot serve as a proxy for Stage-3 per-molecule trajectories"
+    },
+    "tensorboard": "no tfevents files anywhere under aqm-spice2"
+  },
+  "code_evidence": {
+    "cv_finetune.py": "per-epoch loop prints pooled val MAE/RMSE only; best-val checkpoint saved once",
+    "deep_ensemble.py": "train_member prints per-epoch pooled val MAE; torch.save only best-val state_dict; no per-molecule loss accumulation or CSV writing during training"
+  },
+  "conclusion": "Per-epoch, per-molecule predictions or losses were never logged during Stage 3 fine-tuning (neither the original cv run nor the 5-seed ensemble run). A training-dynamics comparison between gradient-12 and certain-47 therefore cannot be performed. Reconstructing it would require an instrumented re-run (log per-molecule losses/predictions each epoch, or checkpoint every epoch) - this was NOT done here, per protocol: no retraining to reconstruct."
+}

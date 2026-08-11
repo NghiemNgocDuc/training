@@ -204,7 +204,12 @@ def compute_esolv_mae(m, loader):
                     esolv_pred = (e_pred[i].item() + mol_ref[i].item()) - gas_e
                 else:
                     esolv_pred = e_pred[i].item() - gas_e
-                esolv_true = data.y_esolv[i].item() if hasattr(data, 'y_esolv') and data.y_esolv is not None else 0.0
+                # True solvation energy = E_sol - E_gas from paired DFT energies.
+                # The HDF5 "eSOLV" field sits on the total-energy scale
+                # (eSOLV ~= E_sol + ~0.08 eV) and is NOT the solvation free energy.
+                y_ene = data.y_energy
+                y_ene_i = y_ene[i].item() if y_ene.dim() > 0 else y_ene.item()
+                esolv_true = y_ene_i - gas_e
                 total_mae += abs(esolv_pred - esolv_true)
                 count += 1
     return total_mae / count if count > 0 else 0.0
@@ -335,10 +340,12 @@ if args.option_b_checkpoint and args.option_b_vacuum_ckpt:
                 mol_ref = compute_molecular_reference(x, data.batch, ref_energies, data.num_graphs)
                 total_e = total_e + mol_ref
         for i in range(data.num_graphs):
-            if hasattr(data, 'y_esolv') and data.y_esolv is not None \
+            if hasattr(data, 'y_energy') and data.y_energy is not None \
                and hasattr(data, 'gas_energy') and data.gas_energy is not None:
-                esolv_true = data.y_esolv[i].item()
                 gas_e = data.gas_energy[i].item() if data.gas_energy.dim() > 0 else data.gas_energy.item()
+                y_ene = data.y_energy
+                y_ene_i = y_ene[i].item() if y_ene.dim() > 0 else y_ene.item()
+                esolv_true = y_ene_i - gas_e
                 esolv_pred = total_e[i].item() - gas_e
                 total_esolv_mae += abs(esolv_pred - esolv_true)
                 count += 1

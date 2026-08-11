@@ -1,0 +1,26 @@
+{
+  "k": 5,
+  "n_pool": 47,
+  "confidently_wrong": {
+    "top5_mean_mean": 0.2350126459135883,
+    "top5_mean_median": 0.2697069436199871,
+    "best_sim_mean": 0.30335332815366023,
+    "best_sim_median": 0.3333333333333333,
+    "n_best_lt_0.5": 17,
+    "n_best_lt_0.6": 18,
+    "n_best_lt_0.7": 18
+  },
+  "control_certain": {
+    "top5_mean_mean": 0.32637004691500215,
+    "top5_mean_median": 0.3164183365653954,
+    "best_sim_mean": 0.453312697507744,
+    "best_sim_median": 0.4117647058823529,
+    "n_best_lt_0.5": 10,
+    "n_best_lt_0.6": 14,
+    "n_best_lt_0.7": 16
+  },
+  "mannwhitney_top5_mean": {
+    "U": 95.0,
+    "p": 0.035381335266633125
+  }
+}

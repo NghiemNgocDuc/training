@@ -1,0 +1,52 @@
+{
+  "1": {
+    "heldout_ll_per_atom": -44.15556716918945,
+    "train_ll_per_atom": -41.10480499267578,
+    "bic_foldA": 480594.92373717733,
+    "converged": true,
+    "n_iter": 2
+  },
+  "5": {
+    "heldout_ll_per_atom": -25.189746856689453,
+    "train_ll_per_atom": -23.932071685791016,
+    "bic_foldA": 283831.2104546148,
+    "converged": true,
+    "n_iter": 66
+  },
+  "10": {
+    "heldout_ll_per_atom": -24.76167869567871,
+    "train_ll_per_atom": -22.232452392578125,
+    "bic_foldA": 268549.25881379866,
+    "converged": true,
+    "n_iter": 27
+  },
+  "20": {
+    "heldout_ll_per_atom": -30.238615036010742,
+    "train_ll_per_atom": -20.155675888061523,
+    "bic_foldA": 253418.48802804665,
+    "converged": true,
+    "n_iter": 32
+  },
+  "50": {
+    "heldout_ll_per_atom": -50.22283172607422,
+    "train_ll_per_atom": -17.331575393676758,
+    "bic_foldA": 247776.8683244465,
+    "converged": true,
+    "n_iter": 41
+  },
+  "_summary": {
+    "grid": [
+      1,
+      5,
+      10,
+      20,
+      50
+    ],
+    "best_n_components": 10,
+    "heldout_ll_at_best": -24.76167869567871,
+    "heldout_ll_at_bic_choice_50": -50.22283172607422,
+    "delta_ll_best_minus_50": 25.461153030395508,
+    "interior_maximum": true,
+    "monotone_to_ceiling": false
+  }
+}

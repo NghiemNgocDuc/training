@@ -15,7 +15,7 @@ from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS, build_one_hot
 from energy_reference import load_reference_energies, compute_molecular_reference
 
 # ---- Config ----
-HDF5_DIR = _root
+HDF5_DIR = os.path.dirname(_parent)
 RESULTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")
 device = torch.device("cpu")
 OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "results")

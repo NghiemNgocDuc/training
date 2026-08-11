@@ -204,7 +204,7 @@ _ZBL_COEFFS = [
 ]
 
 
-def zbl_energy(pos, z, cutoff_low=1.0, cutoff_high=2.0):
+def zbl_energy(pos, z, cutoff_low=0.5, cutoff_high=1.0):
     n = pos.size(0)
     dist = torch.cdist(pos, pos)
     dist_safe = dist.clamp(min=1e-6)

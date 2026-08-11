@@ -1,0 +1,154 @@
+{
+  "split": {
+    "foldA_mols": 329,
+    "foldA_atoms": 5835,
+    "heldout_mols": 82,
+    "heldout_atoms": 1554
+  },
+  "k_pca": 13,
+  "reg_covar": 0.01,
+  "n_init": 5,
+  "n_components_validated": 10,
+  "stats_at_validated_n": {
+    "mean_nll": {
+      "spearman": {
+        "ensemble_std": {
+          "spearman": 0.40415921288014317,
+          "p": 2.0348006256364208e-06
+        },
+        "abs_error": {
+          "spearman": 0.3972551431127013,
+          "p": 3.141761568290921e-06
+        },
+        "seed_rmse": {
+          "spearman": 0.4601073345259392,
+          "p": 4.116502934999967e-08
+        }
+      },
+      "wrong18_vs_certain47": {
+        "mean_wrong18": 23.420328829023575,
+        "median_wrong18": 20.070210456848145,
+        "mean_certain47": 19.47556942067248,
+        "median_certain47": 18.30311393737793,
+        "mannwhitney_p": 0.05573169200764601
+      },
+      "isolated6_vs_gradient12": {
+        "mean_isolated6": 30.0973965326945,
+        "median_isolated6": 29.361787796020508,
+        "mean_gradient12": 20.08179497718811,
+        "median_gradient12": 18.650328636169434,
+        "mannwhitney_p": 0.024455936220642106
+      },
+      "overlap_wrong18_in_top18": 3
+    },
+    "max_nll": {
+      "spearman": {
+        "ensemble_std": {
+          "spearman": 0.2684704830053668,
+          "p": 0.0020962926449005393
+        },
+        "abs_error": {
+          "spearman": 0.24670728980322007,
+          "p": 0.0048250902836454125
+        },
+        "seed_rmse": {
+          "spearman": 0.28102638640429345,
+          "p": 0.0012551189596271069
+        }
+      },
+      "wrong18_vs_certain47": {
+        "mean_wrong18": 38.957308027479385,
+        "median_wrong18": 38.25611686706543,
+        "mean_certain47": 37.242122203745744,
+        "median_certain47": 36.461177825927734,
+        "mannwhitney_p": 0.5824912884884017
+      },
+      "isolated6_vs_gradient12": {
+        "mean_isolated6": 42.70953814188639,
+        "median_isolated6": 40.74065971374512,
+        "mean_gradient12": 37.08119297027588,
+        "median_gradient12": 35.27081108093262,
+        "mannwhitney_p": 0.05289808230984702
+      },
+      "overlap_wrong18_in_top18": 2
+    },
+    "_n_components": 10
+  },
+  "stats_at_bic_choice_n50": {
+    "mean_nll": {
+      "spearman": {
+        "ensemble_std": {
+          "spearman": 0.4366782200357783,
+          "p": 2.2967145789018558e-07
+        },
+        "abs_error": {
+          "spearman": 0.3852638640429339,
+          "p": 6.5300937099002456e-06
+        },
+        "seed_rmse": {
+          "spearman": 0.4631764311270126,
+          "p": 3.254740977015627e-08
+        }
+      },
+      "wrong18_vs_certain47": {
+        "mean_wrong18": 21.23709037568834,
+        "median_wrong18": 18.752089500427246,
+        "mean_certain47": 16.4320395652284,
+        "median_certain47": 14.643109321594238,
+        "mannwhitney_p": 0.03059139887976539
+      },
+      "isolated6_vs_gradient12": {
+        "mean_isolated6": 30.452077865600586,
+        "median_isolated6": 25.70287799835205,
+        "mean_gradient12": 16.62959663073222,
+        "median_gradient12": 14.95512342453003,
+        "mannwhitney_p": 0.013466925231631115
+      },
+      "overlap_wrong18_in_top18": 2
+    },
+    "max_nll": {
+      "spearman": {
+        "ensemble_std": {
+          "spearman": 0.40197898032200363,
+          "p": 2.336433303979134e-06
+        },
+        "abs_error": {
+          "spearman": 0.3641826923076924,
+          "p": 2.208490758807332e-05
+        },
+        "seed_rmse": {
+          "spearman": 0.42227191413237936,
+          "p": 6.209942067441424e-07
+        }
+      },
+      "wrong18_vs_certain47": {
+        "mean_wrong18": 35.89411555396186,
+        "median_wrong18": 31.1568021774292,
+        "mean_certain47": 49.403968445798185,
+        "median_certain47": 30.120784759521484,
+        "mannwhitney_p": 0.16150481435358888
+      },
+      "isolated6_vs_gradient12": {
+        "mean_isolated6": 44.990973790486656,
+        "median_isolated6": 42.07118034362793,
+        "mean_gradient12": 31.345686435699463,
+        "median_gradient12": 30.41508674621582,
+        "mannwhitney_p": 0.024455936220642106
+      },
+      "overlap_wrong18_in_top18": 1
+    },
+    "_n_components": 50
+  },
+  "_caveats": {
+    "note": "NONE of the p-values in this report or in rmse_analysis are corrected for multiple testing.",
+    "status": "exploratory / hypothesis-generating, not confirmatory",
+    "tests_affected": [
+      "spearman: mean_nll/max_nll vs ensemble_std/abs_error/seed_rmse (6 tests)",
+      "mannwhitney: iso6 vs grad12 and wrong18 vs certain47 on mean_nll and max_nll (4 tests)",
+      "all p-values from rmse_analysis group comparisons"
+    ],
+    "reason": "multiple comparisons across 10+ tests inflate family-wise error; groups and scoring model chosen post-hoc on the same test set",
+    "usage": "cite as screening signals requiring pre-registered replication; nominal p=0.02-0.05 is not strong evidence",
+    "see_also": "README.md"
+  }
+}

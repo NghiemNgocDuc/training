@@ -1,0 +1,24 @@
+{
+  "_question": "Is gradient-12's 'confidently wrong' status explained by experimental measurement uncertainty in the ground-truth labels?",
+  "_source_inspected": "aqm-spice2/Data/FreeSolv/database.json (642 records, FreeSolv v0.52-era schema)",
+  "result": "NOT TESTABLE - per-molecule experimental uncertainty is not present in the local data",
+  "schema_findings": {
+    "record_fields": [
+      "expt (experimental dG_solv, kcal/mol)",
+      "calc (calculated dG_solv, kcal/mol)",
+      "d_expt, d_calc (delta terms, NOT uncertainties)",
+      "expt_reference (literature source of the experiment)",
+      "notes (free text)"
+    ],
+    "uncertainty_like_fields": "none - no field named uncertainty/error/sd/std/unc/precision exists in any record (0 matches across all keys)",
+    "notes_content": "538/642 records: 'Experimental uncertainty not presently available, so assigned a default value.' 20 records: 'Experimental uncertainty as suggested by 10.1039/P29900000291 -- 0.2 kcal/mol.' (uniform literature recommendation, not a per-molecule measurement)"
+  },
+  "group_coverage": {
+    "gradient12": {"n": 12, "default_value": 12, "measured": 0},
+    "isolated6": {"n": 6, "default_value": 5, "no_note": 1, "measured": 0},
+    "certain47": {"n": 47, "default_value": 43, "no_note": 1, "reported_0p2_kcal": 3, "measured": 0}
+  },
+  "test_set_total": {"n": 129, "molecules_with_measured_uncertainty": 0},
+  "statistical_implication": "All molecules carry an identical effective uncertainty (uniform 0.2 kcal/mol default assignment); there is no per-molecule variance to compare, so a Mann-Whitney test of experimental uncertainty between gradient12 / isolated6 / certain47 is not computable and would be meaningless. The hypothesis 'gradient-12 labels are systematically less reliable' CANNOT be evaluated from local artifacts.",
+  "proxy_warning": "No proxy was substituted: FreeSolv does not provide error bars per measurement, and the 0.2 kcal/mol noted values are a single global literature suggestion (10.1039/P29900000291), not molecule-specific. Using them as a per-molecule uncertainty would be fabricated."
+}
