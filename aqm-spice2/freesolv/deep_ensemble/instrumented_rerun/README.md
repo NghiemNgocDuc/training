@@ -77,6 +77,34 @@ THAT (same torch/cuDNN/GPU).
 
 ## Running on Vast AI
 
+Current protocol (after the RNG-leak fix, commit 7a5ec0c):
+
+1. `git pull` and install the deps listed in the setup block (torch, torch_geometric,
+   rdkit, scipy, pandas, numpy, matplotlib, h5py, tqdm).
+2. **Phase A** — same-box 5-epoch comparison (orig x2 vs fixed x1), verdict gates
+   Phase B (CPU self-noise showed even the ORIGINAL doesn't reproduce itself
+   run-to-run; Phase A quantifies the box's real self-noise):
+
+   ```
+   nohup bash aqm-spice2/freesolv/deep_ensemble/instrumented_rerun/box_gpu_compare.sh \
+       > box_gpu_compare.log 2>&1 &
+   ```
+
+   Review `cmp_verdict.json`. PASS auto-launches Phase B; FAIL stops per protocol.
+3. **Phase B** — full instrumented seed_42 rerun + full ORIGINAL seed_42 on the
+   same box (`box_orig_full/`) + dual-reference sanity check (recorded reference
+   gets self-noise-loosened tolerances; same-box reference keeps tight ones):
+
+   ```
+   tail -f box_full_rerun.log     # launched by Phase A on PASS
+   ```
+
+   Review `seed_42/sanity_report_ref0.json` (vs recorded),
+   `seed_42/sanity_report_ref1.json` (vs same-box original),
+   `seed_42/sanity_summary.json` (verdict). Only after a PASS proceed to Stage B.
+
+Legacy instructions (single reference, original recorded numbers):
+
 1. Sync this repo to the box; keep the same relative layout. Required files:
    - `Data/FreeSolv/database.json` (labels)
    - `freesolv_conformers.hdf5` (repo root, stored conformers)
