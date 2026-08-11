@@ -24,6 +24,7 @@ Nothing is written to the original deep_ensemble/seed_* directories.
 import argparse
 import json
 import os
+import random
 import sys
 import time
 
@@ -42,6 +43,32 @@ from deep_ensemble import (
 )
 
 DEFAULT_OUT = _script_dir  # instrumented_rerun/
+
+
+def rng_snapshot():
+    """Snapshot ALL global RNG state: python random, numpy, torch CPU + CUDA."""
+    import numpy as np
+    import torch
+    st = {"py": random.getstate(), "np": np.random.get_state(),
+          "torch_cpu": torch.get_rng_state()}
+    if torch.cuda.is_available():
+        st["torch_cuda"] = torch.cuda.get_rng_state_all()
+    return st
+
+
+def rng_restore(st):
+    """Restore exactly what rng_snapshot() captured, so the training loop's RNG
+    stream continues as if the wrapped block never ran. The train DataLoader
+    shuffle draws from torch's DEFAULT generator at each epoch start; without
+    this guard, any RNG consumption inside an added eval block would desync
+    every subsequent epoch's batch order from the original script."""
+    import numpy as np
+    import torch
+    random.setstate(st["py"])
+    np.random.set_state(st["np"])
+    torch.set_rng_state(st["torch_cpu"])
+    if "torch_cuda" in st:
+        torch.cuda.set_rng_state_all(st["torch_cuda"])
 
 
 def evaluate_loader_instrumented(model, device, loader, mse_ev2=True):
@@ -154,6 +181,8 @@ def main():
         return mae, rmse
 
     # ---- epoch 0 baseline: warm-start (stage-2) checkpoint, no training yet ----
+    # Not in the original script; RNG-guarded so it cannot desync epoch-1 shuffle.
+    _rng = rng_snapshot()
     model.eval()
     t_e0 = time.time()
     val_mae0, val_rmse0, _ = evaluate_loader_instrumented(model, device, val_loader)
@@ -162,6 +191,7 @@ def main():
     t_epoch0 = time.time() - t_e0
     with open(val_csv, "a") as f:
         f.write(f"0,{val_mae0:.6f},{val_rmse0:.6f},,\n")
+    rng_restore(_rng)
     print(f"[epoch 0] warm-start val MAE {val_mae0:.3f} | test MAE {t0_mae:.3f} "
           f"| {t_epoch0:.1f}s (eval+log)")
 
@@ -206,9 +236,11 @@ def main():
         t_val = time.time() - t_v0
         scheduler.step(val_mae)
         t_l0 = time.time()
+        _rng = rng_snapshot()
         test_mae, test_rmse, test_rows = evaluate_loader_instrumented(
             model, device, test_loader)
         log_rows(epoch, test_rows)
+        rng_restore(_rng)
         t_log = time.time() - t_l0
         with open(val_csv, "a") as f:
             f.write(f"{epoch},{val_mae:.6f},{val_rmse:.6f},{train_mse:.6e}\n")
@@ -254,9 +286,11 @@ def main():
     test_mae, test_rmse, _ = evaluate_loader_instrumented(model, device, test_loader)
 
     from deep_ensemble import conformer_average
+    _rng = rng_snapshot()
     tta_mae, tta_rmse, tta_preds_by_mid = conformer_average(
         model, device, test_ids, all_labels, args.conformers,
         args.n_conformers, args.batch_size)
+    rng_restore(_rng)
 
     preds_path = os.path.join(out_dir, "predictions.csv")
     with open(preds_path, "w") as f:
@@ -271,12 +305,24 @@ def main():
     with open(os.path.join(out_dir, "split.md5"), "w") as f:
         f.write(split_md5 + "\n")
 
+    env = {"python": sys.version.split()[0]}
+    try:
+        import torch
+        env.update({"torch": torch.__version__, "cuda_available": torch.cuda.is_available()})
+        if torch.cuda.is_available():
+            env.update({"cuda_version": torch.version.cuda,
+                        "cudnn_version": torch.backends.cudnn.version(),
+                        "gpu": torch.cuda.get_device_name(0)})
+    except Exception:
+        pass
+
     metrics = {
         "seed": args.seed,
         "n_train": len(train_ids), "n_val": len(val_ids), "n_test": len(test_ids),
         "split_md5": split_md5,
         "split_source": args.split_dir,
         "correction_ckpt": args.correction_ckpt,
+        "env": env,
         "hyperparams": {"lr": args.lr, "weight_decay": 1e-5, "batch_size": args.batch_size,
                         "epochs": args.epochs, "patience": args.patience,
                         "device": args.device},

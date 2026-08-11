@@ -1,0 +1,30 @@
+{
+  "check1_eval_pass": {
+    "val_mae_kcal": 63.397121,
+    "test_mae_kcal": 59.315113,
+    "rng_state_equal_after": {
+      "py": true,
+      "np": true,
+      "torch_cpu": false
+    }
+  },
+  "check2_rdkit_tta": {
+    "n_mols": 10,
+    "rng_state_equal_after": {
+      "py": true,
+      "np": true,
+      "torch_cpu": true
+    },
+    "deterministic_across_calls": true
+  },
+  "check3_train_loader_rng": {
+    "shuffle_draws_from_torch_default_generator": true,
+    "drawn_once_per_epoch_iteration": true
+  },
+  "check4_iter_consumes_torch_rng": {
+    "plain_torch_shuffle_false": true,
+    "plain_torch_shuffle_true": true,
+    "torch_geometric_shuffle_false": true,
+    "torch_geometric_shuffle_true": true
+  }
+}

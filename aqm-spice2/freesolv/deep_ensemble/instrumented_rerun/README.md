@@ -41,6 +41,40 @@ that produced the recorded seed_42 numbers) can shift best-val epoch by a few
 epochs and MAE by ~1e-3. The sanity check tolerates that; anything larger
 fails the check and STOPS Stage B.
 
+## RNG neutrality: what the audit found and the guard fix
+
+`audit_rng.py` (report: `rng_audit_report.json`) proves the instrumentation is
+RNG-neutral AFTER the guard; without the guard it is NOT, and the mechanism is
+subtle:
+
+- **`iter()` on ANY DataLoader consumes exactly one draw from torch's DEFAULT
+  generator** (`BaseDataLoaderIter.__init__` -> `_base_seed = torch.empty(
+  (), dtype=torch.int64).random_()`), regardless of shuffle (verified for
+  plain torch and torch_geometric, shuffle True and False).
+- The original per-epoch loop draws: `iter(train_loader)` + `iter(val_loader)`.
+- The instrumented loop (pre-fix) added `iter(test_loader)` every epoch, plus
+  2 extra iters at the epoch-0 warm-start eval. Every draw shifts the state
+  from which the NEXT epoch's shuffle permutation is generated -> different
+  batch order from epoch 1 on -> the training trajectory diverges while the
+  final aggregate MAE stays similar. This is exactly the observed FAIL.
+- RDKit ETKDGv3 TTA (`conformer_average`) is NOT the culprit: it runs once at
+  the end (as in the original), uses `randomSeed=42`, and is fully RNG-neutral
+  (`check2`). The per-epoch eval is single-conformer; no RDKit involved.
+
+The fix (`instrument_finetune.py`): `rng_snapshot()`/`rng_restore()` wrap
+every block that does NOT exist in the original script (epoch-0 warm-start
+eval, per-epoch test eval, final TTA). They save/restore python `random`,
+numpy, torch CPU + CUDA state. Verified: with the guard, the per-epoch RNG
+stream is byte-identical to the original script's through 3 epochs
+(`seq_sim.py` check); without it, the stream diverges at epoch 1.
+
+Remaining irreducible variance: float nondeterminism (CPU threading / GPU
+cuDNN kernels) is NOT covered by RNG guards and can shift trajectories even
+with identical batch orders. On the box, if the guarded short run still fails
+the sanity check against the RECORDED reference, re-baseline: run the original
+`deep_ensemble.py --mode train --seed 42` ON THE BOX and compare against
+THAT (same torch/cuDNN/GPU).
+
 ## Running on Vast AI
 
 1. Sync this repo to the box; keep the same relative layout. Required files:
