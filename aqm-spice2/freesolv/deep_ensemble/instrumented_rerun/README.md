@@ -102,6 +102,20 @@ Current protocol (after the RNG-leak fix, commit 7a5ec0c):
    Review `seed_42/sanity_report_ref0.json` (vs recorded),
    `seed_42/sanity_report_ref1.json` (vs same-box original),
    `seed_42/sanity_summary.json` (verdict). Only after a PASS proceed to Stage B.
+4. **Phase C** (if Phase B sanity FAILs) — is the instrumented run outside even
+   THIS box's own noise floor? Run a SECOND full original
+   (`box_orig_full2/seed_42/`) and apply the Phase A rule at full scale
+   (self-noise = |orig_full1 - orig_full2| per metric, tolerance =
+   max(2*self_noise, floor), fixed vs nearer original):
+
+   ```
+   nohup bash aqm-spice2/freesolv/deep_ensemble/instrumented_rerun/box_phase_c.sh \
+       > box_phase_c.log 2>&1 &
+   ```
+
+   Review `compare_runs/cmp_verdict_full.json`. PASS -> proceed to full Stage B
+   (4 more seeds). FAIL -> instrumentation still perturbs training beyond
+   hardware nondeterminism; investigate before further runs.
 
 Legacy instructions (single reference, original recorded numbers):
 
