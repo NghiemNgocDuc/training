@@ -142,7 +142,9 @@ def predict_graphs(model, device, graphs):
         loader = DataLoader(graphs, batch_size=BATCH, shuffle=False)
         for data in loader:
             x = build_one_hot(data, device)
-            preds.append((model(x, data.pos, data.batch).view(-1) * de.EV_TO_KCAL).cpu())
+            pos = data.pos.to(device)
+            batch = data.batch.to(device)
+            preds.append((model(x, pos, batch).view(-1) * de.EV_TO_KCAL).cpu())
     return torch.cat(preds).numpy()
 
 
