@@ -62,13 +62,23 @@ BATCH = 32
 def find_repo_root():
     d = _script_dir
     while True:
-        if (os.path.exists(os.path.join(d, "Data", "FreeSolv", "database.json"))
-                and os.path.exists(os.path.join(d, "freesolv_conformers.hdf5"))):
+        if os.path.exists(os.path.join(d, "freesolv_conformers.hdf5")):
             return d
         parent = os.path.dirname(d)
         if parent == d:
-            raise SystemExit("repo root (Data/FreeSolv + freesolv_conformers.hdf5) not found above script")
+            raise SystemExit("repo root (freesolv_conformers.hdf5) not found above script")
         d = parent
+
+DB_CANDIDATES = ("Data/FreeSolv/database.json", "aqm-spice2/Data/FreeSolv/database.json",
+                 "aqm-spice2/aqm-spice2/Data/FreeSolv/database.json")
+
+
+def find_db():
+    for rel in DB_CANDIDATES:
+        p = os.path.join(REPO_ROOT, rel)
+        if os.path.exists(p):
+            return p
+    raise SystemExit(f"database.json not found under {REPO_ROOT} (tried {DB_CANDIDATES})")
 
 
 def find_checkpoint():
@@ -86,7 +96,7 @@ def find_checkpoint():
 
 
 REPO_ROOT = find_repo_root()
-DB_JSON = os.path.join(REPO_ROOT, "Data", "FreeSolv", "database.json")
+DB_JSON = find_db()
 STORED_H5 = os.path.join(REPO_ROOT, "freesolv_conformers.hdf5")
 CKPT = find_checkpoint()
 

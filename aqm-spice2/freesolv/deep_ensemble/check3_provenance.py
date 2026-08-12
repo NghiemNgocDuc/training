@@ -23,15 +23,21 @@ OUT_DIR = os.path.join(_script_dir, "gradient12_conformer_provenance_check")
 def find_repo_root():
     d = _script_dir
     while True:
-        if os.path.exists(os.path.join(d, "Data", "FreeSolv", "database.json")):
+        if os.path.exists(os.path.join(d, "freesolv_conformers.hdf5")):
             return d
         parent = os.path.dirname(d)
         if parent == d:
-            raise SystemExit("repo root (with Data/FreeSolv/database.json) not found above script")
+            raise SystemExit("repo root (freesolv_conformers.hdf5) not found above script")
         d = parent
 
 
-DB_JSON = os.path.join(find_repo_root(), "Data", "FreeSolv", "database.json")
+DB_CANDIDATES = ("Data/FreeSolv/database.json", "aqm-spice2/Data/FreeSolv/database.json",
+                 "aqm-spice2/aqm-spice2/Data/FreeSolv/database.json")
+REPO_ROOT = find_repo_root()
+DB_JSON = next((os.path.join(REPO_ROOT, rel) for rel in DB_CANDIDATES
+                if os.path.exists(os.path.join(REPO_ROOT, rel))), None)
+if DB_JSON is None:
+    raise SystemExit(f"database.json not found under {REPO_ROOT} (tried {DB_CANDIDATES})")
 RMSE_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                         "rmse_analysis", "output", "per_molecule_rmse.csv")
 NEIGH_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)),
