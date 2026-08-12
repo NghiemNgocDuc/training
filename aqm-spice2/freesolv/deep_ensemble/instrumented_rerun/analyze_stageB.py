@@ -113,14 +113,22 @@ def mol_stats_row(d, best_val_epoch, n_epochs):
 
 def analyze_seed(seed_dir, grad12, certain47):
     """Per-seed run: group summaries, MWU tests, Q3 pooled-vs-group-optimal."""
+    import json as _json
     import numpy as np
     import pandas as pd
     from scipy.stats import mannwhitneyu
 
     ep = pd.read_csv(os.path.join(seed_dir, "epoch_predictions.csv"))
-    val = pd.read_csv(os.path.join(seed_dir, "val_history.csv"))
+    with open(os.path.join(seed_dir, "metrics.json")) as f:
+        metrics = _json.load(f)
     n_epochs = int(ep["epoch"].max())
-    best_val_epoch = int(val.sort_values("val_mae_kcal").iloc[0]["epoch"])
+    # authoritative: the epoch the training actually kept for early stopping.
+    # (val_history.csv has a warm-start row at epoch 0 whose value can win a
+    # naive min-sort - never derive best_val_epoch from it.)
+    best_val_epoch = int(metrics.get("best_val_epoch", -1))
+    if best_val_epoch <= 0:
+        val = pd.read_csv(os.path.join(seed_dir, "val_history.csv"), index_col=False)
+        best_val_epoch = int(val.sort_values("val_mae_kcal").iloc[0]["epoch"])
 
     def stats_for(grp):
         rows = [mol_stats_row(ep[ep["mol_id"] == m].sort_values("epoch"),
@@ -262,10 +270,10 @@ def main():
                          "med_c47": m["med_c47"], "p": m["p"]})
         signs = []
         for r in rows:
-            d = r["med_g12"] - r["med_c47"]
+            d = (r["med_g12"] - r["med_c47"]) * worse_dir[key]
             signs.append(1 if d > 0 else (-1 if d < 0 else 0))
-        pos = sum(1 for s in signs if s == 1)
-        neg = sum(1 for s in signs if s == -1)
+        pos = sum(1 for s in signs if s == 1)   # seeds where g12 is WORSE
+        neg = sum(1 for s in signs if s == -1)  # seeds where g12 is BETTER
         direction = "g12_worse" if pos > neg else ("g12_better" if neg > pos else "tie")
         n_sig = sum(1 for r in rows if r["p"] < 0.05)
         consistency[key] = {
@@ -275,7 +283,7 @@ def main():
             "n_seeds_sig_p005": n_sig,
         }
         worse = "g12 worse" if direction == "g12_worse" else "g12 better"
-        print(f"[stageB] {key:<24} direction={worse:<11} ({pos}/{len(rows)} seeds) "
+        print(f"[stageB] {key:<24} direction={worse:<11} ({pos}/{len(rows)} seeds worse) "
               f"sig p<0.05: {n_sig}/{len(rows)}")
 
     # per-molecule consistency: is each gradient-12 molecule consistently slow?

@@ -53,9 +53,16 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     ep = pd.read_csv(os.path.join(seed_dir, "epoch_predictions.csv"))
-    val = pd.read_csv(os.path.join(seed_dir, "val_history.csv"))
     n_epochs = int(ep["epoch"].max())
-    best_val_epoch = int(val.sort_values("val_mae_kcal").iloc[0]["epoch"])
+    # authoritative best-val epoch (metrics.json); do NOT derive it from
+    # val_history.csv - its epoch-0 warm-start row historically carried an extra
+    # trailing comma that made pandas shift columns.
+    import json as _json
+    with open(os.path.join(seed_dir, "metrics.json")) as _f:
+        best_val_epoch = int(_json.load(_f).get("best_val_epoch", -1))
+    if best_val_epoch <= 0:
+        val = pd.read_csv(os.path.join(seed_dir, "val_history.csv"), index_col=False)
+        best_val_epoch = int(val.sort_values("val_mae_kcal").iloc[0]["epoch"])
 
     rmse_df = pd.read_csv(ANALYSIS_CSV).set_index("mol_id")
     iso = pd.read_csv(ISOLATION_CSV)

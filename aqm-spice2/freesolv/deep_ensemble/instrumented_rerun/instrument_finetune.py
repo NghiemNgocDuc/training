@@ -190,7 +190,7 @@ def main():
     log_rows(0, t0_rows)
     t_epoch0 = time.time() - t_e0
     with open(val_csv, "a") as f:
-        f.write(f"0,{val_mae0:.6f},{val_rmse0:.6f},,\n")
+        f.write(f"0,{val_mae0:.6f},{val_rmse0:.6f},\n")
     rng_restore(_rng)
     print(f"[epoch 0] warm-start val MAE {val_mae0:.3f} | test MAE {t0_mae:.3f} "
           f"| {t_epoch0:.1f}s (eval+log)")
