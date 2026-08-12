@@ -127,6 +127,15 @@ def gen_confs(smiles, n, seed):
         dtype=torch.float)) for i in conf_ids]
 
 
+def move_plain_tensors_to(model, device):
+    model.to(device)
+    for m in model.modules():
+        for k, v in vars(m).items():
+            if isinstance(v, torch.Tensor) and v.device != device:
+                setattr(m, k, v.to(device))
+    return model
+
+
 def predict_graphs(model, device, graphs):
     preds = []
     with torch.no_grad():
@@ -162,7 +171,7 @@ def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[ck2] device: {device}")
-    model = de.build_model(device)
+    model = move_plain_tensors_to(de.build_model(device), device)
     model.load_state_dict(torch.load(CKPT, map_location=device, weights_only=True))
     model.eval()
 
