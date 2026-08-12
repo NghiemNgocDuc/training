@@ -1,0 +1,290 @@
+{
+  "gradient12": {
+    "n": 12,
+    "n_over_predict": 5,
+    "n_under_predict": 7,
+    "n_zero": 0,
+    "pct_over": 41.7,
+    "pct_under": 58.3,
+    "majority_fraction": 0.583,
+    "binomial_p_two_sided": 0.7744140625,
+    "mean_signed_error": 0.08936816666666676,
+    "median_signed_error": 0.380394,
+    "wilcoxon_vs_zero_p": 0.7333984375
+  },
+  "isolated6": {
+    "n": 6,
+    "n_over_predict": 4,
+    "n_under_predict": 2,
+    "n_zero": 0,
+    "pct_over": 66.7,
+    "pct_under": 33.3,
+    "majority_fraction": 0.667,
+    "binomial_p_two_sided": 0.6875,
+    "mean_signed_error": -0.25339566666666674,
+    "median_signed_error": -0.42616400000000004,
+    "wilcoxon_vs_zero_p": 0.5625
+  },
+  "wrong18": {
+    "n": 18,
+    "n_over_predict": 9,
+    "n_under_predict": 9,
+    "n_zero": 0,
+    "pct_over": 50.0,
+    "pct_under": 50.0,
+    "majority_fraction": 0.5,
+    "binomial_p_two_sided": 1.0,
+    "mean_signed_error": -0.02488644444444439,
+    "median_signed_error": -0.02881900000000004,
+    "wilcoxon_vs_zero_p": 0.8650436401367188
+  },
+  "certain47": {
+    "n": 47,
+    "n_over_predict": 24,
+    "n_under_predict": 23,
+    "n_zero": 0,
+    "pct_over": 51.1,
+    "pct_under": 48.9,
+    "majority_fraction": 0.511,
+    "binomial_p_two_sided": 1.0,
+    "mean_signed_error": -0.001316765957446825,
+    "median_signed_error": -0.004792999999999936,
+    "wilcoxon_vs_zero_p": 0.9958185165217088
+  },
+  "per_molecule": {
+    "mobley_4639255": {
+      "group": "gradient12",
+      "signed_error": -0.8413789999999999,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_6257907": {
+      "group": "gradient12",
+      "signed_error": -0.6178629999999998,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_4883284": {
+      "group": "gradient12",
+      "signed_error": -0.5648669999999996,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_3682850": {
+      "group": "gradient12",
+      "signed_error": 0.4255070000000005,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_4620651": {
+      "group": "gradient12",
+      "signed_error": 0.8048829999999998,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_8449031": {
+      "group": "gradient12",
+      "signed_error": 1.0124330000000001,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_3269565": {
+      "group": "gradient12",
+      "signed_error": 0.45473399999999975,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_5052949": {
+      "group": "gradient12",
+      "signed_error": 0.8622380000000001,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_1563176": {
+      "group": "gradient12",
+      "signed_error": 0.34409999999999996,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_4483973": {
+      "group": "gradient12",
+      "signed_error": -0.8223179999999999,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_1449384": {
+      "group": "gradient12",
+      "signed_error": 0.41668800000000006,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_4252724": {
+      "group": "gradient12",
+      "signed_error": -0.40173800000000004,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_3359593": {
+      "group": "isolated6",
+      "signed_error": -0.7147410000000001,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_7150646": {
+      "group": "isolated6",
+      "signed_error": 0.5461749999999999,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_7690440": {
+      "group": "isolated6",
+      "signed_error": 0.47442300000000004,
+      "direction": "under",
+      "seed_signs": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_9913368": {
+      "group": "isolated6",
+      "signed_error": -0.973903,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_766666": {
+      "group": "isolated6",
+      "signed_error": -0.41033800000000004,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    },
+    "mobley_8885088": {
+      "group": "isolated6",
+      "signed_error": -0.44199000000000005,
+      "direction": "over",
+      "seed_signs": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1
+      ],
+      "n_seeds_matching_majority_sign": 5
+    }
+  }
+}
