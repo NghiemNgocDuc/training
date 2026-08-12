@@ -1,0 +1,57 @@
+{
+  "n_gradient12": 12,
+  "n_certain47": 47,
+  "mwu_pred_std_across_conformers": {
+    "median_g12": 0.09519398212432861,
+    "median_c47": 0.2555214762687683,
+    "mean_g12": 0.3414484014113744,
+    "mean_c47": 0.34584478290571496,
+    "u": 266.0,
+    "p": 0.7634780699845846
+  },
+  "mwu_mmff_energy_spread_kcal": {
+    "median_g12": 0.13060355149038472,
+    "median_c47": 0.5882187801918435,
+    "mean_g12": 1.0334676111465395,
+    "mean_c47": 1.6974132411773348,
+    "u": 224.0,
+    "p": 0.2642921918668971
+  },
+  "mwu_n_conformers_kept_50": {
+    "median_g12": 1.5,
+    "median_c47": 3.0,
+    "mean_g12": 4.416666666666667,
+    "mean_c47": 9.957446808510639,
+    "u": 214.0,
+    "p": 0.1894949973433505
+  },
+  "spearman_pred_std_across_conformers_all 129": {
+    "rho": -0.11897285826641513,
+    "p": 0.17930620773093509,
+    "n": 129
+  },
+  "spearman_pred_std_across_conformers_other-64 only": {
+    "rho": 0.08695693582662614,
+    "p": 0.49445483076967145,
+    "n": 64
+  },
+  "spearman_mmff_energy_spread_kcal_all 129": {
+    "rho": -0.10335566955547436,
+    "p": 0.24377890565447627,
+    "n": 129
+  },
+  "spearman_mmff_energy_spread_kcal_other-64 only": {
+    "rho": 0.12245058435919835,
+    "p": 0.33508040699111435,
+    "n": 64
+  },
+  "tta_improvement": {
+    "g12_mae5_local": 3.056980460882187,
+    "g12_mae50": 3.083449920018514,
+    "c47_mae5_local": 2.2606267960781747,
+    "c47_mae50": 2.2699206477784095,
+    "all_mae5_local": 3.3978716259778934,
+    "all_mae50": 3.391810494799947,
+    "g12_n_improved_50conf": 2
+  }
+}

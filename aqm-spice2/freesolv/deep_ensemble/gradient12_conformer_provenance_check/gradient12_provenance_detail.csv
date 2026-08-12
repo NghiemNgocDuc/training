@@ -1,0 +1,13 @@
+mol_id,expt_reference,groups_tag,notes,iupac,abs_error
+mobley_8449031,10.1021/ct050097l,"tertiary amine, tertiary aliphatic amine (trialkylamine)","Experimental uncertainty not presently available, so assigned a default value.","N,N-diethylethanamine",1.012433
+mobley_1563176,10.1021/ct050097l,"thiol (sulfanyl), alkylthiol","Experimental uncertainty not presently available, so assigned a default value.",butane-1-thiol,0.3441
+mobley_5052949,10.1021/ct050097l,thioether,"Experimental uncertainty not presently available, so assigned a default value.",1-propylsulfanylpropane,0.862238
+mobley_4883284,10.1021/ct050097l,"primary amine, primary aromatic amine, aromatic","Experimental uncertainty not presently available, so assigned a default value.",aniline,0.564867
+mobley_3682850,10.1021/ct050097l,ketone,"Experimental uncertainty not presently available, so assigned a default value.",cyclohexanone,0.425507
+mobley_6257907,10.1021/ct050097l,"primary amine, primary aromatic amine, aryl chloride, aromatic","Experimental uncertainty not presently available, so assigned a default value.",3-chloroaniline,0.617863
+mobley_3269565,10.1021/ct050097l,dialkyl ether,"Experimental uncertainty not presently available, so assigned a default value.",2-methoxypropane,0.454734
+mobley_4639255,10.1021/ct050097l,"primary alcohol, 1,2-diol","Experimental uncertainty not presently available, so assigned a default value.",ethylene glycol,0.841379
+mobley_4483973,10.1021/ct050097l,"aryl fluoride, aromatic","Experimental uncertainty not presently available, so assigned a default value.",fluorobenzene,0.822318
+mobley_4252724,10.1021/ct050097l,aromatic,"Experimental uncertainty not presently available, so assigned a default value.",isobutylbenzene,0.401738
+mobley_4620651,10.1021/ct050097l,carboxylic acid ester,"Experimental uncertainty not presently available, so assigned a default value.",methyl cyclopropanecarboxylate,0.804883
+mobley_1449384,10.1021/ct050097l,aromatic,"Experimental uncertainty not presently available, so assigned a default value.",1-isopropyl-4-methyl-benzene,0.416688

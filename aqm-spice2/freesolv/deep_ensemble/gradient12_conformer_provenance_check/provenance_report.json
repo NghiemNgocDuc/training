@@ -1,0 +1,366 @@
+{
+  "n_all": 642,
+  "n_gradient12": 12,
+  "gradient12": [
+    "mobley_1449384",
+    "mobley_1563176",
+    "mobley_3269565",
+    "mobley_3682850",
+    "mobley_4252724",
+    "mobley_4483973",
+    "mobley_4620651",
+    "mobley_4639255",
+    "mobley_4883284",
+    "mobley_5052949",
+    "mobley_6257907",
+    "mobley_8449031"
+  ],
+  "wrong18": [
+    "mobley_1449384",
+    "mobley_1563176",
+    "mobley_3269565",
+    "mobley_3359593",
+    "mobley_3682850",
+    "mobley_4252724",
+    "mobley_4483973",
+    "mobley_4620651",
+    "mobley_4639255",
+    "mobley_4883284",
+    "mobley_5052949",
+    "mobley_6257907",
+    "mobley_7150646",
+    "mobley_766666",
+    "mobley_7690440",
+    "mobley_8449031",
+    "mobley_8885088",
+    "mobley_9913368"
+  ],
+  "fields_present": {
+    "d_charging": 642,
+    "expt_reference": 642,
+    "nickname": 642,
+    "expt_s (cal/K.mol)": 642,
+    "expt_h": 642,
+    "h_conf": 642,
+    "d_h_solv": 642,
+    "smiles": 642,
+    "calc_h": 642,
+    "d_expt_s (cal/K.mol)": 642,
+    "d_expt_h": 642,
+    "d_calc": 642,
+    "iupac": 642,
+    "calc_charging": 642,
+    "d_calc_h": 642,
+    "d_h_conf": 642,
+    "d_vdw": 642,
+    "d_expt": 642,
+    "h_solv": 642,
+    "d_calc_s (cal/mol.K)": 642,
+    "expt": 642,
+    "calc_vdw": 642,
+    "expt_h_reference": 642,
+    "calc_reference": 642,
+    "groups": 642,
+    "calc": 642,
+    "PubChemID": 642,
+    "notes": 642,
+    "calc_s (cal/mol.K)": 642
+  },
+  "flag_default_uncertainty_note": {
+    "n_gradient12": 12,
+    "n_test": 120,
+    "n_all": 583,
+    "test_base_rate": 0.93,
+    "gradient12_rate": 1.0,
+    "odds_ratio": Infinity,
+    "fisher_p_test_set_null": 1.0
+  },
+  "flag_expt_uncertainty_missing": {
+    "n_gradient12": 0,
+    "n_test": 0,
+    "n_all": 0,
+    "test_base_rate": 0.0,
+    "gradient12_rate": 0.0,
+    "odds_ratio": NaN,
+    "fisher_p_test_set_null": 1.0
+  },
+  "flag_calc_reference_same_as_expt": {
+    "n_gradient12": 0,
+    "n_test": 0,
+    "n_all": 0,
+    "test_base_rate": 0.0,
+    "gradient12_rate": 0.0,
+    "odds_ratio": NaN,
+    "fisher_p_test_set_null": 1.0
+  },
+  "fisher_tests": {
+    "expt_reference": [
+      {
+        "value": "10.1021/ct050097l",
+        "in_group": 12,
+        "not_in_group": 410,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": Infinity,
+        "fisher_p": 0.01058623631079428
+      },
+      {
+        "value": "10.1021/jp806724u",
+        "in_group": 0,
+        "not_in_group": 49,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 0.6136734305308793
+      },
+      {
+        "value": "SAMPL4_Guthrie",
+        "in_group": 0,
+        "not_in_group": 41,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "10.1007/s10822-010-9350-8",
+        "in_group": 0,
+        "not_in_group": 30,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "10.1007/s10822-012-9568-8",
+        "in_group": 0,
+        "not_in_group": 28,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "10.1039/P29900000291",
+        "in_group": 0,
+        "not_in_group": 22,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      }
+    ],
+    "calc_reference": [
+      {
+        "value": "10.1021/acs.jced.7b00104",
+        "in_group": 12,
+        "not_in_group": 630,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": NaN,
+        "fisher_p": 1.0
+      }
+    ],
+    "groups": [
+      {
+        "value": "aromatic",
+        "in_group": 5,
+        "not_in_group": 262,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 1.0032715376226826,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "heterocyclic",
+        "in_group": 0,
+        "not_in_group": 88,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 0.3870280179457468
+      },
+      {
+        "value": "aryl chloride",
+        "in_group": 1,
+        "not_in_group": 60,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.8636363636363636,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "carboxylic acid ester",
+        "in_group": 1,
+        "not_in_group": 51,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 1.032085561497326,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "alkene",
+        "in_group": 0,
+        "not_in_group": 50,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 0.613101725176329
+      },
+      {
+        "value": "phenol or hydroxyhetarene",
+        "in_group": 0,
+        "not_in_group": 49,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 0.6136734305308793
+      },
+      {
+        "value": "alkyl chloride",
+        "in_group": 0,
+        "not_in_group": 37,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "ketone",
+        "in_group": 1,
+        "not_in_group": 35,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 1.5454545454545454,
+        "fisher_p": 0.5027603191337541
+      },
+      {
+        "value": "halogen derivative",
+        "in_group": 0,
+        "not_in_group": 33,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "primary amine",
+        "in_group": 2,
+        "not_in_group": 29,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 4.144827586206897,
+        "fisher_p": 0.11019295721383855
+      },
+      {
+        "value": "primary alcohol",
+        "in_group": 1,
+        "not_in_group": 29,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 1.884012539184953,
+        "fisher_p": 0.43975112120871307
+      },
+      {
+        "value": "dialkyl ether",
+        "in_group": 1,
+        "not_in_group": 28,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 1.9545454545454546,
+        "fisher_p": 0.4285647875223646
+      },
+      {
+        "value": "nitro",
+        "in_group": 0,
+        "not_in_group": 26,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "aldehyde",
+        "in_group": 0,
+        "not_in_group": 24,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "primary aromatic amine",
+        "in_group": 2,
+        "not_in_group": 19,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 6.431578947368421,
+        "fisher_p": 0.05522606655038353
+      },
+      {
+        "value": "alkyl aryl ether",
+        "in_group": 0,
+        "not_in_group": 20,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "secondary alcohol",
+        "in_group": 0,
+        "not_in_group": 19,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "secondary amine",
+        "in_group": 0,
+        "not_in_group": 17,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "alkyl bromide",
+        "in_group": 0,
+        "not_in_group": 17,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "tertiary amine",
+        "in_group": 1,
+        "not_in_group": 15,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 3.727272727272727,
+        "fisher_p": 0.26325613143188575
+      },
+      {
+        "value": "carboxylic acid",
+        "in_group": 0,
+        "not_in_group": 14,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      },
+      {
+        "value": "diaryl ether",
+        "in_group": 0,
+        "not_in_group": 13,
+        "n_g12_total": 12,
+        "n_all_total": 642,
+        "odds_ratio": 0.0,
+        "fisher_p": 1.0
+      }
+    ]
+  },
+  "gradient12_provenance_detail_csv": "C:\\Users\\User\\Documents\\Data\\aqm-spice2\\freesolv\\deep_ensemble\\gradient12_conformer_provenance_check\\gradient12_provenance_detail.csv"
+}

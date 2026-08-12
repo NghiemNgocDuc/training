@@ -1,0 +1,23 @@
+value,n_all,n_test,n_gradient12,n_wrong18,n_iso6,g12_share,test_share,base_rate_g12
+aromatic,267,58,5,7,2,0.019,0.45,0.019
+heterocyclic,88,18,0,0,0,0.0,0.14,0.019
+aryl chloride,61,9,1,1,0,0.016,0.07,0.019
+carboxylic acid ester,52,13,1,1,0,0.019,0.101,0.019
+alkene,50,7,0,2,2,0.0,0.054,0.019
+phenol or hydroxyhetarene,49,12,0,1,1,0.0,0.093,0.019
+alkyl chloride,37,5,0,0,0,0.0,0.039,0.019
+ketone,36,7,1,1,0,0.028,0.054,0.019
+halogen derivative,33,9,0,2,2,0.0,0.07,0.019
+primary amine,31,4,2,2,0,0.065,0.031,0.019
+primary alcohol,30,9,1,1,0,0.033,0.07,0.019
+dialkyl ether,29,7,1,1,0,0.034,0.054,0.019
+nitro,26,4,0,0,0,0.0,0.031,0.019
+aldehyde,24,4,0,0,0,0.0,0.031,0.019
+primary aromatic amine,21,3,2,2,0,0.095,0.023,0.019
+alkyl aryl ether,20,2,0,1,1,0.0,0.016,0.019
+secondary alcohol,19,4,0,0,0,0.0,0.031,0.019
+secondary amine,17,1,0,0,0,0.0,0.008,0.019
+alkyl bromide,17,2,0,0,0,0.0,0.016,0.019
+tertiary amine,16,4,1,1,0,0.062,0.031,0.019
+carboxylic acid,14,3,0,0,0,0.0,0.023,0.019
+diaryl ether,13,3,0,0,0,0.0,0.023,0.019
