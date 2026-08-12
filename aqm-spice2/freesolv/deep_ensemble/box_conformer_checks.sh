@@ -5,7 +5,12 @@
 set -e
 cd "$(dirname "$0")/../../.."   # repo root (Data/FreeSolv + freesolv_conformers.hdf5 live here)
 echo "repo root: $(pwd)"
-ls Data/FreeSolv/database.json freesolv_conformers.hdf5
+ls freesolv_conformers.hdf5
+if [ -f Data/FreeSolv/database.json ]; then
+  echo "db: Data/FreeSolv/database.json"
+else
+  echo "db: Data/FreeSolv/database.json missing (gitignored) - using committed aqm-spice2/Data/FreeSolv/database.json fallback"
+fi
 python -c "import rdkit; print('rdkit', rdkit.__version__)"
 
 D=aqm-spice2/freesolv/deep_ensemble
