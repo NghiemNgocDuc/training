@@ -13,13 +13,16 @@ DIFFERENT embedding seeds):
       (a) stored-conformer single prediction (hdf5, recomputed here),
       (b) recorded training-time 5-conf TTA prediction (deep_ensemble/seed_42/
           predictions.csv -- the values behind the recorded MAEs).
-    Per-molecule sensitivity = mean over the 4 new draws of
-    |new_draw_pred - baseline|.
-  * Mann-Whitney gradient-12 vs certain-47 on sensitivity (both baselines, plus
+      (c) --local-baseline-seed N: also draw seed N fresh (default protocol's
+          "original" draw) and use its TTA as the baseline instead -- the
+          internally-consistent mode for environments whose stored conformers /
+          recorded predictions are not trustworthy (e.g. local env-drift case).
+    Per-molecule sensitivity = mean over the new draws of |new_draw_pred - baseline|.
+  * Mann-Whitney gradient-12 vs certain-47 on sensitivity (baselines, plus
     per-seed breakdown).
   * Pooling test (actionable fix candidate): pooled prediction = mean of
-    recorded-TTA5 + all 4 new draws (25 conformers, 5 seeds) vs true value;
-    compare gradient-12 error change vs recorded TTA-5 (Wilcoxon signed-rank).
+    baseline draw + all new draws (25 conformers, 5 seeds) vs true value;
+    compare gradient-12 error change vs baseline-draw TTA-5 (Wilcoxon signed-rank).
 
 Outputs -> gradient12_conformer_provenance_check/check2_*
 """
@@ -128,6 +131,10 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seeds", type=int, nargs="*",
                         default=[7, 123, 2024, 999], help="embedding seeds != 42")
+    parser.add_argument("--local-baseline-seed", type=int, default=None,
+                        help="also draw this seed fresh and use it as the baseline "
+                             "draw (internally-consistent mode; box default = stored "
+                             "conformer + recorded TTA-5 baselines)")
     args = parser.parse_args()
     os.makedirs(OUT_DIR, exist_ok=True)
 
@@ -138,6 +145,10 @@ def main():
     pred5 = pd.read_csv(PRED5_CSV)
     tta5 = dict(zip(pred5["mol_id"], pred5["dG_pred_kcal"]))
     true = dict(zip(pred5["mol_id"], pred5["dG_exp_kcal"]))
+
+    seeds_all = list(args.seeds)
+    if args.local_baseline_seed is not None:
+        seeds_all = sorted(set(seeds_all + [args.local_baseline_seed]))
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"[ck2] device: {device}")
@@ -160,54 +171,69 @@ def main():
           f"{'BOX ENVIRONMENT INTACT' if abs(np.mean(calib_err) - 0.5313) < 0.05 else 'DISCREPANCY'}")
 
     t0 = time.time()
-    per_seed_tta = {s: {} for s in args.seeds}
-    for s in args.seeds:
+    per_seed_tta = {s: {} for s in seeds_all}
+    for s in seeds_all:
         for mid in mids:
             graphs = gen_confs(db[mid]["smiles"], N_CONFORMERS_PER_DRAW, seed=s)
             tta = float(np.mean(predict_graphs(model, device, graphs)))
             per_seed_tta[s][mid] = tta
-    print(f"[ck2] fresh draws (seeds {args.seeds}) done in {(time.time()-t0)/60:.1f} min")
+    print(f"[ck2] fresh draws (seeds {seeds_all}) done in {(time.time()-t0)/60:.1f} min")
 
+    local_mode = args.local_baseline_seed is not None
+    orig_seed = args.local_baseline_seed
     rows = []
     for mid in mids:
         row = {"mol_id": mid, "group": "gradient12" if mid in grad12 else "certain47",
                "true_kcal": true[mid], "stored_single_conf_pred_kcal": stored_pred[mid],
                "tta5_recorded_kcal": tta5[mid],
                "abs_err_tta5_recorded": abs(tta5[mid] - true[mid])}
-        deltas_vs_stored, deltas_vs_tta5 = [], []
-        for s in args.seeds:
+        if local_mode:
+            row[f"orig_draw_seed{orig_seed}_tta_kcal"] = per_seed_tta[orig_seed][mid]
+            row["abs_err_orig_draw"] = abs(per_seed_tta[orig_seed][mid] - true[mid])
+        for s in seeds_all:
             row[f"draw_seed{s}_tta_kcal"] = per_seed_tta[s][mid]
-            deltas_vs_stored.append(abs(per_seed_tta[s][mid] - stored_pred[mid]))
-            deltas_vs_tta5.append(abs(per_seed_tta[s][mid] - tta5[mid]))
+        fresh = [s for s in seeds_all] if local_mode else list(args.seeds)
+        deltas_vs_stored = [abs(per_seed_tta[s][mid] - stored_pred[mid]) for s in fresh]
+        deltas_vs_tta5 = [abs(per_seed_tta[s][mid] - tta5[mid]) for s in fresh]
+        if local_mode:
+            deltas_vs_orig = [abs(per_seed_tta[s][mid] - per_seed_tta[orig_seed][mid])
+                              for s in fresh if s != orig_seed]
         row["mean_abs_delta_vs_stored"] = float(np.mean(deltas_vs_stored))
         row["max_abs_delta_vs_stored"] = float(np.max(deltas_vs_stored))
         row["mean_abs_delta_vs_tta5"] = float(np.mean(deltas_vs_tta5))
-        max_delta_tta5 = float(np.max(deltas_vs_tta5))
-        row["max_abs_delta_vs_tta5"] = max_delta_tta5
-        row["ttpool_all5seeds_kcal"] = float(np.mean(
-            [tta5[mid]] + [per_seed_tta[s][mid] for s in args.seeds]))
-        row["abs_err_pooled_5seeds"] = abs(row["ttpool_all5seeds_kcal"] - true[mid])
+        row["max_abs_delta_vs_tta5"] = float(np.max(deltas_vs_tta5))
+        if local_mode:
+            row["mean_abs_delta_vs_orig_draw"] = float(np.mean(deltas_vs_orig))
+            row["max_abs_delta_vs_orig_draw"] = float(np.max(deltas_vs_orig))
+        pooled_parts = ([per_seed_tta[orig_seed][mid]] if local_mode else [tta5[mid]]) \
+            + [per_seed_tta[s][mid] for s in fresh]
+        row["ttpool_allseeds_kcal"] = float(np.mean(pooled_parts))
+        row["abs_err_pooled_allseeds"] = abs(row["ttpool_allseeds_kcal"] - true[mid])
         rows.append(row)
     df = pd.DataFrame(rows)
     df.to_csv(os.path.join(OUT_DIR, "check2_sensitivity.csv"), index=False)
     pd.DataFrame([{**{"seed": s}, **{mid: per_seed_tta[s][mid] for mid in mids}}
-                  for s in args.seeds]).to_csv(
+                  for s in seeds_all]).to_csv(
         os.path.join(OUT_DIR, "check2_fresh_draw_predictions.csv"), index=False)
 
     g = df[df["group"] == "gradient12"]
     c = df[df["group"] == "certain47"]
-    rep = {"n_gradient12": len(g), "n_certain47": len(c), "seeds": args.seeds}
-    for col in ("mean_abs_delta_vs_stored", "max_abs_delta_vs_stored",
-                "mean_abs_delta_vs_tta5", "max_abs_delta_vs_tta5"):
+    rep = {"n_gradient12": len(g), "n_certain47": len(c), "seeds": args.seeds,
+           "local_baseline_seed": args.local_baseline_seed}
+    cols = ["mean_abs_delta_vs_stored", "max_abs_delta_vs_stored",
+            "mean_abs_delta_vs_tta5", "max_abs_delta_vs_tta5"]
+    if local_mode:
+        cols += ["mean_abs_delta_vs_orig_draw", "max_abs_delta_vs_orig_draw"]
+    for col in cols:
         u, p = stats.mannwhitneyu(g[col].values, c[col].values, alternative="two-sided")
         rep[f"mwu_{col}"] = {"median_g12": float(np.median(g[col])),
                              "median_c47": float(np.median(c[col])),
                              "mean_g12": float(np.mean(g[col])),
                              "mean_c47": float(np.mean(c[col])),
                              "u": float(u), "p": float(p)}
-        print(f"[ck2] MWU {col:28s} g12 med {np.median(g[col]):.4f} vs c47 med "
+        print(f"[ck2] MWU {col:32s} g12 med {np.median(g[col]):.4f} vs c47 med "
               f"{np.median(c[col]):.4f}  p={p:.4f}")
-    for s in args.seeds:
+    for s in seeds_all:
         gd = np.array([abs(per_seed_tta[s][m] - tta5[m]) for m in g["mol_id"]])
         cd = np.array([abs(per_seed_tta[s][m] - tta5[m]) for m in c["mol_id"]])
         u, p = stats.mannwhitneyu(gd, cd, alternative="two-sided")
@@ -217,21 +243,25 @@ def main():
         print(f"[ck2] MWU seed {s:>4} delta-vs-tta5: g12 med {np.median(gd):.4f} vs "
               f"c47 med {np.median(cd):.4f}  p={p:.4f}")
 
-    g_imp = (g["abs_err_tta5_recorded"] - g["abs_err_pooled_5seeds"]).values
-    c_imp = (c["abs_err_tta5_recorded"] - c["abs_err_pooled_5seeds"]).values
+    base_err_col = "abs_err_orig_draw" if local_mode else "abs_err_tta5_recorded"
+    pool_err_col = "abs_err_pooled_allseeds"
+    g_imp = (g[base_err_col] - g[pool_err_col]).values
+    c_imp = (c[base_err_col] - c[pool_err_col]).values
     w_p = stats.wilcoxon(g_imp, alternative="two-sided").pvalue if len(g_imp) >= 5 else None
     rep["pooling"] = {
-        "g12_mae_tta5_recorded": float(np.mean(g["abs_err_tta5_recorded"])),
-        "g12_mae_pooled_5seeds": float(np.mean(g["abs_err_pooled_5seeds"])),
-        "c47_mae_tta5_recorded": float(np.mean(c["abs_err_tta5_recorded"])),
-        "c47_mae_pooled_5seeds": float(np.mean(c["abs_err_pooled_5seeds"])),
+        "g12_mae_baseline": float(np.mean(g[base_err_col])),
+        "g12_mae_pooled_allseeds": float(np.mean(g[pool_err_col])),
+        "c47_mae_baseline": float(np.mean(c[base_err_col])),
+        "c47_mae_pooled_allseeds": float(np.mean(c[pool_err_col])),
         "g12_n_improved_by_pooling": int(np.sum(g_imp > 0)),
         "g12_wilcoxon_p": float(w_p) if w_p else None,
+        "baseline": "orig_draw" if local_mode else "tta5_recorded",
     }
-    print(f"[ck2] pooling (5 seeds x 5 confs): g12 MAE {rep['pooling']['g12_mae_tta5_recorded']:.3f} -> "
-          f"{rep['pooling']['g12_mae_pooled_5seeds']:.3f} | c47 "
-          f"{rep['pooling']['c47_mae_tta5_recorded']:.3f} -> "
-          f"{rep['pooling']['c47_mae_pooled_5seeds']:.3f} | g12 improved "
+    print(f"[ck2] pooling (all seeds x 5 confs, baseline={rep['pooling']['baseline']}): "
+          f"g12 MAE {rep['pooling']['g12_mae_baseline']:.3f} -> "
+          f"{rep['pooling']['g12_mae_pooled_allseeds']:.3f} | c47 "
+          f"{rep['pooling']['c47_mae_baseline']:.3f} -> "
+          f"{rep['pooling']['c47_mae_pooled_allseeds']:.3f} | g12 improved "
           f"{rep['pooling']['g12_n_improved_by_pooling']}/{len(g)} (wilcoxon p={w_p:.4f})")
 
     with open(os.path.join(OUT_DIR, "check2_report.json"), "w") as f:
