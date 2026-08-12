@@ -1,55 +1,51 @@
-# Gradient-12: conformer-instability (Check 1) & data-provenance (Check 3)
+# Gradient-12: conformer & provenance checks — final (box-truth)
 
-Both checks use the same groups as all prior analyses: gradient12 = wrong18 − isolated6
-(12), isolated6 (6), wrong18 (18, quadrant `low_std_high_rmse`), certain47 (47,
+Groups as in all prior analyses: gradient12 = wrong18 − isolated6 (12),
+isolated6 (6), wrong18 (18, quadrant `low_std_high_rmse`), certain47 (47,
 quadrant `low_std_low_rmse`). P-values are NOT multiple-testing corrected
 (hypothesis-generating, consistent with prior analyses).
 
+All box runs below: `root@C.47518475:/workspace/training`, torch 2.12.0+cu130,
+rdkit 2026.03.5, GPU RTX 5080 (check2), seed-42 checkpoint (sha `7994ef…`).
+
 ---
 
-## IMPORTANT calibration finding (read first)
+## 0. The recorded-metrics mystery — resolved (read first)
 
-Local (Windows) inference with the **sha-verified** original checkpoint
-(`deep_ensemble/seed_42/ensemble_seed42.pt`, sha256 `7994ef…` matches
-`metrics.json`) over the **stored conformer set** (`Data/freesolv_conformers.hdf5`)
-does NOT reproduce the recorded training-time single-conformer test MAE:
+The original training-time evals (single-conf MAE 0.5313; 5-conf TTA 0.5048 per
+`predictions.csv`) cannot be reproduced on ANY surviving machine:
 
-- recorded (box, training time): single-conf MAE **0.5313** kcal/mol
-- local (same checkpoint + stored conformers, `de.conformer_average` fallback path):
-  **3.398** kcal/mol
-- per-molecule local single-conf vs box 5-conf-TTA: Spearman rho = **0.177**
-
-The 8/5 ensemble_average_report claims "matched exactly" but stores no numeric
-evidence. Given checkpoint sha, code (`DimeModels.py`) and hdf5 structure are all
-consistent with the training state, the discrepancy is attributed to a changed
-conformer-generation environment (local RDKit 2026.03.4 ETKDGv3/MMFF vs the box's
-training-time RDKit; local MMFF post-optimization energies for e.g. glucose are
-+80…+90 kcal/mol, i.e. strained, and local fresh conformers of glucose all predict
-−2.3…−5.9 kcal/mol while the box's TTA-5 was −24.24 vs true −25.47).
+- **Local (Windows, rdkit 2026.03.4)** and **the new box (rdkit 2026.03.5)**
+  produce byte-identical results (per-seed draw deltas match exactly; both give
+  stored-conformer single-conf MAE 2.5155 on the 59-mol subset) → conformer
+  generation agrees across all surviving environments.
+- The old training instance is destroyed (only C.47518475 exists). Its
+  environment — and with it the 0.5048/0.5313 numbers — is gone.
+- `freesolv_conformers.hdf5` was **not** the input to the recorded evals:
+  git history holds exactly one blob (`61c48f1`, "Track freesolv_conformers.hdf5
+  (1.7 MB, un-ignored from *.hdf5 pattern)") == the surviving stale file, created
+  locally 7/21/2026 — *after* training. The recorded metrics were computed from
+  fresh in-memory conformers on the old box with its training-time RDKit; that
+  geometry regime differs from the surviving 2026.03 family in a way that changes
+  per-molecule predictions by up to ~20 kcal/mol (glucose: −2.3…−5.9 surviving
+  environment vs −24.24 recorded, true −25.47), yet the checkpoint, DimeModels.py
+  (unchanged since `b4c0b56`) and hdf5 structure are all authentic.
 
 **Consequences:**
-1. Absolute prediction values / MAEs computed locally are NOT comparable to box
-   metrics. All within-machinery RELATIVE comparisons below (g12 vs c47, 5-conf vs
-   50-conf TTA, correlations) remain valid as controlled experiments (identical
-   pipeline for all 129 molecules).
-2. The model is EXTREMELY geometry-sensitive: conformer generation differences
-   change per-molecule predictions by up to ~20 kcal/mol (glucose), which itself
-   supports a "conformer machinery" sensitivity story — but not one that
-   differentiates gradient-12 from certain-47 locally.
-3. **The definitive run is `box_conformer_checks.sh` on the Vast box**, which has
-   the training-time RDKit, environment, and the true `freesolv_conformers.hdf5`.
-   Its `calibration:` line should print ~0.5313 if the box files are intact.
+1. Absolute MAEs from the surviving environments (3.4 kcal/mol single-conf,
+   3.409 TTA-5) are NOT comparable to the recorded box metrics. All
+   within-machinery RELATIVE comparisons (g12 vs c47) remain valid as controlled
+   experiments — identical pipeline for every molecule.
+2. The 0.5048/0.5313 record is unrecoverable. Do not compare new numbers to it.
 
 ---
 
-## Check 1: conformer ensemble instability (local, internally consistent)
+## Check 1: conformer ensemble instability (box; == local results)
 
-Protocol reused exactly from `deep_ensemble.conformer_average`: ETKDGv3
-(randomSeed 42, pruneRmsThresh 0.5) + MMFF optimize, 50 conformers requested per
-molecule, seed-42 checkpoint, `build_one_hot` + `model(x, pos, batch) × EV_TO_KCAL`.
-Also ran a local 5-conformer TTA pass for the conformer-count comparison.
-
-Per-molecule (all 129 test molecules):
+Protocol identical to `deep_ensemble.conformer_average`: ETKDGv3 (randomSeed 42,
+pruneRmsThresh 0.5) + MMFF, 50 conformers requested per molecule (848 kept in
+total — pruning leaves 1–3 distinct for these small molecules), seed-42
+checkpoint, `model(x, pos, batch) × EV_TO_KCAL`.
 
 | metric | gradient12 med | certain47 med | MWU p |
 |---|---|---|---|
@@ -57,55 +53,83 @@ Per-molecule (all 129 test molecules):
 | MMFF energy spread of conformers (kcal/mol) | 0.131 | 0.588 | 0.26 |
 | n distinct conformers kept (of 50 requested) | 1.5 | 3.0 | 0.19 |
 
-- **gradient-12 does NOT show higher conformer instability** — if anything the
-  direction is opposite, and gradient-12 keeps FEWER distinct conformers (more
-  rigid molecules), which mechanically caps their prediction std. All n.s.
-- Spearman across all 129: conformer-pred-std vs original 5-conf-TTA error
-  rho = **−0.119** (p = 0.18); within other-64: +0.087 (n.s.). MMFF energy spread
-  vs error: −0.103 (p = 0.24). Conformer instability does NOT predict error
-  generally.
-- 50-conformer vs 5-conformer TTA (identical local machinery): g12 MAE
-  3.057 → 3.083, all-129 3.398 → 3.392; **2/12 gradient-12 improved**. More
-  conformers do NOT improve accuracy (pruning at 0.5 Å leaves only 1–3 distinct
-  conformers for these small molecules, so 50 ≈ 5).
-- Per-conformer data: `per_conformer_predictions.csv`; per-molecule:
-  `per_molecule_conformer_stats.csv`; calibration: `calibration_stored_conformer.csv`.
+- **gradient-12 does NOT show higher conformer instability**; direction is
+  opposite and gradient-12 keeps FEWER distinct conformers (more rigid), which
+  caps their prediction std. All n.s.
+- Spearman across all 129: conformer-pred-std vs recorded 5-conf-TTA error
+  rho = −0.118 (p = 0.18); other-64 +0.092 (n.s.). MMFF spread vs error −0.104
+  (p = 0.24). Conformer instability does not predict error.
+- 50- vs 5-conformer TTA (identical machinery): g12 MAE 3.057 → 3.083, all
+  3.409 → 3.402; **2/12 gradient-12 improved**. More conformers do not help.
+- `check1_box.log`; per-conformer `per_conformer_predictions.csv`, per-molecule
+  `per_molecule_conformer_stats.csv`, `calibration_stored_conformer.csv`.
 
-**Verdict (local, to be confirmed on the box): conformer instability does NOT
-explain gradient-12. Rule-out #6.**
+**Verdict: conformer instability does NOT explain gradient-12. Rule-out #6.**
 
-## Check 3: data provenance / source heterogeneity
+## Check 3: data provenance (box; environment-independent)
 
-`Data/FreeSolv/database.json` (642 records) has rich metadata: `expt_reference`,
-`calc_reference`, `groups` (functional-group tags), `notes`, `iupac`,
-`expt_h_reference`, etc. (full field inventory in `provenance_report.json`).
+`database.json` (642 records): `expt_reference`, `calc_reference`, `groups`,
+`notes`, etc.
 
-- **All 12/12 gradient-12 molecules carry `expt_reference = 10.1021/ct050097l`**
-  (Mobley et al., JCTC 2006 — the dominant FreeSolv experimental source: 422/642
-  full-DB, 87/129 test set, 67.4% base rate). Fisher's exact vs full-DB base:
-  **p = 0.0106**; vs the more appropriate test-set base rate (87/129): p = 0.0105.
-  Enrichment is real but not absolute — it is the single dominant source, and
-  gradient-12 is 100% from it. (Uncorrected; one of several tables tested.)
-- Default-uncertainty note ("Experimental uncertainty not presently available…"):
-  present in **120/129 (93%)** of the whole test set → NOT a discriminator
-  (p = 1.0). `d_expt` is never "Not available" locally; no
-  "computed-value-used-as-experiment" flags exist in this DB copy.
-- `groups` tags: no enrichment (largest p = 0.39; 22 tags tested).
-- Cross-tabs: `crosstab_expt_reference.csv`, `crosstab_calc_reference.csv`,
-  `crosstab_groups.csv`; per-molecule detail: `gradient12_provenance_detail.csv`.
+- **All 12/12 gradient-12 carry `expt_reference = 10.1021/ct050097l`**
+  (Mobley et al., JCTC 2006 — dominant FreeSolv source: 422/642 full-DB, 87/129
+  test, 67.4% base rate). Fisher vs full-DB: p = 0.0106; vs test-set base:
+  p = 0.0105. Real but not absolute; single dominant source, not a discriminator.
+- Default-uncertainty note in 120/129 (93%) of the whole test set → not a
+  discriminator (p = 1.0). `d_expt` never "Not available"; no
+  computed-value-as-experiment flags in this DB copy.
+- `groups` tags: no enrichment (largest p = 0.39, 22 tags).
+- Cross-tabs: `crosstab_*.csv`, `gradient12_provenance_detail.csv`,
+  `provenance_report.json`.
 
-**Verdict: no strong provenance story. A weak statistical enrichment toward the
-single dominant source (Fisher p ≈ 0.01, uncorrected) — worth noting, but it
-does not mechanistically explain drift-out. Rule-out #7, with a footnote.**
+**Verdict: no strong provenance story; weak single-source enrichment only
+(Fisher p ≈ 0.01, uncorrected). Rule-out #7, with a footnote.**
+
+## Check 2: conformer-DRAW sensitivity (box; new test, hypothesis 8)
+
+Question: would gradient-12's wrong predictions change if a DIFFERENT, equally
+valid conformer draw had been frozen into the pipeline? For each of the 12 + 47
+molecules: 5 fresh conformers (ETKDGv3, pruneRmsThresh 0.5, +MMFF) with
+embedding seeds **7, 123, 2024, 999** (≠ training seed 42), predicted with the
+seed-42 checkpoint; per-molecule sensitivity = |fresh-draw TTA-5 − baseline|
+over the 4 seeds, vs two baselines: (a) stored-conformer single prediction
+(same environment), (b) recorded training-time TTA-5 (`predictions.csv`).
+
+| test | gradient12 med | certain47 med | MWU p |
+|---|---|---|---|
+| delta vs stored (same-env, clean) | 0.062 | 0.228 | 0.90 |
+| max delta vs stored | 0.120 | 0.364 | 0.92 |
+| delta vs recorded TTA-5 (cross-env*) | 2.69 | 1.75 | 0.63 |
+| per-seed delta vs TTA-5 (7/123/2024/999) | — | — | 0.64/0.67/0.46/0.89 |
+
+\* contaminated: recorded TTA-5 lives in the destroyed environment (see §0); the
+~2.7 kcal/mol g12 value is the environment gap, not draw randomness.
+
+- **Predictions barely move when the conformer draw changes** (0.06–0.23
+  kcal/mol, same environment), and gradient-12 is, if anything, LESS
+  draw-sensitive (p = 0.90, direction negative). A different equally-valid draw
+  would have produced essentially the same (wrong) answer.
+- Pooling 5 seeds × 5 conformers does NOT fix gradient-12: cross-env comparison
+  invalid (g12 0.572 → 2.423, 2/12 improved); the internally-consistent local
+  pooling (all draws same environment) gives g12 3.057 → 3.028, p = 0.34, 8/12
+  improved — noise-level. **Conformer-seed ensembling is not an actionable fix.**
+- `check2_box.log`, `check2_sensitivity.csv`, `check2_fresh_draw_predictions.csv`,
+  `check2_report.json`.
+
+**Verdict: conformer-draw sensitivity does NOT explain gradient-12. Rule-out #8.**
 
 ---
 
 ## Bottom line
 
-Sixth and seventh hypotheses ruled out. Neither conformer-ensemble instability
-(with 50-conformer TTA offering no improvement) nor data-source provenance
-explains gradient-12. The one live thread from this round is the calibration
-discrepancy itself (local conformer machinery ≠ box training-time machinery, with
-the model being extremely sensitive to it) — run `box_conformer_checks.sh` on the
-Vast box for the definitive Check-1 numbers, and confirm the box's stored
-conformers reproduce the recorded 0.5313 single-conf MAE.
+Eight hypotheses ruled out, in order: Tanimoto similarity, GMM-NLL confidence,
+physicochemical descriptors, sign consistency, conformer-ensemble instability,
+data-source provenance, conformer-draw sensitivity, conformer-seed ensembling.
+The gradient-12 cluster is not an artifact of which valid geometry was frozen
+into the pipeline, and no conformer-related remedy helps it.
+
+The only durable finding of this round is negative for reproducibility: the
+recorded training metrics (0.5048/0.5313) originated in a now-destroyed Vast
+instance whose conformer-generation regime cannot be recovered from git, the
+checkpoint, or any surviving environment — treat those recorded numbers as
+unverifiable historical values.
