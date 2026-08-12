@@ -1,0 +1,11 @@
+[ck1] calibration: stored-box-conformer single-conf MAE = 3.4752 (training-time single-conf MAE 0.5313, per metrics.json)
+[ck1] conformer gen + inference done in 0.7 min (848 conformers)
+[ck1] MWU pred_std_across_conformers     g12 med 0.0952 vs c47 med 0.2555  p=0.7635
+[ck1] MWU mmff_energy_spread_kcal        g12 med 0.1306 vs c47 med 0.5882  p=0.2643
+[ck1] MWU n_conformers_kept_50           g12 med 1.5000 vs c47 med 3.0000  p=0.1895
+[ck1] spearman conformer-pred-std         vs 5-conf-TTA err (all 129): rho=-0.118 p=0.1834
+[ck1] spearman conformer-pred-std         vs 5-conf-TTA err (other-64 only): rho=+0.092 p=0.4679
+[ck1] spearman MMFF energy spread         vs 5-conf-TTA err (all 129): rho=-0.104 p=0.2411
+[ck1] spearman MMFF energy spread         vs 5-conf-TTA err (other-64 only): rho=+0.120 p=0.3431
+[ck1] MAE5(local) vs MAE50: g12 3.057 -> 3.083 | all 3.409 -> 3.402 | g12 improved 2/12
+[ck1] outputs -> /workspace/training/aqm-spice2/freesolv/deep_ensemble/gradient12_conformer_provenance_check

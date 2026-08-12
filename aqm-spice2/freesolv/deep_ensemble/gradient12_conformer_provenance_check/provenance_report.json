@@ -362,5 +362,5 @@
       }
     ]
   },
-  "gradient12_provenance_detail_csv": "C:\\Users\\User\\Documents\\Data\\aqm-spice2\\freesolv\\deep_ensemble\\gradient12_conformer_provenance_check\\gradient12_provenance_detail.csv"
+  "gradient12_provenance_detail_csv": "/workspace/training/aqm-spice2/freesolv/deep_ensemble/gradient12_conformer_provenance_check/gradient12_provenance_detail.csv"
 }

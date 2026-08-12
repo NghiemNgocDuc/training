@@ -1,0 +1,13 @@
+[ck2] device: cuda
+[ck2] calibration on 59 mols: stored-conformer single-conf MAE = 2.5155 (recorded 0.5313 per metrics.json) - DISCREPANCY
+[ck2] fresh draws (seeds [7, 123, 2024, 999]) done in 0.5 min
+[ck2] MWU mean_abs_delta_vs_stored         g12 med 0.0623 vs c47 med 0.2281  p=0.9026
+[ck2] MWU max_abs_delta_vs_stored          g12 med 0.1197 vs c47 med 0.3635  p=0.9175
+[ck2] MWU mean_abs_delta_vs_tta5           g12 med 2.6927 vs c47 med 1.7511  p=0.6311
+[ck2] MWU max_abs_delta_vs_tta5            g12 med 2.8279 vs c47 med 2.0554  p=0.6581
+[ck2] MWU seed    7 delta-vs-tta5: g12 med 2.7632 vs c47 med 1.7531  p=0.6445
+[ck2] MWU seed  123 delta-vs-tta5: g12 med 2.6197 vs c47 med 1.8269  p=0.6718
+[ck2] MWU seed 2024 delta-vs-tta5: g12 med 2.6982 vs c47 med 1.9764  p=0.4570
+[ck2] MWU seed  999 delta-vs-tta5: g12 med 2.5347 vs c47 med 1.7382  p=0.8877
+[ck2] pooling (all seeds x 5 confs, baseline=tta5_recorded): g12 MAE 0.572 -> 2.423 | c47 0.115 -> 1.812 | g12 improved 2/12 (wilcoxon p=0.0034)
+[ck2] outputs -> /workspace/training/aqm-spice2/freesolv/deep_ensemble/gradient12_conformer_provenance_check

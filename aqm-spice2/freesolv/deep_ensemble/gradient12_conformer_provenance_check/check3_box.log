@@ -1,0 +1,24 @@
+[prov] database.json: 642 records
+[prov] metadata fields present (top-level): d_charging x642, expt_reference x642, nickname x642, expt_s (cal/K.mol) x642, expt_h x642, h_conf x642, d_h_solv x642, smiles x642, calc_h x642, d_expt_s (cal/K.mol) x642, d_expt_h x642, d_calc x642, iupac x642, calc_charging x642, d_calc_h x642, d_h_conf x642, d_vdw x642, d_expt x642, h_solv x642, d_calc_s (cal/mol.K) x642, expt x642, calc_vdw x642, expt_h_reference x642, calc_reference x642, groups x642, calc x642, PubChemID x642, notes x642, calc_s (cal/mol.K) x642
+[prov] expt_reference: fisher rows = 6
+    10.1021/ct050097l                               g12 12/12 ref 410/642 OR inf p=0.0106
+    10.1021/jp806724u                               g12 0/12 ref 49/642 OR 0.00 p=0.6137
+    SAMPL4_Guthrie                                  g12 0/12 ref 41/642 OR 0.00 p=1.0000
+    10.1007/s10822-010-9350-8                       g12 0/12 ref 30/642 OR 0.00 p=1.0000
+    10.1007/s10822-012-9568-8                       g12 0/12 ref 28/642 OR 0.00 p=1.0000
+    10.1039/P29900000291                            g12 0/12 ref 22/642 OR 0.00 p=1.0000
+[prov] calc_reference: fisher rows = 1
+    10.1021/acs.jced.7b00104                        g12 12/12 ref 630/642 OR nan p=1.0000
+[prov] groups: fisher rows = 22
+    aromatic                                        g12 5/12 ref 262/642 OR 1.00 p=1.0000
+    heterocyclic                                    g12 0/12 ref 88/642 OR 0.00 p=0.3870
+    aryl chloride                                   g12 1/12 ref 60/642 OR 0.86 p=1.0000
+    carboxylic acid ester                           g12 1/12 ref 51/642 OR 1.03 p=1.0000
+    alkene                                          g12 0/12 ref 50/642 OR 0.00 p=0.6131
+    phenol or hydroxyhetarene                       g12 0/12 ref 49/642 OR 0.00 p=0.6137
+    alkyl chloride                                  g12 0/12 ref 37/642 OR 0.00 p=1.0000
+    ketone                                          g12 1/12 ref 35/642 OR 1.55 p=0.5028
+[prov] default-uncertainty note: g12 12/12 | test 120/129 (93.0%) | full 583/642 | fisher_p(vs test base) = 1.0000
+[prov] d_expt = Not available: g12 0/12 | test 0/129 (0.0%) | full 0/642 | fisher_p(vs test base) = 1.0000
+[prov] expt_ref == calc_ref (value is computed, not measured): g12 0/12 | test 0/129 (0.0%) | full 0/642 | fisher_p(vs test base) = 1.0000
+[prov] outputs -> /workspace/training/aqm-spice2/freesolv/deep_ensemble/gradient12_conformer_provenance_check
