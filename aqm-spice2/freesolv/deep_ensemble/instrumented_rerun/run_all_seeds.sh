@@ -14,8 +14,11 @@ cd "$ROOT"
 for SEED in 123 7 2024 999; do
   echo "[run] ===== seed $SEED ====="
   python "$RERUN/instrument_finetune.py" --seed "$SEED" --device cuda
-  python "$RERUN/sanity_check.py" --seed "$SEED"
 done
 
-echo "[run] Stage B complete. Combine per-seed epoch_predictions.csv files for the "
-echo "     5-seed trajectory analysis (Stage B report follows, see analyze_stageB.py)."
+echo "[run] all 4 seeds trained; running the 5-seed trajectory analysis"
+python "$RERUN/analyze_stageB.py"
+
+echo "[run] Stage B complete. Review analysis_stageB/stageB_report.json + PNGs."
+echo "     (per-seed sanity check is skipped: no original references exist for"
+echo "      seeds 123/7/2024/999 - only seed 42 has recorded originals)"

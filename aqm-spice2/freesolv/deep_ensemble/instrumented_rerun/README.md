@@ -116,6 +116,24 @@ Current protocol (after the RNG-leak fix, commit 7a5ec0c):
    Review `compare_runs/cmp_verdict_full.json`. PASS -> proceed to full Stage B
    (4 more seeds). FAIL -> instrumentation still perturbs training beyond
    hardware nondeterminism; investigate before further runs.
+5. **Stage B** — instrumented fine-tuning for the remaining 4 seeds
+   (123, 7, 2024, 999; seed_42 already done and validated), then the 5-seed
+   trajectory analysis:
+
+   ```
+   nohup bash aqm-spice2/freesolv/deep_ensemble/instrumented_rerun/run_all_seeds.sh \
+       > aqm-spice2/freesolv/deep_ensemble/instrumented_rerun/run_all_seeds.log 2>&1 &
+   ```
+
+   ~1 h total. On completion, `analyze_stageB.py` produces
+   `analysis_stageB/stageB_report.json` + 3 PNGs answering:
+   Q1 first-hit epoch per molecule + stays-or-drifts-back-out (stability,
+   drift-out runs, longest out-streak); Q2 post-convergence oscillation (std of
+   per-mol prediction in the last 20% of epochs); Q3 pooled-val best epoch vs
+   each group's own optimal epoch (does the pooled choice sacrifice
+   gradient-12?); Q4 cross-seed consistency (per-metric direction + MWU per
+   seed, per-molecule slow-mol consistency). Per-seed sanity check is skipped
+   for the new seeds - no original references exist for them.
 
 Legacy instructions (single reference, original recorded numbers):
 
