@@ -1,0 +1,50 @@
+{
+  "taut_amide_urea_lactam": {
+    "rho_vs_abs_error": 0.19815859033379535,
+    "p_vs_abs_error": 0.024378310169652428,
+    "rho_vs_signed_error": 0.15972783342057442,
+    "p_vs_signed_error": 0.07058646539570575
+  },
+  "taut_aromatic_pyrrole_NH": {
+    "rho_vs_abs_error": 0.2140916652925591,
+    "p_vs_abs_error": 0.014839857151645387,
+    "rho_vs_signed_error": -0.08011171991592535,
+    "p_vs_signed_error": 0.3667968954018636
+  },
+  "taut_phenol_OH": {
+    "rho_vs_abs_error": 0.03153429199038165,
+    "p_vs_abs_error": 0.7227672672011776,
+    "rho_vs_signed_error": 0.14835451004565914,
+    "p_vs_signed_error": 0.09337036332184978
+  },
+  "taut_alpha_CH2_to_carbonyl": {
+    "rho_vs_abs_error": -0.15727477447984212,
+    "p_vs_abs_error": 0.07507493913877804,
+    "rho_vs_signed_error": -0.08199158859138689,
+    "p_vs_signed_error": 0.35562287000855947
+  },
+  "ion_carboxylic_acid": {
+    "rho_vs_abs_error": 0.14226736467828122,
+    "p_vs_abs_error": 0.10776710940115164,
+    "rho_vs_signed_error": 0.20856671909146082,
+    "p_vs_signed_error": 0.01769435738990803
+  },
+  "ion_amine_primary_secondary": {
+    "rho_vs_abs_error": 0.1280591739356197,
+    "p_vs_abs_error": 0.14809937433542594,
+    "rho_vs_signed_error": -0.1684989130731838,
+    "p_vs_signed_error": 0.056284830183634164
+  },
+  "ion_amine_tertiary": {
+    "rho_vs_abs_error": 0.13641586071424763,
+    "p_vs_abs_error": 0.1231899963548787,
+    "rho_vs_signed_error": 0.01977041459626777,
+    "p_vs_signed_error": 0.8240143000726183
+  },
+  "has_charged_atoms": {
+    "rho_vs_abs_error": 0.17735455041236645,
+    "p_vs_abs_error": 0.04435467363474224,
+    "rho_vs_signed_error": -0.22697706710805443,
+    "p_vs_signed_error": 0.009689298308510615
+  }
+}
