@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Full neighbor-regularization SWEEP (box-side, GPU, SEQUENTIAL).
-# 10 concurrent DimeNet++ models OOM a 23.55 GiB GPU (~3 GiB each), so runs
-# are serialized (17 runs x ~10-30 min ~= 3-8 h total; watch smoke_v2_seq.log
-# style progress below).
+# Full neighbor-regularization SWEEP (box-side, GPU, parallel-by-default-3).
+# 10 concurrent DimeNet++ models OOM a 23.55 GiB GPU (~3 GiB each); 3 at a
+# time (~9 GiB) is safe and keeps the GPU busy. Tune with PARALLEL=N env.
+# 17 runs x ~10-30 min / 3 = ~3-8 h total.
 #
 # One SHARED lambda=0 baseline (lambda 0 skips the graph pass -> identical
 # for v1 tanimoto and v2 latent sources).
@@ -10,6 +10,7 @@
 #   v2 latent:   same grid, --neighbor_source latent (k=5, min_sim=0.5)
 #
 # Usage (detached):  nohup bash run_sweep_box.sh > sweep_v2_seq.log 2>&1 &
+# PARALLEL=4 nohup bash run_sweep_box.sh > sweep_v2_seq.log 2>&1 &
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo "$(dirname "$0")/../..")"
 
@@ -48,24 +49,49 @@ done
 
 N_RUNS=${#RUNS[@]}
 I=0
+PARALLEL="${PARALLEL:-3}"        # ~3 GiB per model; 3 concurrent is safe on 23.55 GiB
+PIDS=()
+launch_one() {
+  local entry="$1" out extra name log
+  out="${entry%%|*}"; extra="${entry#*|}"
+  name=$(basename "$out")
+  log="$NR/logs/sweep_${name}.log"
+  mkdir -p "$(dirname "$log")"
+  echo "=== [$I/$N_RUNS] $out -> $log (parallel) ==="
+  rm -rf "$NR/$out"   # no partials from any earlier attempt
+  $PY "$NR/finetune_nbr.py" --seed "$SEED" --epochs "$EPOCHS" \
+      --patience "$PATIENCE" --track_groups $extra --out "$NR/$out" \
+      > "$log" 2>&1 &
+  PIDS+=("$!")
+}
+
+reap() {
+  local new=() pid
+  for pid in "${PIDS[@]}"; do
+    if kill -0 "$pid" 2>/dev/null; then new+=("$pid"); fi
+  done
+  PIDS=("${new[@]}")
+}
+
 for ENTRY in "${RUNS[@]}"; do
   I=$((I + 1))
-  OUT="${ENTRY%%|*}"; EXTRA="${ENTRY#*|}"
-  NAME=$(basename "$OUT")
-  LOG="$NR/logs/sweep_${NAME}.log"
-  mkdir -p "$(dirname "$LOG")"
-  echo "=== [$I/$N_RUNS] $OUT -> $LOG (sequential) ==="
-  rm -rf "$NR/$OUT"   # no partials from any earlier attempt
-  if ! $PY "$NR/finetune_nbr.py" --seed "$SEED" --epochs "$EPOCHS" \
-      --patience "$PATIENCE" --track_groups $EXTRA --out "$NR/$OUT" \
-      > "$LOG" 2>&1; then
-    echo "=== RUN FAILED [$I/$N_RUNS] $OUT (see $LOG) ==="
-    tail -20 "$LOG"
-    exit 1
-  fi
-  echo "=== done [$I/$N_RUNS] $(grep -c DONE "$LOG") DONE marker ==="
+  while [ "${#PIDS[@]}" -ge "$PARALLEL" ]; do
+    reap
+    if [ "${#PIDS[@]}" -ge "$PARALLEL" ]; then sleep 15; fi
+  done
+  launch_one "$ENTRY"
 done
 
-echo "ALL $N_RUNS sweep runs finished OK (sequential)."
+FAILED=0
+for pid in "${PIDS[@]}"; do
+  wait "$pid" || FAILED=$((FAILED + 1))
+done
+if [ "$FAILED" -gt 0 ]; then
+  echo "=== $FAILED RUN(S) FAILED - inspect logs under $NR/logs/sweep_*.log ==="
+  grep -l "Traceback\|CUDA out of memory" "$NR"/logs/sweep_*.log 2>/dev/null || true
+  exit 1
+fi
+
+echo "ALL $N_RUNS sweep runs finished OK (parallel=$PARALLEL)."
 echo "Results: ls $NR/baseline $NR/raw $NR/normalized $NR/v2_latent"
 echo "Aggregate: python $NR/report_results.py --baseline-dir $NR/baseline/lambda0_seed42 --runs $NR/raw/lambda0.001_seed42 $NR/raw/lambda0.003_seed42 $NR/raw/lambda0.01_seed42 $NR/raw/lambda0.03_seed42 $NR/normalized/lambda0.05_seed42 $NR/normalized/lambda0.1_seed42 $NR/normalized/lambda0.3_seed42 $NR/normalized/lambda1.0_seed42"
