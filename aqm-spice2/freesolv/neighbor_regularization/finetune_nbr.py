@@ -22,6 +22,20 @@ can be inspected directly.
 lambda_nbr=0 skips the graph pass entirely -> byte-identical to
 deep_ensemble.train_member -> the baseline reproduction control.
 
+v2 (--neighbor_source latent, see DESIGN_v2.md): the graph is built on cosine
+similarity of the model's own mean-pooled latent space (graph_cache/
+latent_k{k}_sim{sim}.json, built by latent_graph.py, which also computes
+per-molecule GMM-NLL uncertainty u_i, the trust gate t_j on neighbors, and
+the static trust-filtered weight sum S_i). Per node:
+
+    L_i = u_i * [ sum_j w_ij*t_j*(p_i - p_j)^2 / S_i ]
+
+with contribution 0 for nodes whose S_i < --coverage_floor (no trusted
+neighbors; logged to epoch_fallback.csv + counted per epoch in
+epoch_history.csv n_fallback). Graph, u_i, t_j, S_i are all STATIC and
+computed once; only p_i are current-model predictions. The v1 Tanimoto path
+(--neighbor_source tanimoto, default) is byte-identical to the original.
+
 --track_groups (smoke-test only): per-epoch test-set eval split by the
 isolated6 / gradient12 / wrong18 / certain47 groups (definitions from the
 rmse_analysis CSVs), written to epoch_test_groups.csv. The added eval pass is
@@ -33,6 +47,8 @@ untouched.
 Usage:
   python finetune_nbr.py --lambda_nbr 0.1 --out results_lambda0.1 --epochs 200
   python finetune_nbr.py --lambda_nbr 0   --out results_lambda0   --epochs 200
+  python finetune_nbr.py --neighbor_source latent --k_nbr 5 --min_sim 0.5 \\
+      --lambda_nbr 0.001 --out results_v2_lam0.001 --epochs 200
 """
 
 import argparse
@@ -93,6 +109,15 @@ def main():
                          "raw eV^2 magnitude still recorded in the epoch history)")
     ap.add_argument("--k_nbr", type=int, default=5)
     ap.add_argument("--min_sim", type=float, default=0.1)
+    ap.add_argument("--neighbor_source", default="tanimoto",
+                    choices=["tanimoto", "latent"],
+                    help="tanimoto: v1 graph (Morgan r=2, cached). latent: v2 "
+                         "graph (cosine in model latent space, graph_cache/"
+                         "latent_k{k}_sim{sim}.json + .meta.json with "
+                         "GMM-NLL u_i/trust signals, built by latent_graph.py).")
+    ap.add_argument("--coverage_floor", type=float, default=1e-6,
+                    help="v2: node with trusted weight sum < floor is skipped "
+                         "(contribution 0, logged to epoch_fallback.csv)")
     ap.add_argument("--graph_every", type=int, default=1, help="run graph pass every N epochs")
     ap.add_argument("--epochs", type=int, default=200)
     ap.add_argument("--patience", type=int, default=30)
@@ -135,11 +160,59 @@ def main():
     model_mids = [m for m in mol_ids if m in set(train_ids) | set(val_ids) | set(test_ids)]
 
     # ---- static similarity graph (structures only, no labels) ----
-    graph, graph_meta = load_or_build_graph(
-        os.path.join(_script_dir, "graph_cache"), model_mids,
-        {m: all_labels[m]["smiles"] for m in model_mids},
-        k=args.k_nbr, min_sim=args.min_sim)
-    edge_i, edge_j, edge_w = graph_to_tensor(graph, model_mids, device)
+    if args.neighbor_source == "latent":
+        # v2: skip the Tanimoto graph entirely; load the latent graph below.
+        graph, graph_meta = None, None
+    else:
+        graph, graph_meta = load_or_build_graph(
+            os.path.join(_script_dir, "graph_cache"), model_mids,
+            {m: all_labels[m]["smiles"] for m in model_mids},
+            k=args.k_nbr, min_sim=args.min_sim)
+    edge_i = edge_j = edge_w = None
+    if graph is not None:
+        edge_i, edge_j, edge_w = graph_to_tensor(graph, model_mids, device)
+
+    # ---- v2: latent-space graph + GMM-NLL uncertainty/trust signals ----
+    u_vec = None
+    t_vec = None
+    s_vec = None
+    fallback_mids = []
+    latent_meta = None
+    if args.neighbor_source == "latent":
+        latent_path = os.path.join(
+            _script_dir, "graph_cache",
+            f"latent_k{args.k_nbr}_sim{args.min_sim}.json")
+        meta_path = latent_path + ".meta.json"
+        if not os.path.exists(latent_path):
+            raise SystemExit(f"latent graph missing: {latent_path}\n"
+                             "build it first: python latent_graph.py "
+                             f"--k {args.k_nbr} --min-sim {args.min_sim}")
+        with open(latent_path) as f:
+            latent_graph = json.load(f)
+        with open(meta_path) as f:
+            latent_meta = json.load(f)
+        if set(latent_meta["mids"]) != set(model_mids):
+            raise SystemExit("latent graph node set != fold-0 universe; "
+                             "rebuild latent_graph.py")
+        graph = latent_graph                         # edges = latent cosine
+        graph_meta = latent_meta
+        edge_i, edge_j, edge_w = graph_to_tensor(graph, model_mids, device)
+        sig = latent_meta["signals"]
+        u_vec = torch.tensor([sig["u"][m] for m in model_mids],
+                             dtype=torch.float, device=device)
+        t_vec = torch.tensor([sig["trust"][m] for m in model_mids],
+                             dtype=torch.float, device=device)
+        s_vec = torch.tensor([sig["S"][m] for m in model_mids],
+                             dtype=torch.float, device=device)
+        fallback_mids = [m for m in sig["fallback"] if m in set(model_mids)]
+        n_fb = len(fallback_mids)
+        print(f"  [v2 latent] {len(model_mids)} nodes | u in "
+              f"[{u_vec.min().item():.4f},{u_vec.max().item():.4f}] | "
+              f"trusted {int(t_vec.sum().item())}/642 | fallback (S<floor): {n_fb}")
+        print(f"  [v2 latent] trust threshold {sig['trust_threshold']:.4f} "
+              f"({sig['trust_policy']}) | nll sanity Spearman "
+              f"{latent_meta['provenance']['cached_corr']['test_mean_nll_spearman']}")
+
     test_set = set(test_ids)
     test_nodes = [i for i, m in enumerate(model_mids) if m in test_set]
     n_test_active = sum(1 for i in test_nodes if any(
@@ -247,13 +320,17 @@ def main():
     def graph_pass():
         """Full-graph forward (all 642 structures, no labels) -> L_neighbor.
 
-        Returns (L_used, L_raw, var_p, n_active):
-          L_raw : mean_i [ sum_j w_ij (p_i - p_j)^2 / sum_j w_ij ]   (eV^2)
-          L_used: L_raw / var(p) if --normalize_nbr else L_raw
-          var_p : variance of the 642 current predictions (eV^2)
+        v1 tanimoto: mean_i [ sum_j w_ij (p_i-p_j)^2 / sum_j w_ij ] (eV^2).
+        v2 latent:   mean_i [ u_i * sum_j w_ij*t_j*(p_i-p_j)^2 / S_i ],
+                     fallback nodes (S_i < floor) contribute 0.
+
+        Returns (L_used, L_raw, var_p, n_active, n_fallback):
+          L_raw : raw graph loss (eV^2) — for v1: mean_i [...]; for v2:
+                  mean_i [u_i * ...] (with 0 for fallback).
+          L_used: L_raw / var(p) if --normalize_nbr else L_raw.
         """
         if args.lambda_nbr == 0:
-            return None, None, None, None
+            return None, None, None, None, None
         model.train()
         preds = []
         with torch.enable_grad():
@@ -265,18 +342,36 @@ def main():
         assert p.shape[0] == len(model_mids)
         pi = p[edge_i]
         pj = p[edge_j]
-        wsum = torch.zeros(len(model_mids), device=device).index_add_(
-            0, edge_i, edge_w)
-        active = wsum > 0
-        per_node = torch.zeros(len(model_mids), device=device)
-        per_node.index_add_(0, edge_i, edge_w * (pi - pj).pow(2))
-        l_raw = (per_node[active] / wsum[active]).mean()
+
+        if args.neighbor_source == "latent" and u_vec is not None:
+            # v2: trust-gated edges, u_i uncertainty weight, static S_i
+            edge_t = t_vec[edge_j]                # trust gate per neighbor
+            trust_weight = edge_w * edge_t
+            num = torch.zeros(len(model_mids), device=device)
+            num.index_add_(0, edge_i, trust_weight * (pi - pj).pow(2))
+            active = s_vec >= args.coverage_floor
+            n_active = int(active.sum().item())
+            n_fb = len(model_mids) - n_active
+            l_full = torch.zeros(len(model_mids), device=device)
+            l_full[active] = num[active] / s_vec[active]
+            l_raw = (u_vec * l_full).mean()        # 0 contributions for fallback
+        else:
+            # v1: plain Tanimoto graph (unchanged)
+            wsum = torch.zeros(len(model_mids), device=device).index_add_(
+                0, edge_i, edge_w)
+            active = wsum > 0
+            n_active = int(active.sum().item())
+            n_fb = 0
+            per_node = torch.zeros(len(model_mids), device=device)
+            per_node.index_add_(0, edge_i, edge_w * (pi - pj).pow(2))
+            l_raw = (per_node[active] / wsum[active]).mean()
+
         var_p = torch.var(p)
         if args.normalize_nbr and var_p > 1e-12:
             l_used = l_raw / var_p
         else:
             l_used = l_raw
-        return l_used, l_raw, var_p, int(active.sum().item())
+        return l_used, l_raw, var_p, n_active, n_fb
 
     out_dir = args.out
     if not os.path.isabs(out_dir):
@@ -322,16 +417,17 @@ def main():
             n_batches += 1
         task_mse = task_mse_acc / max(n_batches, 1)
 
-        l_used = l_raw_ = var_p = n_active = None
+        l_used = l_raw_ = var_p = n_active = n_fb = None
         if args.lambda_nbr > 0 and epoch % args.graph_every == 0:
-            l_used, l_raw_, var_p, n_active = graph_pass()
+            l_used, l_raw_, var_p, n_active, n_fb = graph_pass()
             check_finite("L_neighbor", l_used)
             epoch_history.append({
                 "epoch": epoch, "task_mse_train_eV2": round(task_mse, 6),
                 "l_nbr_raw_eV2": round(float(l_raw_.detach().item()), 6),
                 "l_nbr_used": round(float(l_used.detach().item()), 6),
                 "var_p_eV2": round(float(var_p.detach().item()), 6),
-                "n_active": n_active, "normalized": args.normalize_nbr,
+                "n_active": n_active, "n_fallback": n_fb,
+                "normalized": args.normalize_nbr,
             })
             optimizer.zero_grad()
             total = l_used * args.lambda_nbr
@@ -342,7 +438,7 @@ def main():
             epoch_history.append({
                 "epoch": epoch, "task_mse_train_eV2": round(task_mse, 6),
                 "l_nbr_raw_eV2": None, "l_nbr_used": None,
-                "var_p_eV2": None, "n_active": None,
+                "var_p_eV2": None, "n_active": None, "n_fallback": None,
                 "normalized": args.normalize_nbr,
             })
 
@@ -400,15 +496,25 @@ def main():
             f.write(f"{mid},{tta_preds_by_mid[mid]:.6f},{all_labels[mid]['expt']:.6f}\n")
 
     with open(os.path.join(out_dir, "epoch_history.csv"), "w") as f:
-        f.write("epoch,task_mse_train_eV2,l_nbr_raw_eV2,l_nbr_used,var_p_eV2,n_active,normalized\n")
+        f.write("epoch,task_mse_train_eV2,l_nbr_raw_eV2,l_nbr_used,var_p_eV2,n_active,n_fallback,normalized\n")
         for row in epoch_history:
-            f.write("{epoch},{task},{raw},{used},{varp},{act},{norm}\n".format(
+            f.write("{epoch},{task},{raw},{used},{varp},{act},{fb},{norm}\n".format(
                 epoch=row["epoch"], task=row["task_mse_train_eV2"],
                 raw="" if row["l_nbr_raw_eV2"] is None else row["l_nbr_raw_eV2"],
                 used="" if row["l_nbr_used"] is None else row["l_nbr_used"],
                 varp="" if row["var_p_eV2"] is None else row["var_p_eV2"],
                 act="" if row["n_active"] is None else row["n_active"],
+                fb="" if row["n_fallback"] is None else row["n_fallback"],
                 norm=int(row["normalized"])))
+
+    if args.neighbor_source == "latent" and fallback_mids:
+        with open(os.path.join(out_dir, "epoch_fallback.csv"), "w") as f:
+            f.write("mol_id,trusted_weight_sum_S\n")
+            sig = latent_meta["signals"]
+            for m in fallback_mids:
+                f.write(f"{m},{sig['S'].get(m, 0.0)}\n")
+        print(f"  [fallback] {len(fallback_mids)} molecules below coverage "
+              f"floor logged -> epoch_fallback.csv")
 
     if args.track_groups:
         with open(os.path.join(out_dir, "epoch_test_groups.csv"), "w") as f:
@@ -421,6 +527,7 @@ def main():
     config = vars(args)
     config["device"] = args.device
     config["graph_meta"] = graph_meta
+    config["latent_meta"] = latent_meta
     config["epoch_history"] = epoch_history
     config["task_loss_units"] = "eV^2"
     config["nan_inf_seen"] = nan_inf_seen
