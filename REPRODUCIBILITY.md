@@ -57,6 +57,25 @@ produced the 0.549 result — no longer exists anywhere:
   (`freesolv/cv_results_full/fold_N/…`) were archived on the destroyed
   instance and are not present in this repo.
 
+## Naming hazard: nested result paths (read before any cleanup/deletion)
+
+Several result trees live under a duplicated repo prefix
+(`aqm-spice2/aqm-spice2/...`) because the training scripts resolve relative
+result paths against the script's own directory. Do not "normalize" these.
+
+- The headline Stage-2 frozen backbone checkpoint is the NESTED
+  `aqm-spice2/aqm-spice2/pipeline/results_full/stage2_correction.pt` — the
+  exact path recorded in each per-seed `metrics.json` field `correction_ckpt`
+  (see `seed_42/metrics.json`). The top-level `aqm-spice2/pipeline/results/`
+  once held a DIFFERENT, superseded `stage2_correction.pt` (distinct sha256);
+  it was removed in the 2026-08-13 cleanup. Never delete or "fix" the nested
+  `results_full/` tree.
+- Fold splits and fold-0 checkpoints of the recorded CV come from the nested
+  `aqm-spice2/aqm-spice2/freesolv/cv_results_full/fold_N/` (the
+  `split_source`/`split_dir` fields in `metrics.json`/`config.json`); there is
+  no top-level `cv_results_full`. Any cleanup pass must check these
+  `metrics.json` reference fields before treating sibling paths as redundant.
+
 ## Guidance for any writeup / reviewer claims
 
 - Cite 0.549 +/- 0.024 as an archived, arithmetic-verified result whose
