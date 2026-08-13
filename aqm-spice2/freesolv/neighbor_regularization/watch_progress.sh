@@ -15,7 +15,7 @@ BARW=40
 refresh() {
   local total done label bar filled empty pct a_idx a_log a_ep a_ep_total
   total=$(grep -oP '\[[0-9]+/[0-9]+\]' "$LOG" | tail -1)
-  total="${total#\[}"; total="${total%\]}"
+  total="${total#\[}"; total="${total%\]}"; total="${total##*/}"
   done=$(grep -c '=== done \[' "$LOG" 2>/dev/null || true)
 
   # active runs = launch markers that never got a done marker; show each one's epoch
