@@ -22,12 +22,21 @@ can be inspected directly.
 lambda_nbr=0 skips the graph pass entirely -> byte-identical to
 deep_ensemble.train_member -> the baseline reproduction control.
 
+--track_groups (smoke-test only): per-epoch test-set eval split by the
+isolated6 / gradient12 / wrong18 / certain47 groups (definitions from the
+rmse_analysis CSVs), written to epoch_test_groups.csv. The added eval pass is
+wrapped in the EXISTING rng_snapshot/rng_restore utility from
+instrumented_rerun.instrument_finetune (loaded by file path; the
+deep_ensemble/ dir has no __init__.py) so the training loop's RNG stream is
+untouched.
+
 Usage:
   python finetune_nbr.py --lambda_nbr 0.1 --out results_lambda0.1 --epochs 200
   python finetune_nbr.py --lambda_nbr 0   --out results_lambda0   --epochs 200
 """
 
 import argparse
+import importlib.util
 import json
 import os
 import sys
@@ -53,6 +62,17 @@ from deep_ensemble import (
 )
 from freesolv_dataset import download_freesolv_data, load_freesolv_labels
 from graph import load_or_build_graph, graph_to_tensor
+
+# Load the EXISTING rng_snapshot/rng_restore utility from
+# deep_ensemble/instrumented_rerun/instrument_finetune.py (by file path:
+# the deep_ensemble/ directory has no __init__.py). The added per-epoch
+# group eval in this script must NOT perturb the training loop's RNG stream.
+_rng_util_path = os.path.join(
+    _parent, "deep_ensemble", "instrumented_rerun", "instrument_finetune.py")
+_rng_spec = importlib.util.spec_from_file_location("nbr_rng_util", _rng_util_path)
+_rng_util = importlib.util.module_from_spec(_rng_spec)
+_rng_spec.loader.exec_module(_rng_util)
+rng_snapshot, rng_restore = _rng_util.rng_snapshot, _rng_util.rng_restore
 
 
 def ckpt_sha256(path):
@@ -81,6 +101,9 @@ def main():
     ap.add_argument("--conformers", default=DEFAULT_CONFORMERS)
     ap.add_argument("--split_dir", default=DEFAULT_SPLIT_DIR)
     ap.add_argument("--correction_ckpt", default=DEFAULT_CORRECTION_CKPT)
+    ap.add_argument("--track_groups", action="store_true",
+                    help="smoke-test: per-epoch test-set eval split by "
+                         "isolated6/gradient12/wrong18/certain47 (RNG-guarded)")
     ap.add_argument("--out", default=os.path.join(_script_dir, "results_lambda0.1"))
     ap.add_argument("--device", default=None, help="cuda or cpu; default auto (cuda if available)")
     args = ap.parse_args()
@@ -136,6 +159,21 @@ def main():
     val_loader = DataLoader(val_ds, batch_size=args.batch_size, shuffle=False)
     test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False)
 
+    # ---- smoke-test group tracking: reuse the rmse_analysis group definitions ----
+    if args.track_groups:
+        from report_results import load_groups
+        wrong18, certain47, isolated6, gradient12 = load_groups()
+        group_sets = {
+            "all129": set(test_ids),
+            "wrong18": wrong18, "certain47": certain47,
+            "isolated6": isolated6, "gradient12": gradient12,
+        }
+        for gname, mids in group_sets.items():
+            n_known = len([m for m in mids if m in test_ids])
+            print(f"  [groups] {gname}: {n_known} of {len(mids)} in test set")
+    else:
+        group_sets = {}
+
     # Label-free dataset for the graph pass (STRUCTURES only).
     class GraphDataset:
         def __init__(self, mids, hdf5_path):
@@ -179,6 +217,32 @@ def main():
         preds = torch.cat(all_p).numpy()
         expts = torch.cat(all_e).numpy()
         return float(np.mean(np.abs(preds - expts))), float(np.sqrt(np.mean((preds - expts) ** 2))), preds, expts
+
+    def eval_test_by_group():
+        """Per-molecule test predictions -> per-group (MAE, RMSE, n).
+        Only runs when --track_groups; must be called inside the RNG guard."""
+        model.eval()
+        rows = {}
+        with torch.no_grad():
+            for data in test_loader:
+                data = data.to(device)
+                x = build_one_hot(data, device)
+                pred = model(x, data.pos, data.batch).view(-1) * EV_TO_KCAL
+                dG_exp = data.y_dG.view(-1).to(device)
+                for batch_pos, mid in enumerate(data.mol_id):
+                    p, e = pred[batch_pos].item(), dG_exp[batch_pos].item()
+                    if not np.isnan(e):
+                        rows[mid] = (p, e)
+        out = {}
+        for gname, mids in group_sets.items():
+            vals = [rows[m] for m in mids if m in rows]
+            if not vals:
+                out[gname] = (None, None, 0)
+                continue
+            ps = np.array([v[0] for v in vals]); es = np.array([v[1] for v in vals])
+            out[gname] = (float(np.mean(np.abs(ps - es))),
+                          float(np.sqrt(np.mean((ps - es) ** 2))), len(vals))
+        return out
 
     def graph_pass():
         """Full-graph forward (all 642 structures, no labels) -> L_neighbor.
@@ -225,6 +289,7 @@ def main():
     stop_epoch = args.epochs
     t0_all = time.time()
     epoch_history = []
+    group_history = []
     nan_inf_seen = False
 
     def check_finite(name, t):
@@ -288,6 +353,17 @@ def main():
         scheduler.step(val_mae)
         dt = time.time() - t0
 
+        if args.track_groups:
+            _rng = rng_snapshot()
+            group_maes = eval_test_by_group()
+            rng_restore(_rng)
+            for gname, (mae, rmse, n) in group_maes.items():
+                group_history.append({
+                    "epoch": epoch, "group": gname, "n": n,
+                    "mae": "" if mae is None else round(mae, 4),
+                    "rmse": "" if rmse is None else round(rmse, 4),
+                })
+
         if val_mae < best_val_mae:
             best_val_mae = val_mae
             best_epoch = epoch
@@ -333,6 +409,14 @@ def main():
                 varp="" if row["var_p_eV2"] is None else row["var_p_eV2"],
                 act="" if row["n_active"] is None else row["n_active"],
                 norm=int(row["normalized"])))
+
+    if args.track_groups:
+        with open(os.path.join(out_dir, "epoch_test_groups.csv"), "w") as f:
+            f.write("epoch,group,n,mae,rmse\n")
+            for row in group_history:
+                f.write("{epoch},{group},{n},{mae},{rmse}\n".format(
+                    epoch=row["epoch"], group=row["group"], n=row["n"],
+                    mae=row["mae"], rmse=row["rmse"]))
 
     config = vars(args)
     config["device"] = args.device
