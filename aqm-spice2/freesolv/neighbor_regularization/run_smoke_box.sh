@@ -18,9 +18,12 @@ SEED=42
 V2="--neighbor_source latent --k_nbr 5 --min_sim 0.5"
 
 # v2 latent graph + GMM-NLL signals (idempotent; reuses cached z_train/z_test,
-# regenerates z_val.npz if missing)
+# regenerates z_val.npz if missing). pipefail so a build failure aborts the
+# launcher instead of silently launching runs against stale/missing artifacts.
+set -o pipefail
 echo "=== building latent graph (if stale) ==="
-$PY aqm-spice2/freesolv/neighbor_regularization/latent_graph.py --k 5 --min-sim 0.5 --out aqm-spice2/freesolv/neighbor_regularization/graph_cache 2>&1 | tail -20
+$PY aqm-spice2/freesolv/neighbor_regularization/latent_graph.py --k 5 --min-sim 0.5 --out aqm-spice2/freesolv/neighbor_regularization/graph_cache 2>&1 | tail -30
+set +o pipefail
 
 declare -a RUNS=(
   "smoke_test/baseline/lambda0_seed42|--lambda_nbr 0"
