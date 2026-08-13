@@ -46,13 +46,13 @@ launch_one() {
   name="${out//\//_}"
   log="$NR/logs/rerun_${name}.log"
   mkdir -p "$(dirname "$log")"
-  if [ -f "$NR/$out/metrics.json" ]; then
+  if [ -f "$NR/$NR/$out/metrics.json" ]; then
     echo "=== [$I/$N_RUNS] SKIP (already complete): $out ==="
     echo "=== done [$I/$N_RUNS] $out ==="
     return
   fi
   echo "=== [$I/$N_RUNS] $out -> $log (rerun) ==="
-  rm -rf "$NR/$out"   # no partials from the OOM attempt
+  rm -rf "$NR/$NR/$out"   # trainer resolves relative --out against its own dir: nested at $NR/$NR
   $PY "$NR/finetune_nbr.py" --seed "$SEED" --epochs "$EPOCHS" \
       --patience "$PATIENCE" --track_groups $extra --out "$NR/$out" \
       > "$log" 2>&1 &

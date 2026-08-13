@@ -68,7 +68,7 @@ launch_one() {
   log="$NR/logs/sweep_${name}.log"
   mkdir -p "$(dirname "$log")"
   echo "=== [$I/$N_RUNS] $out -> $log (parallel) ==="
-  rm -rf "$NR/$out"   # no partials from any earlier attempt
+  rm -rf "$NR/$NR/$out"   # trainer resolves relative --out against its own dir: nested at $NR/$NR
   $PY "$NR/finetune_nbr.py" --seed "$SEED" --epochs "$EPOCHS" \
       --patience "$PATIENCE" --track_groups $extra --out "$NR/$out" \
       > "$log" 2>&1 &
