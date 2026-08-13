@@ -24,6 +24,10 @@ refresh() {
   while IFS=' ' read -r a_idx a_log; do
     [ -n "$a_idx" ] || continue
     case "$done_idx" in *" $a_idx "*) continue;; esac
+    if [ "$a_log" = "(skipped)" ]; then
+      label="${label}${a_idx}:skip "
+      continue
+    fi
     a_ep=""; a_ep_total=""
     if [ -f "$a_log" ]; then
       a_ep=$(grep -oP 'ep\s+\K[0-9]+(?=/)' "$a_log" | tail -1)

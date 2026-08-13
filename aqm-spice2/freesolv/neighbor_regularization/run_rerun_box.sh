@@ -57,7 +57,7 @@ launch_one() {
   log="$NR/logs/rerun_${name}.log"
   mkdir -p "$(dirname "$log")"
   if [ -f "$NR/$NR/$out/metrics.json" ]; then
-    echo "=== [$I/$N_RUNS] SKIP (already complete): $out ==="
+    echo "=== [$I/$N_RUNS] $out -> (skipped) ==="
     echo "=== done [$I/$N_RUNS] $out ==="
     return
   fi
