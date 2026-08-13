@@ -16,6 +16,12 @@ PY=python
 EPOCHS=15
 SEED=42
 V2="--neighbor_source latent --k_nbr 5 --min_sim 0.5"
+
+# v2 latent graph + GMM-NLL signals (idempotent; reuses cached z_train/z_test,
+# regenerates z_val.npz if missing)
+echo "=== building latent graph (if stale) ==="
+$PY aqm-spice2/freesolv/neighbor_regularization/latent_graph.py --k 5 --min-sim 0.5 --out aqm-spice2/freesolv/neighbor_regularization/graph_cache 2>&1 | tail -20
+
 declare -a RUNS=(
   "smoke_test/baseline/lambda0_seed42|--lambda_nbr 0"
   "smoke_test/raw/lambda0.001_seed42|--lambda_nbr 0.001"
