@@ -21,9 +21,10 @@ refresh() {
   done=$(grep -c '=== done \[' "$LOG" 2>/dev/null || true)
   i="${total%%/*}"; total="${total##*/}"
 
-  # current run = next not-yet-done marker
-  name=$(grep '=== \[' "$LOG" | tail -1 | sed -E 's/.*\] ([^ ]+).*/\1/')
-  # find that run's per-epoch log (smoke_<name>.log or sweep_<name>.log)
+  # current run = most recent `=== [i/N] <out>` line that is NOT a done marker
+  name=$(grep '=== \[' "$LOG" | grep -v 'done \[' | tail -1 \
+    | sed -E 's/.*\] ([^ ]+).*/\1/' | xargs basename)
+  # find that run's per-epoch log (logs/smoke_<name>.log or logs/sweep_<name>.log)
   RLOG="$NR/logs/$(ls "$NR/logs" 2>/dev/null | grep -E "^(smoke|sweep)_${name}\.log$" | head -1)"
   epoch=""
   ep_total=""
