@@ -64,7 +64,7 @@ declare -a RPIDS=() RIDX=() ROUT=()
 launch_one() {
   local entry="$1" out extra name log
   out="${entry%%|*}"; extra="${entry#*|}"
-  name=$(basename "$out")
+  name="${out//\//_}"   # full path as log name - v1/v2 normalized share basenames (lambda1.0 etc.)
   log="$NR/logs/sweep_${name}.log"
   mkdir -p "$(dirname "$log")"
   echo "=== [$I/$N_RUNS] $out -> $log (parallel) ==="
