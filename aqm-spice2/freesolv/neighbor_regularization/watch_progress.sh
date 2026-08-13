@@ -24,8 +24,11 @@ refresh() {
   # current run = most recent `=== [i/N] <out>` line that is NOT a done marker
   name=$(grep '=== \[' "$LOG" | grep -v 'done \[' | tail -1 \
     | sed -E 's/.*\] ([^ ]+).*/\1/' | xargs basename)
-  # find that run's per-epoch log (logs/smoke_<name>.log or logs/sweep_<name>.log)
-  RLOG="$NR/logs/$(ls "$NR/logs" 2>/dev/null | grep -E "^(smoke|sweep)_${name}\.log$" | head -1)"
+  # per-epoch log: prefer the launcher's own prefix (smoke_/sweep_) so stale
+  # logs from a previous batch never shadow the current run
+  PREFIX=smoke_
+  case "$LOG" in *sweep*) PREFIX=sweep_;; esac
+  RLOG="$NR/logs/$(ls "$NR/logs" 2>/dev/null | grep -E "^${PREFIX}${name}\.log$" | head -1)"
   epoch=""
   ep_total=""
   if [ -n "$RLOG" ] && [ -f "$RLOG" ]; then
@@ -66,11 +69,11 @@ refresh() {
 # status line (also shows final state / failures)
 status() {
   if grep -q 'ALL .* runs finished OK' "$LOG"; then
-    echo "DONE: $(grep -oP 'ALL \K[0-9]+' "$LOG" | head -1)/$(grep -oP 'ALL \K[0-9]+' "$LOG" | head -1) runs OK"
+    echo "DONE: all runs OK"
   elif grep -q 'RUN FAILED' "$LOG"; then
     echo "FAILED run: $(grep 'RUN FAILED' "$LOG" | tail -1)"
   else
-    echo "running: $(grep -c '=== done \[' "$LOG" 2>/dev/null || echo 0) done"
+    echo "running: $(grep -c '=== done \[' "$LOG" 2>/dev/null) done"
   fi
 }
 
