@@ -23,6 +23,16 @@ V2="--neighbor_source latent --k_nbr 5 --min_sim 0.5"
 RAW_LAMBDAS=(0.001 0.003 0.01 0.03)
 NORM_LAMBDAS=(0.05 0.1 0.3 1.0)
 
+mkdir -p "$NR"
+LOCK="$NR/.sweep.lock"
+if [ -f "$LOCK" ] && kill -0 "$(cat "$LOCK")" 2>/dev/null; then
+  echo "ERROR: run_sweep_box.sh is already running (PID $(cat "$LOCK"))."
+  echo "Kill it first (pkill -f run_sweep_box) or remove $LOCK, then relaunch."
+  exit 1
+fi
+echo $$ > "$LOCK"
+trap 'rm -f "$LOCK"' EXIT
+
 GRAPH_META="$NR/graph_cache/latent_k5_sim0.5.json.meta.json"
 if [ ! -f "$GRAPH_META" ]; then
   echo "=== latent graph artifacts missing: rebuilding ==="
@@ -68,7 +78,11 @@ launch_one() {
 reap() {
   local new=() pid
   for pid in "${PIDS[@]}"; do
-    if kill -0 "$pid" 2>/dev/null; then new+=("$pid"); fi
+    if kill -0 "$pid" 2>/dev/null; then
+      new+=("$pid")
+    else
+      echo "=== done [pid $pid] ==="
+    fi
   done
   PIDS=("${new[@]}")
 }
@@ -84,7 +98,12 @@ done
 
 FAILED=0
 for pid in "${PIDS[@]}"; do
-  wait "$pid" || FAILED=$((FAILED + 1))
+  if wait "$pid"; then
+    echo "=== done [pid $pid] ==="
+  else
+    FAILED=$((FAILED + 1))
+    echo "=== done [pid $pid] FAILED ==="
+  fi
 done
 if [ "$FAILED" -gt 0 ]; then
   echo "=== $FAILED RUN(S) FAILED - inspect logs under $NR/logs/sweep_*.log ==="
