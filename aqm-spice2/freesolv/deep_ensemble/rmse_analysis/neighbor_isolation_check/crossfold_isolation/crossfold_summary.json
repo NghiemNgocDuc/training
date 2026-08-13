@@ -1,0 +1,155 @@
+{
+  "fold_config": {
+    "fold_0": {
+      "n_test": 129,
+      "n_isolated_lt_022": 2,
+      "n_isolated_lt_030": 8
+    },
+    "fold_1": {
+      "n_test": 129,
+      "n_isolated_lt_022": 3,
+      "n_isolated_lt_030": 8
+    },
+    "fold_2": {
+      "n_test": 128,
+      "n_isolated_lt_022": 3,
+      "n_isolated_lt_030": 12
+    },
+    "fold_3": {
+      "n_test": 128,
+      "n_isolated_lt_022": 3,
+      "n_isolated_lt_030": 12
+    },
+    "fold_4": {
+      "n_test": 128,
+      "n_isolated_lt_022": 3,
+      "n_isolated_lt_030": 10
+    }
+  },
+  "pooled_across_5_folds": {
+    "n_total_test": 642,
+    "n_isolated_vs_train_lt_022": 14,
+    "n_isolated_vs_train_lt_030": 50,
+    "n_structurally_isolated_lt_022": 9,
+    "n_structurally_isolated_lt_030": 39
+  },
+  "isolated_molecules_lt_022": [
+    {
+      "fold": 0,
+      "mol_id": "mobley_1417007",
+      "best_sim_vs_train": 0.1379
+    },
+    {
+      "fold": 0,
+      "mol_id": "mobley_9029594",
+      "best_sim_vs_train": 0.2
+    },
+    {
+      "fold": 1,
+      "mol_id": "mobley_5692472",
+      "best_sim_vs_train": 0.2
+    },
+    {
+      "fold": 1,
+      "mol_id": "mobley_9729792",
+      "best_sim_vs_train": 0.2143
+    },
+    {
+      "fold": 1,
+      "mol_id": "mobley_1723043",
+      "best_sim_vs_train": 0.1429
+    },
+    {
+      "fold": 2,
+      "mol_id": "mobley_8578590",
+      "best_sim_vs_train": 0.2
+    },
+    {
+      "fold": 2,
+      "mol_id": "mobley_3323117",
+      "best_sim_vs_train": 0.1818
+    },
+    {
+      "fold": 2,
+      "mol_id": "mobley_5631798",
+      "best_sim_vs_train": 0.0526
+    },
+    {
+      "fold": 3,
+      "mol_id": "mobley_1770205",
+      "best_sim_vs_train": 0.2083
+    },
+    {
+      "fold": 3,
+      "mol_id": "mobley_9653690",
+      "best_sim_vs_train": 0.2059
+    },
+    {
+      "fold": 3,
+      "mol_id": "mobley_3775790",
+      "best_sim_vs_train": 0.2105
+    },
+    {
+      "fold": 4,
+      "mol_id": "mobley_7378987",
+      "best_sim_vs_train": 0.1739
+    },
+    {
+      "fold": 4,
+      "mol_id": "mobley_1929982",
+      "best_sim_vs_train": 0.0769
+    },
+    {
+      "fold": 4,
+      "mol_id": "mobley_9055303",
+      "best_sim_vs_train": 0.0
+    }
+  ],
+  "structurally_isolated_lt_022": [
+    {
+      "fold": 0,
+      "mol_id": "mobley_1417007",
+      "best_sim_vs_642_universe": 0.1395
+    },
+    {
+      "fold": 1,
+      "mol_id": "mobley_9729792",
+      "best_sim_vs_642_universe": 0.2143
+    },
+    {
+      "fold": 1,
+      "mol_id": "mobley_1723043",
+      "best_sim_vs_642_universe": 0.1429
+    },
+    {
+      "fold": 2,
+      "mol_id": "mobley_8578590",
+      "best_sim_vs_642_universe": 0.2
+    },
+    {
+      "fold": 2,
+      "mol_id": "mobley_3323117",
+      "best_sim_vs_642_universe": 0.1818
+    },
+    {
+      "fold": 2,
+      "mol_id": "mobley_5631798",
+      "best_sim_vs_642_universe": 0.0
+    },
+    {
+      "fold": 4,
+      "mol_id": "mobley_7378987",
+      "best_sim_vs_642_universe": 0.1765
+    },
+    {
+      "fold": 4,
+      "mol_id": "mobley_1929982",
+      "best_sim_vs_642_universe": 0.0
+    },
+    {
+      "fold": 4,
+      "mol_id": "mobley_9055303",
+      "best_sim_vs_642_universe": 0.0
+    }
+  ]
+}
