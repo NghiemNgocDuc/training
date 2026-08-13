@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Rerun of the runs lost to startup OOM in the PARALLEL=2 sweep (10,11,12,13,17).
-# The killer was the INITIAL graph_pass forward (line 422, before epoch 1):
-# a whole-graph batch spike that OOMs when two runs hit it simultaneously.
-# Sequential (PARALLEL=1) gives one process the full 23.55 GiB - safe.
+# SAFE re-run of any sweep runs missing metrics.json (i.e. that crashed before
+# finishing - the PARALLEL=2 sweep lost most runs to mid-training OOM, which
+# the launcher's done-markers masked). Sequential by default (PARALLEL=1):
+# concurrency is what kills runs on this GPU, so do not raise it.
 #
-# Auto-skips any run whose dir already has metrics.json (written only on a
-# clean completion), so rerunning is safe even if the dead list is imperfect.
+# Auto-skips runs whose dir already has metrics.json (only written on clean
+# completion), so covering ALL 17 is safe and retrains exactly the dead ones.
 #
 # Usage (detached):  nohup bash run_rerun_box.sh > rerun_v2.log 2>&1 &
 set -euo pipefail
@@ -17,6 +17,8 @@ PATIENCE=30
 SEED=42
 NR="aqm-spice2/freesolv/neighbor_regularization"
 V2="--neighbor_source latent --k_nbr 5 --min_sim 0.5"
+RAW_LAMBDAS=(0.001 0.003 0.01 0.03)
+NORM_LAMBDAS=(0.05 0.1 0.3 1.0)
 
 mkdir -p "$NR"
 LOCK="$NR/.sweep.lock"
@@ -29,12 +31,20 @@ echo $$ > "$LOCK"
 trap 'rm -f "$LOCK"' EXIT
 
 declare -a RUNS=(
-  "v2_latent/raw_lambda0.001_seed42|--lambda_nbr 0.001 $V2"
-  "v2_latent/raw_lambda0.003_seed42|--lambda_nbr 0.003 $V2"
-  "v2_latent/raw_lambda0.01_seed42|--lambda_nbr 0.01 $V2"
-  "v2_latent/raw_lambda0.03_seed42|--lambda_nbr 0.03 $V2"
-  "v2_latent/normalized/lambda1.0_seed42|--lambda_nbr 1.0 --normalize_nbr $V2"
+  "baseline/lambda0_seed42|--lambda_nbr 0"
 )
+for L in "${RAW_LAMBDAS[@]}"; do
+  RUNS+=("raw/lambda${L}_seed42|--lambda_nbr $L")
+done
+for L in "${NORM_LAMBDAS[@]}"; do
+  RUNS+=("normalized/lambda${L}_seed42|--lambda_nbr $L --normalize_nbr")
+done
+for L in "${RAW_LAMBDAS[@]}"; do
+  RUNS+=("v2_latent/raw_lambda${L}_seed42|--lambda_nbr $L $V2")
+done
+for L in "${NORM_LAMBDAS[@]}"; do
+  RUNS+=("v2_latent/normalized/lambda${L}_seed42|--lambda_nbr $L --normalize_nbr $V2")
+done
 
 N_RUNS=${#RUNS[@]}
 I=0
