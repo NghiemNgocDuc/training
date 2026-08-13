@@ -60,7 +60,7 @@ done
 N_RUNS=${#RUNS[@]}
 I=0
 PARALLEL="${PARALLEL:-3}"        # ~3 GiB per model; 3 concurrent is safe on 23.55 GiB
-PIDS=()
+declare -a RPIDS=() RIDX=() ROUT=()
 launch_one() {
   local entry="$1" out extra name log
   out="${entry%%|*}"; extra="${entry#*|}"
@@ -72,37 +72,41 @@ launch_one() {
   $PY "$NR/finetune_nbr.py" --seed "$SEED" --epochs "$EPOCHS" \
       --patience "$PATIENCE" --track_groups $extra --out "$NR/$out" \
       > "$log" 2>&1 &
-  PIDS+=("$!")
+  RPIDS+=("$!")
+  RIDX+=("$I")
+  ROUT+=("$out")
 }
 
 reap() {
-  local new=() pid
-  for pid in "${PIDS[@]}"; do
+  local new=() nidx=() nout=() k pid idx out
+  for k in "${!RPIDS[@]}"; do
+    pid="${RPIDS[$k]}"; idx="${RIDX[$k]}"; out="${ROUT[$k]}"
     if kill -0 "$pid" 2>/dev/null; then
-      new+=("$pid")
+      new+=("$pid"); nidx+=("$idx"); nout+=("$out")
     else
-      echo "=== done [pid $pid] ==="
+      echo "=== done [$idx/$N_RUNS] $out ==="
     fi
   done
-  PIDS=("${new[@]}")
+  RPIDS=("${new[@]}"); RIDX=("${nidx[@]}"); ROUT=("${nout[@]}")
 }
 
 for ENTRY in "${RUNS[@]}"; do
   I=$((I + 1))
-  while [ "${#PIDS[@]}" -ge "$PARALLEL" ]; do
+  while [ "${#RPIDS[@]}" -ge "$PARALLEL" ]; do
     reap
-    if [ "${#PIDS[@]}" -ge "$PARALLEL" ]; then sleep 15; fi
+    if [ "${#RPIDS[@]}" -ge "$PARALLEL" ]; then sleep 15; fi
   done
   launch_one "$ENTRY"
 done
 
 FAILED=0
-for pid in "${PIDS[@]}"; do
+for k in "${!RPIDS[@]}"; do
+  pid="${RPIDS[$k]}"; idx="${RIDX[$k]}"; out="${ROUT[$k]}"
   if wait "$pid"; then
-    echo "=== done [pid $pid] ==="
+    echo "=== done [$idx/$N_RUNS] $out ==="
   else
     FAILED=$((FAILED + 1))
-    echo "=== done [pid $pid] FAILED ==="
+    echo "=== done [$idx/$N_RUNS] $out FAILED ==="
   fi
 done
 if [ "$FAILED" -gt 0 ]; then

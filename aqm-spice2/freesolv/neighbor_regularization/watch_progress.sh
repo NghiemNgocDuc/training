@@ -17,11 +17,13 @@ refresh() {
   total=$(grep -oP '\[[0-9]+/[0-9]+\]' "$LOG" | tail -1)
   total="${total#\[}"; total="${total%\]}"; total="${total##*/}"
   done=$(grep -c '=== done \[' "$LOG" 2>/dev/null || true)
+  done_idx=" $(grep -oP '=== done \[\K[0-9]+(?=/)' "$LOG" | tr '\n' ' ') "
 
   # active runs = launch markers that never got a done marker; show each one's epoch
   label=""
   while IFS=' ' read -r a_idx a_log; do
     [ -n "$a_idx" ] || continue
+    case "$done_idx" in *" $a_idx "*) continue;; esac
     a_ep=""; a_ep_total=""
     if [ -f "$a_log" ]; then
       a_ep=$(grep -oP 'ep\s+\K[0-9]+(?=/)' "$a_log" | tail -1)
