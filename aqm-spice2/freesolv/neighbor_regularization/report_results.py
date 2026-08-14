@@ -48,6 +48,13 @@ def load_groups():
 def preds_for(run_dir):
     with open(os.path.join(run_dir, "metrics.json")) as f:
         m = json.load(f)
+    cfg_path = os.path.join(run_dir, "config.json")
+    if os.path.exists(cfg_path) and not m.get("neighbor_source"):
+        with open(cfg_path) as f:
+            cfg = json.load(f)
+        m["normalize_nbr"] = m.get("normalize_nbr", cfg.get("normalize_nbr", False))
+        m["neighbor_source"] = m.get("neighbor_source",
+                                     cfg.get("neighbor_source", "tanimoto"))
     d = pd.read_csv(os.path.join(run_dir, "augmented_predictions.csv"))
     d = d.set_index("mol_id")
     eh = None
@@ -64,7 +71,9 @@ def score(preds, expts):
 
 
 def variant_of(m):
-    return "normalized" if m.get("normalize_nbr") else "raw"
+    src = m.get("neighbor_source", "tanimoto")
+    norm = "normalized" if m.get("normalize_nbr") else "raw"
+    return f"{src}_{norm}"
 
 
 def main():
@@ -149,7 +158,8 @@ def main():
             print(hdr.format("", *cols))
             fmt = "{:>14s}" + "".join("{:16.3f}" for _ in cols)
             print(fmt.format(f"baseline l={b['lambda']}", *[b[c] for c in cols]))
-            for variant in ("raw", "normalized"):
+            for variant in ("tanimoto_raw", "tanimoto_normalized",
+                            "latent_raw", "latent_normalized"):
                 sub = df[df["variant"] == variant]
                 if len(sub):
                     best = sub.loc[sub["all129_mae"].idxmin()]

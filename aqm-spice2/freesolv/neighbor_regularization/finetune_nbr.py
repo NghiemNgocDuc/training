@@ -537,6 +537,8 @@ def main():
     metrics = {
         "seed": args.seed,
         "lambda_nbr": args.lambda_nbr,
+        "normalize_nbr": bool(args.normalize_nbr),
+        "neighbor_source": args.neighbor_source,
         "k_nbr": args.k_nbr,
         "min_sim": args.min_sim,
         "n_train": len(train_ids), "n_val": len(val_ids), "n_test": len(test_ids),
