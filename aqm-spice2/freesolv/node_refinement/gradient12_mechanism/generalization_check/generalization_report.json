@@ -1,0 +1,583 @@
+{
+  "label": "Generalization check: gated-sum-to-total-error ratio vs correction resistance (all 129 fold-0 test molecules)",
+  "design": {
+    "ratio": "|gated_sum_orig| / err_before (gated atoms' 3-seed-mean contribution sum vs molecule prediction error)",
+    "ratio_signed": "gated_sum_orig / (mean3 - truth); +1 = gated atoms alone carry the whole error",
+    "correction": "calibrated shrinkage at lambda*=1.0 (replace each gated atom with pool mean mu_bar=-0.1770)",
+    "trust_arm": "top-10 Tanimoto neighbors, w=sim, t=1-rank(u3)",
+    "permutations": 10000,
+    "rng_seed": 20260815
+  },
+  "context": {
+    "n_gated_nodes": 2904,
+    "gradient12_ratio_summary": {
+      "min": 0.0,
+      "median": 0.23755623899533945,
+      "max": 10.877998506650046,
+      "molecules": {
+        "mobley_4639255": 0.0088,
+        "mobley_6257907": 2.5635,
+        "mobley_4883284": 10.878,
+        "mobley_3682850": 0.4927,
+        "mobley_4620651": 0.0423,
+        "mobley_8449031": 0.2275,
+        "mobley_3269565": 0.1666,
+        "mobley_5052949": 0.3899,
+        "mobley_1563176": 2.0486,
+        "mobley_4483973": 0.0,
+        "mobley_1449384": 0.122,
+        "mobley_4252724": 0.2476
+      }
+    },
+    "all129_ratio_summary": {
+      "median": 0.28778642119769876,
+      "q25": 0.08027778787351574,
+      "q75": 1.0089276700289478,
+      "max": 10.877998506650046
+    }
+  },
+  "spearman": {
+    "rho_ratio_vs_delta_shrink": 0.1711285296273295,
+    "p_permutation": 0.053394660533946606,
+    "rho_ratio_vs_delta_trust": 0.052115678343040324,
+    "p_permutation_trust": 0.5637436256374363
+  },
+  "quartiles": {
+    "table": [
+      {
+        "q": "Q1",
+        "n": 33,
+        "ratio_med": 0.0284,
+        "delta_shrink_mean": -0.3421,
+        "delta_shrink_med": -0.0732,
+        "delta_trust_mean": 0.1919
+      },
+      {
+        "q": "Q2",
+        "n": 32,
+        "ratio_med": 0.1532,
+        "delta_shrink_mean": -0.5662,
+        "delta_shrink_med": -0.4278,
+        "delta_trust_mean": -0.0022
+      },
+      {
+        "q": "Q3",
+        "n": 32,
+        "ratio_med": 0.5057,
+        "delta_shrink_mean": -0.6592,
+        "delta_shrink_med": 0.1991,
+        "delta_trust_mean": -0.202
+      },
+      {
+        "q": "Q4",
+        "n": 32,
+        "ratio_med": 1.6834,
+        "delta_shrink_mean": -4.9885,
+        "delta_shrink_med": 0.0086,
+        "delta_trust_mean": -3.0559
+      }
+    ],
+    "Q1_vs_Q4_delta_shrink_mean_diff": 4.64642577818751,
+    "Q1_vs_Q4_delta_shrink_boot_ci": [
+      0.13824072764570638,
+      10.901962724207706
+    ],
+    "Q1_vs_Q4_delta_shrink_perm_p": 0.07999200079992001,
+    "Q1_vs_Q4_delta_trust_mean_diff": 3.247803589288816,
+    "Q1_vs_Q4_delta_trust_perm_p": 0.14578542145785423,
+    "sensitivity_no_gated_atoms": {
+      "Q1n": 21,
+      "Q4n": 32,
+      "mean_diff": 4.450940213057704,
+      "boot_ci": [
+        -0.04136374520407802,
+        11.003801077241931
+      ],
+      "perm_p": 0.254974502549745
+    }
+  },
+  "low_ratio_beyond_gradient12": {
+    "threshold": 0.23755623899533945,
+    "threshold_definition": "g12 median ratio (g12 ratio distribution is wide: 0.0-10.9, the dataset max)",
+    "n_molecules": 56,
+    "mean_delta_shrink": -0.4876353750306011,
+    "mean_delta_shrink_rest": -3.0398996502018765,
+    "low_vs_rest_mean_diff": 2.552264275171275,
+    "low_vs_rest_perm_p": 0.10968903109689031,
+    "low_vs_rest_boot_ci": [
+      0.020332215477653418,
+      6.100132182381043
+    ],
+    "low_group_own_ci": [
+      -0.7293609079707889,
+      -0.26452570392820346
+    ],
+    "sensitivity_threshold_0_5": {
+      "n": 71,
+      "low_vs_rest_mean_diff": 3.3247505008305254,
+      "perm_p": 0.0217978202179782
+    },
+    "molecules": {
+      "mobley_5311804": {
+        "n_gated_atoms": 0,
+        "err_before": 3.9542,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_296847": {
+        "n_gated_atoms": 0,
+        "err_before": 4.2925,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_1636752": {
+        "n_gated_atoms": 0,
+        "err_before": 7.0528,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_1144156": {
+        "n_gated_atoms": 0,
+        "err_before": 3.2557,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_7150646": {
+        "n_gated_atoms": 0,
+        "err_before": 0.3894,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_6102880": {
+        "n_gated_atoms": 0,
+        "err_before": 1.0127,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_172879": {
+        "n_gated_atoms": 0,
+        "err_before": 0.3067,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_9565165": {
+        "n_gated_atoms": 0,
+        "err_before": 1.8429,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_6250025": {
+        "n_gated_atoms": 0,
+        "err_before": 3.1916,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_8885088": {
+        "n_gated_atoms": 0,
+        "err_before": 1.0629,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_1662128": {
+        "n_gated_atoms": 0,
+        "err_before": 0.404,
+        "ratio": 0.0,
+        "delta_shrink": 0.0,
+        "delta_trust": 0.0,
+        "in_Q_std": false
+      },
+      "mobley_7794077": {
+        "n_gated_atoms": 12,
+        "err_before": 13.1103,
+        "ratio": 0.0007,
+        "delta_shrink": -2.1151,
+        "delta_trust": 0.7566,
+        "in_Q_std": true
+      },
+      "mobley_6239320": {
+        "n_gated_atoms": 9,
+        "err_before": 14.7599,
+        "ratio": 0.0212,
+        "delta_shrink": -1.2801,
+        "delta_trust": 0.8643,
+        "in_Q_std": true
+      },
+      "mobley_5220185": {
+        "n_gated_atoms": 2,
+        "err_before": 1.6849,
+        "ratio": 0.0253,
+        "delta_shrink": -0.3114,
+        "delta_trust": -0.8054,
+        "in_Q_std": false
+      },
+      "mobley_6353617": {
+        "n_gated_atoms": 4,
+        "err_before": 5.3703,
+        "ratio": 0.0284,
+        "delta_shrink": -0.5554,
+        "delta_trust": 0.6518,
+        "in_Q_std": false
+      },
+      "mobley_1075836": {
+        "n_gated_atoms": 3,
+        "err_before": 4.9997,
+        "ratio": 0.0299,
+        "delta_shrink": -0.6806,
+        "delta_trust": 0.4605,
+        "in_Q_std": false
+      },
+      "mobley_7943327": {
+        "n_gated_atoms": 1,
+        "err_before": 3.2581,
+        "ratio": 0.0316,
+        "delta_shrink": -0.074,
+        "delta_trust": -0.0392,
+        "in_Q_std": false
+      },
+      "mobley_2295058": {
+        "n_gated_atoms": 4,
+        "err_before": 6.8077,
+        "ratio": 0.0323,
+        "delta_shrink": -0.4879,
+        "delta_trust": 0.6371,
+        "in_Q_std": false
+      },
+      "mobley_4059279": {
+        "n_gated_atoms": 2,
+        "err_before": 6.2011,
+        "ratio": 0.0423,
+        "delta_shrink": -0.0916,
+        "delta_trust": -0.0835,
+        "in_Q_std": true
+      },
+      "mobley_9534740": {
+        "n_gated_atoms": 2,
+        "err_before": 22.2211,
+        "ratio": 0.0467,
+        "delta_shrink": -1.3911,
+        "delta_trust": -0.8329,
+        "in_Q_std": false
+      },
+      "mobley_7415647": {
+        "n_gated_atoms": 3,
+        "err_before": 9.3092,
+        "ratio": 0.0492,
+        "delta_shrink": -0.0732,
+        "delta_trust": 0.7871,
+        "in_Q_std": true
+      },
+      "mobley_7039935": {
+        "n_gated_atoms": 1,
+        "err_before": 3.8631,
+        "ratio": 0.0513,
+        "delta_shrink": 0.0211,
+        "delta_trust": 0.818,
+        "in_Q_std": false
+      },
+      "mobley_2487143": {
+        "n_gated_atoms": 4,
+        "err_before": 2.871,
+        "ratio": 0.0544,
+        "delta_shrink": -0.5518,
+        "delta_trust": -0.7414,
+        "in_Q_std": false
+      },
+      "mobley_1922649": {
+        "n_gated_atoms": 9,
+        "err_before": 5.22,
+        "ratio": 0.0565,
+        "delta_shrink": -1.888,
+        "delta_trust": -0.2819,
+        "in_Q_std": true
+      },
+      "mobley_2789243": {
+        "n_gated_atoms": 1,
+        "err_before": 2.2263,
+        "ratio": 0.0601,
+        "delta_shrink": -0.0432,
+        "delta_trust": 0.7465,
+        "in_Q_std": false
+      },
+      "mobley_2310185": {
+        "n_gated_atoms": 3,
+        "err_before": 5.2738,
+        "ratio": 0.0614,
+        "delta_shrink": -0.207,
+        "delta_trust": 0.9854,
+        "in_Q_std": false
+      },
+      "mobley_9741965": {
+        "n_gated_atoms": 7,
+        "err_before": 4.6922,
+        "ratio": 0.0641,
+        "delta_shrink": -0.9381,
+        "delta_trust": -0.0094,
+        "in_Q_std": true
+      },
+      "mobley_2328633": {
+        "n_gated_atoms": 1,
+        "err_before": 9.2401,
+        "ratio": 0.0669,
+        "delta_shrink": 0.7952,
+        "delta_trust": 0.7758,
+        "in_Q_std": true
+      },
+      "mobley_3060426": {
+        "n_gated_atoms": 5,
+        "err_before": 4.6823,
+        "ratio": 0.0782,
+        "delta_shrink": 0.5187,
+        "delta_trust": 3.1447,
+        "in_Q_std": true
+      },
+      "mobley_9114381": {
+        "n_gated_atoms": 2,
+        "err_before": 7.7667,
+        "ratio": 0.0803,
+        "delta_shrink": -0.9775,
+        "delta_trust": -1.1864,
+        "in_Q_std": false
+      },
+      "mobley_627267": {
+        "n_gated_atoms": 5,
+        "err_before": 0.9876,
+        "ratio": 0.085,
+        "delta_shrink": -0.969,
+        "delta_trust": -0.8352,
+        "in_Q_std": false
+      },
+      "mobley_5110043": {
+        "n_gated_atoms": 8,
+        "err_before": 4.6327,
+        "ratio": 0.0866,
+        "delta_shrink": 1.8172,
+        "delta_trust": 1.9656,
+        "in_Q_std": false
+      },
+      "mobley_6714389": {
+        "n_gated_atoms": 1,
+        "err_before": 7.1214,
+        "ratio": 0.0873,
+        "delta_shrink": -0.7986,
+        "delta_trust": -0.6213,
+        "in_Q_std": true
+      },
+      "mobley_7913234": {
+        "n_gated_atoms": 2,
+        "err_before": 4.0115,
+        "ratio": 0.0964,
+        "delta_shrink": -0.7408,
+        "delta_trust": -0.9333,
+        "in_Q_std": false
+      },
+      "mobley_6115639": {
+        "n_gated_atoms": 10,
+        "err_before": 11.3777,
+        "ratio": 0.0976,
+        "delta_shrink": -0.6593,
+        "delta_trust": 0.6597,
+        "in_Q_std": true
+      },
+      "mobley_6911232": {
+        "n_gated_atoms": 5,
+        "err_before": 4.9805,
+        "ratio": 0.0985,
+        "delta_shrink": -1.3758,
+        "delta_trust": -0.4537,
+        "in_Q_std": false
+      },
+      "mobley_3546460": {
+        "n_gated_atoms": 1,
+        "err_before": 1.8058,
+        "ratio": 0.0999,
+        "delta_shrink": 0.0035,
+        "delta_trust": -0.3126,
+        "in_Q_std": true
+      },
+      "mobley_7690440": {
+        "n_gated_atoms": 6,
+        "err_before": 3.498,
+        "ratio": 0.1045,
+        "delta_shrink": -1.4275,
+        "delta_trust": 1.5911,
+        "in_Q_std": false
+      },
+      "mobley_1858644": {
+        "n_gated_atoms": 1,
+        "err_before": 3.1112,
+        "ratio": 0.1207,
+        "delta_shrink": 0.1984,
+        "delta_trust": -0.1798,
+        "in_Q_std": false
+      },
+      "mobley_4762983": {
+        "n_gated_atoms": 1,
+        "err_before": 4.484,
+        "ratio": 0.1347,
+        "delta_shrink": -0.4272,
+        "delta_trust": 0.1305,
+        "in_Q_std": false
+      },
+      "mobley_7009711": {
+        "n_gated_atoms": 8,
+        "err_before": 0.9111,
+        "ratio": 0.1366,
+        "delta_shrink": -0.2816,
+        "delta_trust": -0.7961,
+        "in_Q_std": false
+      },
+      "mobley_2659552": {
+        "n_gated_atoms": 5,
+        "err_before": 7.7771,
+        "ratio": 0.1406,
+        "delta_shrink": -1.9784,
+        "delta_trust": -0.7801,
+        "in_Q_std": false
+      },
+      "mobley_3968739": {
+        "n_gated_atoms": 4,
+        "err_before": 3.9477,
+        "ratio": 0.1464,
+        "delta_shrink": -0.1302,
+        "delta_trust": 0.0934,
+        "in_Q_std": false
+      },
+      "mobley_2197088": {
+        "n_gated_atoms": 3,
+        "err_before": 8.2183,
+        "ratio": 0.1482,
+        "delta_shrink": -0.6868,
+        "delta_trust": 0.6253,
+        "in_Q_std": true
+      },
+      "mobley_4690963": {
+        "n_gated_atoms": 4,
+        "err_before": 4.3269,
+        "ratio": 0.1503,
+        "delta_shrink": -0.0575,
+        "delta_trust": 0.8403,
+        "in_Q_std": false
+      },
+      "mobley_7176290": {
+        "n_gated_atoms": 4,
+        "err_before": 5.6064,
+        "ratio": 0.1561,
+        "delta_shrink": 0.167,
+        "delta_trust": 0.5956,
+        "in_Q_std": false
+      },
+      "mobley_8789465": {
+        "n_gated_atoms": 2,
+        "err_before": 3.8622,
+        "ratio": 0.17,
+        "delta_shrink": 0.3025,
+        "delta_trust": 0.8584,
+        "in_Q_std": false
+      },
+      "mobley_1781152": {
+        "n_gated_atoms": 8,
+        "err_before": 4.4285,
+        "ratio": 0.1758,
+        "delta_shrink": -2.1947,
+        "delta_trust": -2.3097,
+        "in_Q_std": true
+      },
+      "mobley_5445548": {
+        "n_gated_atoms": 1,
+        "err_before": 0.8496,
+        "ratio": 0.178,
+        "delta_shrink": 0.0258,
+        "delta_trust": 0.6504,
+        "in_Q_std": false
+      },
+      "mobley_2245668": {
+        "n_gated_atoms": 3,
+        "err_before": 5.0184,
+        "ratio": 0.1808,
+        "delta_shrink": 0.3765,
+        "delta_trust": 0.7451,
+        "in_Q_std": false
+      },
+      "mobley_4884177": {
+        "n_gated_atoms": 1,
+        "err_before": 1.3338,
+        "ratio": 0.1837,
+        "delta_shrink": 0.0679,
+        "delta_trust": -0.4755,
+        "in_Q_std": false
+      },
+      "mobley_2269032": {
+        "n_gated_atoms": 7,
+        "err_before": 4.1954,
+        "ratio": 0.1875,
+        "delta_shrink": -2.0256,
+        "delta_trust": 0.548,
+        "in_Q_std": false
+      },
+      "mobley_63712": {
+        "n_gated_atoms": 4,
+        "err_before": 2.329,
+        "ratio": 0.1956,
+        "delta_shrink": -0.2524,
+        "delta_trust": -0.534,
+        "in_Q_std": true
+      },
+      "mobley_4603202": {
+        "n_gated_atoms": 5,
+        "err_before": 7.0691,
+        "ratio": 0.2001,
+        "delta_shrink": -2.2995,
+        "delta_trust": 0.9312,
+        "in_Q_std": true
+      },
+      "mobley_1160109": {
+        "n_gated_atoms": 2,
+        "err_before": 2.5479,
+        "ratio": 0.2126,
+        "delta_shrink": -0.1877,
+        "delta_trust": -0.1801,
+        "in_Q_std": false
+      },
+      "mobley_8789864": {
+        "n_gated_atoms": 7,
+        "err_before": 9.322,
+        "ratio": 0.2364,
+        "delta_shrink": -3.4431,
+        "delta_trust": -2.7179,
+        "in_Q_std": false
+      }
+    }
+  },
+  "alt_predictors": {
+    "rho_abs_gated_sum_vs_delta": null,
+    "note": "reported in console; see generalization_per_molecule.csv for raw values"
+  },
+  "verdict": "CASE_STUDY",
+  "verdict_notes": [
+    "GENERALIZES: rho significantly positive, low-ratio quartile significantly less-benefited/harmed, and non-g12 low-ratio molecules show the same resistance.",
+    "PARTIAL: significant in some but not all tests.",
+    "CASE_STUDY: no significant association -- gradient-12 is an isolated case; the ratio does not generalize as a predictor.",
+    "Premise note: g12's ABSOLUTE gated sums are small (max 4.09 kcal/mol, Part 8) but its RATIOS span the full dataset range (0.0-10.9 = dataset max) because several g12 members have very small errors; the ratio framing is therefore a distortion of the Part 8 finding."
+  ],
+  "runtime_s": 9.773650169372559
+}

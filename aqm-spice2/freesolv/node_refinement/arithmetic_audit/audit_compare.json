@@ -1,0 +1,31 @@
+{
+  "sections": {
+    "A_part7": {
+      "lambda_star": 1.0,
+      "lambda_star_saved": 1.0,
+      "val_delta_at_star": -1.8048451967791388,
+      "val_delta_at_star_saved": -1.8048451967791388,
+      "max_val_delta_diff": 0.0,
+      "n_rows": 160,
+      "max_delta_diff": 1.7763568394002505e-15,
+      "max_ci_diff": 0.2693456343380074
+    },
+    "B_approach2": {
+      "n_rows": 20,
+      "max_delta_diff": 2.782836135972744e-07,
+      "max_ci_diff": 0.13727730554412254
+    },
+    "C_b8_holdout": {
+      "lambda_star_H1": 1.0,
+      "lambda_star_H1_saved": 1.0,
+      "gates": [
+        0.9304381581375614,
+        27.176761150360107
+      ],
+      "n_cells": 25,
+      "max_delta_diff": 0.0,
+      "max_ci_diff": 0.0
+    }
+  },
+  "runtime_s": 32.49171304702759
+}

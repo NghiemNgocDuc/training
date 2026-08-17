@@ -1,0 +1,65 @@
+{
+  "summary": {
+    "42": {
+      "mae_hdf5": 3.4751533663619396,
+      "mae_fresh_single": 3.3919245961516404,
+      "mae_fresh_tta5": 3.397871670931462,
+      "mae_repair_csv": 3.475153294573643,
+      "max_abs_hdf5": 25.285975952148437,
+      "max_abs_fresh_single": 25.285975952148437,
+      "max_abs_fresh_tta5": 25.285975952148437,
+      "n_hdf5_gt20": 2,
+      "n_fresh_single_gt20": 2,
+      "n_fresh_tta5_gt20": 2
+    },
+    "123": {
+      "mae_hdf5": 6.6587525226325965,
+      "mae_fresh_single": 6.588401213157778,
+      "mae_fresh_tta5": 6.583702125422926,
+      "mae_repair_csv": 6.658752961240309,
+      "max_abs_hdf5": 163.5737567138672,
+      "max_abs_fresh_single": 163.5737567138672,
+      "max_abs_fresh_tta5": 163.5737567138672,
+      "n_hdf5_gt20": 7,
+      "n_fresh_single_gt20": 7,
+      "n_fresh_tta5_gt20": 7
+    },
+    "7": {
+      "mae_hdf5": 38.37278773177617,
+      "mae_fresh_single": 38.618440153840204,
+      "mae_fresh_tta5": 38.47622780349288,
+      "mae_repair_csv": 38.37279008527132,
+      "max_abs_hdf5": 738.807314453125,
+      "max_abs_fresh_single": 738.807314453125,
+      "max_abs_fresh_tta5": 738.807314453125,
+      "n_hdf5_gt20": 33,
+      "n_fresh_single_gt20": 32,
+      "n_fresh_tta5_gt20": 33
+    },
+    "2024": {
+      "mae_hdf5": 58.148823500976775,
+      "mae_fresh_single": 58.5101233720248,
+      "mae_fresh_tta5": 58.64372344112693,
+      "mae_repair_csv": 58.14882306201551,
+      "max_abs_hdf5": 1023.5274072265624,
+      "max_abs_fresh_single": 1023.5274072265624,
+      "max_abs_fresh_tta5": 1023.5274072265624,
+      "n_hdf5_gt20": 44,
+      "n_fresh_single_gt20": 45,
+      "n_fresh_tta5_gt20": 46
+    },
+    "999": {
+      "mae_hdf5": 4.528619743653739,
+      "mae_fresh_single": 4.423476395356332,
+      "mae_fresh_tta5": 4.458227550273698,
+      "mae_repair_csv": 4.528619511627907,
+      "max_abs_hdf5": 63.012561340332034,
+      "max_abs_fresh_single": 63.012561340332034,
+      "max_abs_fresh_tta5": 63.012561340332034,
+      "n_hdf5_gt20": 4,
+      "n_fresh_single_gt20": 4,
+      "n_fresh_tta5_gt20": 4
+    }
+  },
+  "runtime_s": 327.2410321235657
+}

@@ -1,0 +1,12 @@
+{
+  "seeds": [
+    42,
+    123,
+    999
+  ],
+  "spread_before": 14.631799964060942,
+  "spread_after": 4.747891662804343,
+  "mean_std_before": 4.907369422447371,
+  "mean_std_after": 1.886549612930413,
+  "alpha_trust": 0.9
+}

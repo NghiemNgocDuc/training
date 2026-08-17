@@ -1,0 +1,40 @@
+{
+  "seed": 7,
+  "n_train": 411,
+  "n_val": 102,
+  "n_test": 129,
+  "split_md5": "c0ef2933417413f7d9837987421e7ceb",
+  "split_source": "/workspace/training/aqm-spice2/aqm-spice2/freesolv/cv_results_full/fold_0",
+  "correction_ckpt": "/workspace/training/aqm-spice2/aqm-spice2/pipeline/results_full/stage2_correction.pt",
+  "env": {
+    "python": "3.12.13",
+    "torch": "2.12.0+cu130",
+    "cuda_available": true,
+    "cuda_version": "13.0",
+    "cudnn_version": 92000,
+    "gpu": "NVIDIA GeForce RTX 3090 Ti"
+  },
+  "hyperparams": {
+    "lr": 0.0001,
+    "weight_decay": 1e-05,
+    "batch_size": 8,
+    "epochs": 200,
+    "patience": 30,
+    "device": "cuda"
+  },
+  "best_val_mae_kcal": 0.508179783821106,
+  "best_val_epoch": 49,
+  "early_stop_epoch": 79,
+  "total_min": 14.0,
+  "test_mae_single_conf_kcal": 0.5882457494735718,
+  "test_rmse_single_conf_kcal": 0.8671435117721558,
+  "test_mae_tta_kcal": 0.5976820050165037,
+  "test_rmse_tta_kcal": 0.8778365434488644,
+  "n_conformers_tta": 5,
+  "checkpoint_sha256": "19efa95118ec35ca90c1711ba1abf011a4662b41e013a492b551645515d95c4c",
+  "instrumented": true,
+  "artifacts": {
+    "epoch_predictions_csv": "/workspace/training/aqm-spice2/freesolv/deep_ensemble/instrumented_rerun/seed_7/epoch_predictions.csv",
+    "val_history_csv": "/workspace/training/aqm-spice2/freesolv/deep_ensemble/instrumented_rerun/seed_7/val_history.csv"
+  }
+}
