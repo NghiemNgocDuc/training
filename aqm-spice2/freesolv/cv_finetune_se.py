@@ -231,7 +231,9 @@ def main():
 
         for epoch in range(1, epochs + 1):
             model.train()
-            for data in train_loader:
+            n_batches = len(train_loader)
+            print(f"  Epoch {epoch}/{epochs} | train start ({n_batches} batches)", flush=True)
+            for bi, data in enumerate(train_loader, 1):
                 data = data.to(device)
                 x = build_one_hot(data, device)
                 pred = model(x, data.pos, data.batch).view(-1)
@@ -244,6 +246,9 @@ def main():
                 loss.backward()
                 torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
                 optimizer.step()
+                if bi % 10 == 0 or bi == n_batches:
+                    print(f"  Epoch {epoch:3d} | batch {bi}/{n_batches} | loss {loss.item():.4f}",
+                          flush=True)
 
             # Early stopping + model selection on VAL only (never test)
             val_mae, val_rmse, _, _ = evaluate_loader(val_loader)
