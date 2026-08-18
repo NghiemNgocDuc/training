@@ -59,7 +59,8 @@ def main():
     from element_vocab import NUM_ELEMENTS, build_one_hot
     from freesolv_dataset import download_freesolv_data, load_freesolv_labels
 
-    device = torch.device("cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Device: {device}")
     EV_TO_KCAL = 23.0605
 
     assert not (args.hidden > 128 and not args.no_multi_agg), "Multi-agg recommended for larger models"
@@ -248,7 +249,7 @@ def main():
             val_mae, val_rmse, _, _ = evaluate_loader(val_loader)
 
             scheduler.step(val_mae)
-            print(f"    Epoch {epoch:3d} | Val MAE: {val_mae:.3f} RMSE: {val_rmse:.3f}", end="\r")
+            print(f"    Epoch {epoch:3d} | Val MAE: {val_mae:.3f} RMSE: {val_rmse:.3f}")
 
             if val_mae < best_val_mae:
                 best_val_mae = val_mae

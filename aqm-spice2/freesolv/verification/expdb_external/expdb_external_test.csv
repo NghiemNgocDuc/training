@@ -1,0 +1,624 @@
+id,name,smiles,dg_solv_kcal_mol,nheavy,doi,comments
+expdb_1,C1CCC(CC1)Br,BrC1CCCCC1,-0.57,7,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=65868)']
+expdb_2,C1(=C(C(=C(C(=C1Br)Br)Br)Br)Br)Br,Brc1c(Br)c(Br)c(Br)c(Br)c1Br,-3.08,12,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_3,C1=C(C(=CC(=C1Br)Br)Br)Br,Brc1cc(Br)c(Br)cc1Br,-2.54,10,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_4,C1=C(C=C(C=C1Br)Br)Br,Brc1cc(Br)cc(Br)c1,-1.91,9,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_5,C1=CC(=CC(=C1)Br)Br,Brc1cccc(Br)c1,-1.99,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62485)']
+expdb_6,C#C,C#C,-0.005,2,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.01
+expdb_7,CC(C)(C#C)O,C#CC(C)(C)O,-5.18,6,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64115)']
+expdb_8,C=CC#C,C#CC=C,0.04,4,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_9,CCCCCCCC#C,C#CCCCCCCC,0.74,9,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63116)']
+expdb_10,C1=CC=C(C=C1)C=CC2=CC=CC=C2,C(=Cc1ccccc1)c1ccccc1,-3.79,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_12,C1C=CC=C1,C1=CCC=C1,-0.22,5,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_13,C1C=CCC=C1,C1=CCC=CC1,-0.67,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A4)', 'CompSol Binary (entry number=62580)']"
+expdb_14,C1CC=CC=C1,C1=CCCC=C1,-0.26,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_15,C1CCC=CCC1,C1=CCCCCC1,0.7,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=66341)']"
+expdb_16,C1CCCCCC1,C1CCCCCC1,0.79,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A11)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=66340)']"
+expdb_17,C1CCCCCCC1,C1CCCCCCC1,0.91,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=66414)', 'CompSol Binary (entry number=66417)']"
+expdb_18,C1CO1,C1CO1,-2.87,3,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=68510)', 'CompSol Binary (entry number=68516)']"
+expdb_19,C1COCCOCCOCCOCCO1,C1COCCOCCOCCOCCO1,-12.82,15,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_20,O1CCCOCCOCCOCCOCC1,C1COCCOCCOCCOCCOC1,-12.52,16,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_21,C1COCCOCCOCCOCCOCCO1,C1COCCOCCOCCOCCOCCO1,-15.59,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_22,CC(=C)C(=O)O,C=C(C)C(=O)O,-6.08,6,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_24,CC(OCC(CC=C(C)C)C(C)=C)=O,C=C(C)C(CC=C(C)C)COC(C)=O,-3.36,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_25,CC1=CC=C(CC1)C(=C)C,C=C(C)C1=CC=C(C)CC1,-1.35,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_27,CCC(OC1CC(CC=C1C)C(C)=C)=O,C=C(C)C1CC=C(C)C(OC(=O)CC)C1,-3.87,15,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_28,CCCC(OC1CC(CC=C1C)C(C)=C)=O,C=C(C)C1CC=C(C)C(OC(=O)CCC)C1,-3.9,16,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_29,CC1=CCC(CC1OC(=O)C)C(=C)C,C=C(C)C1CC=C(C)C(OC(C)=O)C1,-4.0,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_30,CC1=CCC(CC1OC=O)C(=C)C,C=C(C)C1CC=C(C)C(OC=O)C1,-3.82,13,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_31,CC1=CCCC(=CCC(CC1)C(=C)C)C,C=C(C)C1CC=C(C)CCC=C(C)CC1,-0.37,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_34,CC1CCC(C12CCC(=CC2)C)C(=C)C,C=C(C)C1CCC(C)C12CC=C(C)CC2,0.25,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_35,CC1CCC(CC2=C1CCC2C)C(=C)C,C=C(C)C1CCC(C)C2=C(C1)C(C)CC2,-0.01,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_36,CC1=CCCC2(C1CC(CC2)C(=C)C)C,C=C(C)C1CCC2(C)CCC=C(C)C2C1,-0.16,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_37,CC(=C)C1CCC2(CCCC(=C)C2C1)C,C=C(C)C1CCC2(C)CCCC(=C)C2C1,-0.05,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_38,CC(=C)C1CCC2(C1C3CCC4C5(CCC(C(C5CCC4(C3(CC2)C)C)(C)C)O)C)CO,C=C(C)C1CCC2(CO)CCC3(C)C(CCC4C5(C)CCC(O)C(C)(C)C5CCC43C)C12,-14.17,32,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_39,CC1CCC=C2C1(CC(CC2)C(=C)C)C,C=C(C)C1CCC2=CCCC(C)C2(C)C1,-0.15,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_40,CC(=C)CC(C)(C)C,C=C(C)CC(C)(C)C,2.01,8,10.1016/j.cej.2021.129307,['Abraham Paper (A4)']
+expdb_41,CCCCC(=C)C,C=C(C)CCCC,1.66,7,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_42,CC1=CCC(CC1)C(=C)CCC=C(C)C,C=C(CCC=C(C)C)C1CC=C(C)CC1,-0.5,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_43,CC1(C2CCC(C2)C1=C)C,C=C1C2CCC(C2)C1(C)C,0.61,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_44,CC(=CCCC1(C2CCC(C2)C1=C)C)C,C=C1C2CCC(C2)C1(C)CCC=C(C)C,0.35,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_45,CC1(CCCC2(C3C1C(C2=C)CC3)C)C,C=C1C2CCC3C2C(C)(C)CCCC13C,0.8,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_46,CC(C)C1CCC(=C)C=C1,C=C1C=CC(C(C)C)CC1,0.26,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_47,CC1=CCCC(=C)C=CC(CC1)C(C)C,C=C1C=CC(C(C)C)CCC(C)=CCC1,0.14,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_48,CC(C)C12CC1C(=C)C=C2,C=C1C=CC2(C(C)C)CC12,-0.12,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_49,CC1(C2CCC1C(=C)C2)C,C=C1CC2CCC1C2(C)C,0.52,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_50,CC(C)C1=CCC(=C)CC1,C=C1CC=C(C(C)C)CC1,0.05,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_51,CC1=CC2=C(C=C1)C(=C)CCC2C(C)C,C=C1CCC(C(C)C)c2cc(C)ccc21,-1.08,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_52,CC(C)C12CCC(=C)C1C2,C=C1CCC2(C(C)C)CC12,0.49,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_53,CC1CCC(C2C13C2C(=C)CC3)C(C)C,C=C1CCC23C(C)CCC(C(C)C)C2C13,0.63,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_54,CC1CCC2C13CCC(=C)C(C3)C2(C)C,C=C1CCC23CC1C(C)(C)C2CCC3C,0.8,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_55,CC1CCC2C(C2(C)C)C3C1CCC3=C,C=C1CCC2C(C)CCC3C(C12)C3(C)C,0.42,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_56,CC(C)C1CCC2(C1C3C2CCC3=C)C,C=C1CCC2C1C1C(C(C)C)CCC21C,1.19,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_57,CC1CCC23C1CC(C2(C)C)CCC3=C,C=C1CCC2CC3C(C)CCC13C2(C)C,0.83,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_58,C=CC#N,C=CC#N,-3.34,4,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=64524)', 'CompSol Binary (entry number=64525)', 'CompSol Binary (entry number=64526)', 'CompSol Binary (entry number=64527)', 'CompSol Binary (entry number=64528)', 'CompSol Binary (entry number=64529)', 'CompSol Binary (entry number=64530)', 'CompSol Binary (entry number=64531)', 'CompSol Binary (entry number=64532)', 'CompSol Binary (entry number=64533)', 'CompSol Binary (entry number=64534)', 'CompSol Binary (entry number=64535)', 'CompSol Binary (entry number=64553)', 'CompSol Binary (entry number=64560)']"
+expdb_59,CC(=CCCC(=C)C=C)C,C=CC(=C)CCC=C(C)C,-0.5,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_60,CC(C)(C)C=C,C=CC(C)(C)C,1.57,6,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_61,CC(C)(C=C)O,C=CC(C)(C)O,-4.19,6,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64114)']
+expdb_62,CCC(=O)OC(C)(CCC=C(C)C)C=C,C=CC(C)(CCC=C(C)C)OC(=O)CC,-3.26,15,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_63,CCCC(=O)OC(C)(CCC=C(C)C)C=C,C=CC(C)(CCC=C(C)C)OC(=O)CCC,-3.38,16,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_64,CC(=CCCC(C)(C=C)OC=O)C,C=CC(C)(CCC=C(C)C)OC=O,-3.6,13,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_65,CC(=CCCC(C)(C=C)O)C,C=CC(C)(O)CCC=C(C)C,-4.17,11,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64595)']
+expdb_66,CC(=CCC=C(C)C=C)C,C=CC(C)=CCC=C(C)C,-0.5,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_67,CC(=CCCC(=CCC=C(C)C=C)C)C,C=CC(C)=CCC=C(C)CCC=C(C)C,-1.06,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A28)', 'Abraham Paper (A28)']"
+expdb_68,CC(=C)CCC=C(C)C=C,C=CC(C)=CCCC(=C)C,-0.55,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_69,CC(C)CCCC(C)CCCC(C)CCCC(C)C=C,C=CC(C)CCCC(C)CCCC(C)CCCC(C)C,3.75,20,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_70,CC(=C1CCC(C(C1)C(=C)C)(C)C=C)C,C=CC1(C)CCC(=C(C)C)CC1C(=C)C,-0.35,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_71,CC(=C)C1CCC(C(C1)C(=C)C)(C)C=C,C=CC1(C)CCC(C(=C)C)CC1C(=C)C,-0.42,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_72,CC(C)C1=CC(C(CC1)(C)C=C)C(=C)C,C=CC1(C)CCC(C(C)C)=CC1C(=C)C,-0.42,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_73,C=CC1CCC=CC1,C=CC1CC=CCC1,0.36,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64771)']
+expdb_74,C=CC=CC=C,C=CC=CC=C,0.2,6,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_75,C=CC=CCC,C=CC=CCC,0.75,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A27)', 'Abraham Paper (A5)']"
+expdb_76,C=CC=O,C=CC=O,-3.16,4,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=64518)', 'CompSol Binary (entry number=64521)']"
+expdb_77,BrCC=C,C=CCBr,-0.86,4,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_78,CC(C)(C)CC=C,C=CCC(C)(C)C,1.53,7,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_79,C=CCC(C)C,C=CCC(C)C,1.9,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'CompSol Binary (entry number=64793)']"
+expdb_80,CC=CCC=C,C=CCC=CC,1.09,6,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_81,CC(C)CCC=C,C=CCCC(C)C,1.77,7,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_82,C=CCCCC=C,C=CCCCC=C,1.16,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)']"
+expdb_83,CCCCCCCCC=C,C=CCCCCCCCC,2.24,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_84,CCCCCCCCCCC=C,C=CCCCCCCCCCC,2.58,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A11)', 'Abraham Paper (A11)', 'Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_86,CC(=O)C(=O)C,CC(=O)C(C)=O,-4.3,6,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=63485)', 'CompSol Binary (entry number=63486)', 'CompSol Binary (entry number=63487)', 'CompSol Binary (entry number=63488)', 'CompSol Binary (entry number=63489)', 'CompSol Binary (entry number=63490)']"
+expdb_87,CC(C(=O)C)C(=O)C,CC(=O)C(C)C(C)=O,-4.75,8,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_88,CC(C(=O)C)O,CC(=O)C(C)O,-4.29,6,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=64634)', 'CompSol Binary (entry number=64635)', 'CompSol Binary (entry number=64636)', 'CompSol Binary (entry number=64637)', 'CompSol Binary (entry number=64638)']"
+expdb_89,O=C(C1OC2=CC=CC=C2OCCOCCOCCOCCOC1)C,CC(=O)C1COCCOCCOCCOCCOc2ccccc2O1,-17.8,25,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_90,CC(=O)CC(=O)C(C)(C)C,CC(=O)CC(=O)C(C)(C)C,-5.12,10,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_91,CC(=O)CC(=O)C(F)(F)F,CC(=O)CC(=O)C(F)(F)F,-4.91,10,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_92,CC(=O)CC(=O)C1=C(C(=C(C=C1)F)F)F,CC(=O)CC(=O)c1ccc(F)c(F)c1F,-5.07,15,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_93,CC(=O)CC(=O)c1sccc1,CC(=O)CC(=O)c1cccs1,-6.08,11,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_94,CC(=O)CC(=O)C,CC(=O)CC(C)=O,-4.84,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A15)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_95,CC(C)CCCC(=O)C,CC(=O)CCCC(C)C,-3.0,9,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_96,CC(C)CCCCC(C)=O,CC(=O)CCCCC(C)C,-2.84,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_97,CC(=O)Cc1ccccc1,CC(=O)Cc1ccccc1,-5.62,10,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_98,CC(=O)N(C)C,CC(=O)N(C)C,-8.15,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A20)', 'Abraham Paper (A27)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=68138)']"
+expdb_99,CC(=O)NS(=O)(=O)C1=CC=C(C=C1)N,CC(=O)NS(=O)(=O)c1ccc(N)cc1,-18.35,14,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_100,CC(=O)Nc1ccc(O)cc1,CC(=O)Nc1ccc(O)cc1,-14.85,11,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.02
+expdb_101,CC(=O)Nc1cccc(O)c1,CC(=O)Nc1cccc(O)c1,-13.93,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_102,CC(=O)NC1=CC=CC=C1,CC(=O)Nc1ccccc1,-9.79,10,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_103,CC(=O)Nc1ccccc1O,CC(=O)Nc1ccccc1O,-11.61,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_104,CC1=CCC(CC1)C(C)(C)OC(=O)C,CC(=O)OC(C)(C)C1CC=C(C)CC1,-3.41,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_105,CC1=CCC(CC1)(C(C)C)OC(=O)C,CC(=O)OC1(C(C)C)CC=C(C)CC1,-3.25,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_106,CC(=O)OC1C(C2CCC1(C2)C)(C)C,CC(=O)OC1C2(C)CCC(C2)C1(C)C,-2.69,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_107,CC1CCC(C(C1)OC(=O)C)C(C)C,CC(=O)OC1CC(C)CCC1C(C)C,-2.59,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_108,CC(CCCC(C)C)C1CCC2C1(CCC3C2CC=C4C3(CCC(C4)OC(=O)C)C)C,CC(=O)OC1CCC2(C)C(=CCC3C2CCC2(C)C(C(C)CCCC(C)C)CCC32)C1,-5.48,31,10.1016/j.cej.2021.129307,['Abraham Paper (A13)']
+expdb_109,CC(=O)OCC1=CCC2CC1C2(C)C,CC(=O)OCC1=CCC2CC1C2(C)C,-3.6,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_110,CC(=CCCC(=CCCC(=CCOC(=O)C)C)C)C,CC(=O)OCC=C(C)CCC=C(C)CCC=C(C)C,-3.96,19,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_111,CC(CCC=C(C)C)CCOC(=O)C,CC(=O)OCCC(C)CCC=C(C)C,-2.99,14,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_112,CC(=O)OCCC1=CC=CC=C1,CC(=O)OCCc1ccccc1,-5.5,12,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_113,CC(=O)OC1=CC=CC=C1,CC(=O)Oc1ccccc1,-4.78,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=65285)']
+expdb_114,CC(=O)C1=C(C)NN(C1=O)c2ccccc2,CC(=O)c1c(C)[nH]n(-c2ccccc2)c1=O,-9.89,16,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_116,CC(C1=CC=C(C=C1)C(=O)C2=CC=CS2)C(=O)O,CC(C(=O)O)c1ccc(C(=O)c2cccs2)cc1,-13.87,18,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_117,CC(C1=CC(=C(C=C1)N2CC=CC2)Cl)C(=O)O,CC(C(=O)O)c1ccc(N2CC=CC2)c(Cl)c1,-11.28,17,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_118,CC(C1=CC2=C(C=C1)C3=C(N2)C=CC(=C3)Cl)C(=O)O,CC(C(=O)O)c1ccc2c(c1)[nH]c1ccc(Cl)cc12,-15.05,19,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_120,CC(C)(C)C(=O)CC(=O)C(C)(C)C,CC(C)(C)C(=O)CC(=O)C(C)(C)C,-4.43,13,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_121,O=C(OC(C)(C)C)C1=CC=CC=C1C(OC(C)(C)C)=O,CC(C)(C)OC(=O)c1ccccc1C(=O)OC(C)(C)C,-7.09,20,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_122,CC(C)(Cl)Cl,CC(C)(Cl)Cl,-0.43,5,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63421)']
+expdb_123,CC(C)(C1=CC=C(C=C1)O)C2=CC=C(C=C2)O,CC(C)(c1ccc(O)cc1)c1ccc(O)cc1,-14.39,17,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_124,CC(=CC(C)(C)C)C,CC(C)=CC(C)(C)C,1.84,8,10.1016/j.cej.2021.129307,['Abraham Paper (A4)']
+expdb_125,CC1=CCC(C=C1)C(C)CCC=C(C)C,CC(C)=CCCC(C)C1C=CC(C)=CC1,-0.11,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_126,CC(C)CCCC(C)CCCC(C)CCC=C(C)C,CC(C)=CCCC(C)CCCC(C)CCCC(C)C,3.72,19,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_127,CC(CCC=C(C)C)CCOC=O,CC(C)=CCCC(C)CCOC=O,-3.08,13,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_128,CC(=CCCC1(C2CC3C1(C3C2)C)C)C,CC(C)=CCCC1(C)C2CC3C(C2)C31C,0.55,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_129,CC(C)C#N,CC(C)C#N,-3.31,5,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64180)']
+expdb_130,CC(C)C(=O)CC(=O)C(C)C,CC(C)C(=O)CC(=O)C(C)C,-4.08,11,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_131,CC(C)C(C)(C)C,CC(C)C(C)(C)C,2.62,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A27)', 'Abraham Paper (A5)']"
+expdb_132,O=C(O)CC1=CC=C(C(C)C(C)C)C=C1,CC(C)C(C)c1ccc(CC(=O)O)cc1,-7.99,15,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_133,CC(C)C1=CC2=CCC3C(C2CC1)(CCCC3(C)C)C,CC(C)C1=CC2=CCC3C(C)(C)CCCC3(C)C2CC1,-0.08,20,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_134,CC(C)C1CCC2(C3C1C4C2(C4C3)C)C,CC(C)C1CCC2(C)C3CC4C(C13)C42C,1.13,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_135,CC(C)CC(=O)CC(=O)CC(C)C,CC(C)CC(=O)CC(=O)CC(C)C,-4.42,13,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_136,CC(C)CCC(C)C,CC(C)CCC(C)C,2.78,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A26)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'CompSol Binary (entry number=63561)']"
+expdb_137,CC(CCCC(C)C)C1CCC2C1(CCC3C2CC=C4C3(CCC(C4)O)C)C,CC(C)CCCC(C)C1CCC2C3CC=C4CC(O)CCC4(C)C3CCC12C,-5.93,28,10.1016/j.cej.2021.129307,['Abraham Paper (A13)']
+expdb_138,O=C(OCCCCCCCC(C)C)C1=CC=CC=C1C(OCCCCCCCC(C)C)=O,CC(C)CCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCCC(C)C,-5.93,32,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_139,O=C(OCCCCCCC(C)C)C1=CC=CC=C1C(OCCCCCCC(C)C)=O,CC(C)CCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCC(C)C,-6.14,30,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_140,O=C(OCCCCCC(C)C)C1=CC=CC=C1C(OCCCCCC(C)C)=O,CC(C)CCCCCOC(=O)c1ccccc1C(=O)OCCCCCC(C)C,-6.43,28,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_141,O=C(OCCCCC(C)C)C1=CC=CC=C1C(OCCCCC(C)C)=O,CC(C)CCCCOC(=O)c1ccccc1C(=O)OCCCCC(C)C,-6.55,26,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_142,O=C(OCCCC(C)C)C1=CC=CC=C1C(OCCCC(C)C)=O,CC(C)CCCOC(=O)c1ccccc1C(=O)OCCCC(C)C,-6.73,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_143,O=C(OCCC(C)C)C1=CC=CC=C1C(OCCC(C)C)=O,CC(C)CCOC(=O)c1ccccc1C(=O)OCCC(C)C,-6.88,22,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_144,CC(C)CCl,CC(C)CCl,0.03,5,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_145,CC(C)CN(CC(C)C)N=O,CC(C)CN(CC(C)C)N=O,-4.84,11,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_147,CC(C)N(C(C)C)N=O,CC(C)N(N=O)C(C)C,-5.16,9,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_148,CC(C)NC1=NC(=NC(=N1)Cl)NC(C)C,CC(C)Nc1nc(Cl)nc(NC(C)C)n1,-9.55,15,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_149,O=C(OC(C)C)C1=CC=CC=C1C(OC(C)C)=O,CC(C)OC(=O)c1ccccc1C(=O)OC(C)C,-7.42,18,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_150,CC(C)OC(C)(C)C,CC(C)OC(C)(C)C,-1.01,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_151,CC(C)S,CC(C)S,-0.7,4,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64292)']
+expdb_152,CC(C)C1=CC2=C(C=C1)C3(CCCC(C3CC2)(C)C)C,CC(C)c1ccc2c(c1)CCC1C(C)(C)CCCC21C,-0.37,20,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_153,CC(CC(C)(C)C)CC(C)(C)CC(C)(C)C,CC(CC(C)(C)C)CC(C)(C)CC(C)(C)C,4.46,16,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63402)']
+expdb_156,CC(F)(F)Cl,CC(F)(F)Cl,0.61,5,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=62804)']"
+expdb_158,CC1(CCC=C2C13CCC(C3)C2(C)C)C,CC1(C)C2=CCCC(C)(C)C23CCC1C3,0.71,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_159,CC1(C2CC3C1(C3C2)C)C,CC1(C)C2CC3C(C2)C31C,0.87,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_160,CC1(CCCC2(C3C1C4C2(C4C3)C)C)C,CC1(C)CCCC2(C)C3CC4C(C31)C42C,1.12,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_161,CC12CC(C=C1)C(C2)(C)C,CC12C=CC(C1)C(C)(C)C2,0.64,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_162,O=C1CCC2(C)C3([H])C(O)CC4(C)C(C(C(C(CCCCC(N)=O)C(N)=O)O)=O)(O)CCC4([H])C3([H])CCC2=C1,CC12CCC(=O)C=C1CCC1C2C(O)CC2(C)C1CCC2(O)C(=O)C(O)C(CCCCC(N)=O)C(N)=O,-33.74,37,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_163,CC12CCC(=O)C=C1CCC3C2C(CC4(C3CCC4(C(=O)CO)O)C)O,CC12CCC(=O)C=C1CCC1C2C(O)CC2(C)C1CCC2(O)C(=O)CO,-25.44,26,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_164,CC1=C(C2CCC1C2)C,CC1=C(C)C2CCC1C2,0.53,9,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_165,CC1CCC2CC3=C(CCC13C2(C)C)C,CC1=C2CC3CCC(C)C2(CC1)C3(C)C,0.78,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_167,CC1=CC2C(CCC(=C2CC1)C)C(C)C,CC1=CC2C(=C(C)CCC2C(C)C)CC1,-0.4,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_168,CC1=CC(C2=CC1)(C(CCC2C)C(C)C)[H],CC1=CC2C(=CC1)C(C)CCC2C(C)C,-0.26,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_169,CC1=CC2C(C2(C)C)CC1,CC1=CC2C(CC1)C2(C)C,0.78,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_170,CC1=CCCC(=CC2C(C2(C)C)CC1)C,CC1=CC2C(CCC(C)=CCC1)C2(C)C,-0.52,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_171,CC1=CC=C(CC1)C(C)C,CC1=CC=C(C(C)C)CC1,0.12,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_172,CC1=CCC(=C(C)C)CC1,CC1=CCC(=C(C)C)CC1,0.16,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_173,CC1=CCCC(=CCC(=C(C)C)CC1)C,CC1=CCC(=C(C)C)CCC(C)=CCC1,-0.37,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_174,CC1=CCC(=CC1)C(C)C,CC1=CCC(C(C)C)=CC1,-0.03,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_175,CC1=CCC(C=C1)C(C)C,CC1=CCC(C(C)C)C=C1,0.2,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_176,CC1=CCC(C2=C1C=CC(=C2)C)C(C)C,CC1=CCC(C(C)C)c2cc(C)ccc21,-1.12,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_177,CC1=CCC2(C1C2)C(C)C,CC1=CCC2(C(C)C)CC12,0.5,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_178,CC1=CCC2(CCCC(C23C1C3)(C)C)C,CC1=CCC2(C)CCCC(C)(C)C23CC13,0.46,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_179,CC1CCC(C2C13C2C(=CC3)C)C(C)C,CC1=CCC23C(C)CCC(C(C)C)C2C13,0.56,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_180,CC1CCC2C13CC=C(C(C3)C2(C)C)C,CC1=CCC23CC1C(C)(C)C2CCC3C,0.78,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_181,CC1=CCC2C(C1)C(CC=C2C)C(C)C,CC1=CCC2C(C)=CCC(C(C)C)C2C1,-0.38,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_182,CC1=CCC2C(C1)C2(C)C,CC1=CCC2C(C1)C2(C)C,0.79,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_183,CC1=CCC2C3C1C2(CCCC3(C)C)C,CC1=CCC2C3C1C2(C)CCCC3(C)C,0.29,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_184,CC1=CCC2CC1C2(C)C,CC1=CCC2CC1C2(C)C,0.97,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A28)', 'CompSol Binary (entry number=63567)']"
+expdb_185,CC1CCC23C1CC(C2(C)C)CC=C3C,CC1=CCC2CC3C(C)CCC13C2(C)C,0.78,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_186,CC1=CCC(C=CCC(=CCC1)C)(C)C,CC1=CCCC(C)=CCC(C)(C)C=CC1,0.05,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A28)', 'Abraham Paper (A28)']"
+expdb_189,CC1CCC(C1)(C)C,CC1CCC(C)(C)C1,2.47,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62070)']
+expdb_191,CC1CCC2(C1C2)C(C)C,CC1CCC2(C(C)C)CC12,1.13,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_192,CC1CCC2=C1CC3CCC2(C3(C)C)C,CC1CCC2=C1CC1CCC2(C)C1(C)C,0.78,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_193,CC1CCCC(C1)(C)C,CC1CCCC(C)(C)C1,2.23,9,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62069)']
+expdb_194,CC1CCCC(C1)O,CC1CCCC(O)C1,-5.21,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64702)']
+expdb_195,CC1CCCCC1O,CC1CCCCC1O,-4.79,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64143)']
+expdb_196,CC=C(C)C=CC=C(C)C,CC=C(C)C=CC=C(C)C,-0.55,10,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_197,CC=CC,CC=CC,1.34,4,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_198,CC=CC=CC,CC=CC=CC,0.61,6,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_199,CC=CC1=CC(=C(C=C1)O)OC,CC=Cc1ccc(O)c(OC)c1,-6.33,12,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_200,CCC(=O)CC(=O)CC,CCC(=O)CC(=O)CC,-4.71,9,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_201,CCC(=O)CC(=O)C,CCC(=O)CC(C)=O,-4.79,8,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_202,CCC(=O)C1=C(C)NN(C1=O)c2ccccc2,CCC(=O)c1c(C)[nH]n(-c2ccccc2)c1=O,-9.74,17,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_203,CCC(C)(C)OC,CCC(C)(C)OC,-1.77,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A10)', 'Abraham Paper (A11)', 'Abraham Paper (A11)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=63926)', 'CompSol Binary (entry number=63931)', 'CompSol Binary (entry number=63934)']"
+expdb_204,CCC(C)(CC)O,CCC(C)(O)CC,-4.2,7,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_205,CCC(C)=O,CCC(C)=O,-3.66,5,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.02
+expdb_206,CCC(C)Br,CCC(C)Br,-0.27,5,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'CompSol Binary (entry number=63602)']"
+expdb_207,CCC(C)CCCC(C)CCCC(C)CCCC(C)C,CCC(C)CCCC(C)CCCC(C)CCCC(C)C,4.83,20,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_209,CCC(C)OC(C)CC,CCC(C)OC(C)CC,-0.8,9,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63446)']
+expdb_211,CCC(CC)(C([O-])=O)C([O-])=O,CCC(CC)(C(=O)[O-])C(=O)[O-],-6.0,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_212,CCC(CC)CC,CCC(CC)CC,2.61,7,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_213,CCC(CC)CO,CCC(CC)CO,-3.73,7,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63786)']
+expdb_215,O=C(C(CC)(C1=CC=CC=C1)C(N2)=O)NC2=O,CCC1(c2ccccc2)C(=O)NC(=O)NC1=O,-15.44,17,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_216,CCC1CCCCC1,CCC1CCCCC1,2.14,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A26)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'CompSol Binary (entry number=66952)']"
+expdb_217,CCC1CO1,CCC1CO1,-2.93,5,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
+expdb_218,CCC=C(C)C,CCC=C(C)C,1.47,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A27)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_219,CCC=CCC,CCC=CCC,1.62,6,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_220,CCC=CCC=CCC=CCCCCCCCC(=O)OC,CCC=CCC=CCC=CCCCCCCCC(=O)OC,-3.47,21,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61822)']
+expdb_221,CCC=CCCC=O,CCC=CCCC=O,-3.19,8,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=61815)', 'CompSol Binary (entry number=61816)', 'CompSol Binary (entry number=61817)']"
+expdb_222,CCCC(=O)CC(=O)CC,CCCC(=O)CC(=O)CC,-4.35,10,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_223,CCCC(=O)CC(=O)CCC,CCCC(=O)CC(=O)CCC,-4.33,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A15)', 'Abraham Paper (A6)']"
+expdb_224,CCCC(=O)CC(=O)C,CCCC(=O)CC(C)=O,-4.39,9,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_225,CCCC(=O)CC,CCCC(=O)CC,-3.07,7,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64633)']
+expdb_226,CC(CCC=C(C)C)CCOC(=O)CCC,CCCC(=O)OCCC(C)CCC=C(C)C,-2.73,16,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_227,CCCC(=O)C1=C(C)NN(C1=O)c2ccccc2,CCCC(=O)c1c(C)[nH]n(-c2ccccc2)c1=O,-9.51,18,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_228,CCCC(C)Cl,CCCC(C)Cl,0.07,6,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_230,CCCC1CCCCC1,CCCC1CCCCC1,1.8,9,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_232,CCCCC(=O)CC(=O)CCCC,CCCCC(=O)CC(=O)CCCC,-4.13,13,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_233,CCCCC(=O)CC(=O)C,CCCCC(=O)CC(C)=O,-4.28,10,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_234,CCCCC(=O)CC,CCCCC(=O)CC,-3.04,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64630)']
+expdb_235,CC(CCC=C(C)C)CCOC(=O)CCCC,CCCCC(=O)OCCC(C)CCC=C(C)C,-2.51,17,10.1016/j.cej.2021.129307,['Abraham Paper (A24)']
+expdb_236,CCCCC(C)(C)C,CCCCC(C)(C)C,3.02,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63431)']
+expdb_237,CCCCC(C)CCC,CCCCC(C)CCC,3.57,9,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64810)']
+expdb_238,CCCCC(C)O,CCCCC(C)O,-4.28,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A8)', 'CompSol Binary (entry number=63884)']"
+expdb_239,CCCCC(CC)CO,CCCCC(CC)CO,-3.96,9,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=63805)', 'CompSol Binary (entry number=63806)', 'CompSol Binary (entry number=63807)']"
+expdb_240,CCCCC(CC)O,CCCCC(O)CC,-3.94,8,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=64612)', 'CompSol Binary (entry number=64613)', 'CompSol Binary (entry number=64614)', 'CompSol Binary (entry number=64616)']"
+expdb_241,CCCCC1CCCCC1,CCCCC1CCCCC1,1.96,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_242,CCCCCC#N,CCCCCC#N,-3.28,7,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=67325)']
+expdb_243,CCCCCC(=O)CC(=O)CCCCC,CCCCCC(=O)CC(=O)CCCCC,-3.68,15,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_244,CCCCCC(=O)CC(=O)C,CCCCCC(=O)CC(C)=O,-4.3,11,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_245,CCCCCC(=O)C1=C(C)NN(C1=O)c2ccccc2,CCCCCC(=O)c1c(C)[nH]n(-c2ccccc2)c1=O,-9.26,20,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_248,CCCCCC=CCC=CCCCCCCCC(=O)OC,CCCCCC=CCC=CCCCCCCCC(=O)OC,-2.48,21,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61821)']
+expdb_249,CCCCCCC(=O)O,CCCCCCC(=O)O,-6.12,9,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=67217)', 'CompSol Binary (entry number=67226)']"
+expdb_250,CCCCCCC(C)O,CCCCCCC(C)O,-3.77,9,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=64228)', 'CompSol Binary (entry number=64239)']"
+expdb_251,CCCCCCCC(=O)C1=C(C)NN(C1=O)c2ccccc2,CCCCCCCC(=O)c1c(C)[nH]n(-c2ccccc2)c1=O,-8.85,22,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_252,CCCCCCCC(C)O,CCCCCCCC(C)O,-3.57,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64218)']
+expdb_253,CCCCCCCCC=CCCCCCCCC(=O)OC,CCCCCCCCC=CCCCCCCCC(=O)OC,-2.13,21,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61819)']
+expdb_254,CCCCCCCCC=CCCCCCCCC(=O)OCC,CCCCCCCCC=CCCCCCCCC(=O)OCC,-8.25,22,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61818)']
+expdb_255,CCCCCCCCC=CCCCCCCCCCCCC(=O)OC,CCCCCCCCC=CCCCCCCCCCCCC(=O)OC,-1.09,25,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61761)']
+expdb_256,CCCCCCCCCC(=O)O,CCCCCCCCCC(=O)O,-5.28,12,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_257,CCCCCCCCCC(=O)OC,CCCCCCCCCC(=O)OC,-1.91,13,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=66476)']
+expdb_258,CCCCCCCCCC(=O)C1=C(C)NN(C1=O)c2ccccc2,CCCCCCCCCC(=O)c1c(C)[nH]n(-c2ccccc2)c1=O,-8.46,24,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_259,CCCCCCCCCC(C)C,CCCCCCCCCC(C)C,4.04,12,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64198)']
+expdb_260,CCCCCCCCCCCC(=O)OC,CCCCCCCCCCCC(=O)OC,-2.91,15,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=66585)']
+expdb_261,CCCCCCCCCCCCC,CCCCCCCCCCCCC,4.12,13,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=69136)']
+expdb_262,CCCCCCCCCCCCCC(=O)OC,CCCCCCCCCCCCCC(=O)OC,-1.14,17,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=68961)']
+expdb_263,CCCCCCCCCCCCCC(=O)OCC,CCCCCCCCCCCCCC(=O)OCC,-7.32,18,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=68958)']
+expdb_264,CCCCCCCCCCCCCCC,CCCCCCCCCCCCCCC,4.29,15,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=68592)']
+expdb_265,CCCCCCCCCCCCCCCC(=O)OCC,CCCCCCCCCCCCCCCC(=O)OCC,-7.23,20,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=67231)']
+expdb_266,CCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCC,4.15,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A3)', 'Abraham Paper (A5)']"
+expdb_267,CCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCC,4.38,19,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A5)']"
+expdb_268,CCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCC,4.52,20,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_269,CCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCC,4.71,21,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_270,CCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCC,4.87,22,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_271,CCCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCCC,5.07,23,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_272,CCCCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCCCC,5.24,24,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_273,CCCCCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCCCCC,5.39,25,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_274,CCCCCCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCCCCCC,5.59,26,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_275,CCCCCCCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCCCCCCC,5.74,27,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_276,CCCCCCCCCCCCCCCCCCCCCCCCCCCC,CCCCCCCCCCCCCCCCCCCCCCCCCCCC,5.92,28,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_277,CCCCCCCCCCCCCCCCCCO,CCCCCCCCCCCCCCCCCCO,-2.43,19,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_278,CCCCCCCCCCCCCCCCO,CCCCCCCCCCCCCCCCO,-2.76,17,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_279,CCCCCCCCCCCCCCCO,CCCCCCCCCCCCCCCO,-2.92,16,10.1016/j.cej.2021.129307,['Abraham Paper (A9)']
+expdb_280,CCCCCCCCCCCCCCO,CCCCCCCCCCCCCCO,-3.08,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_281,CCCCCCCCCCCCCN,CCCCCCCCCCCCCN,-3.2,14,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63351)']
+expdb_282,O=C(OCCCCCCCCCCCC)C1=CC=CC=C1C(OCCCCCCCCCCCC)=O,CCCCCCCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCCCCCCC,-5.92,36,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_283,O=C(OCCCCCCCCCCC)C1=CC=CC=C1C(OCCCCCCCCCCC)=O,CCCCCCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCCCCCC,-6.08,34,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_284,O=C(OCC)C1=CC=CC=C1C(OCCCCCCCCCC)=O,CCCCCCCCCCOC(=O)c1ccccc1C(=O)OCC,-6.78,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_285,O=C(OCCCCCCCCCC)C1=CC=CC=C1C(OCCCCC)=O,CCCCCCCCCCOC(=O)c1ccccc1C(=O)OCCCCC,-6.49,27,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_286,O=C(OCCCCCCCCCC)C1=CC=CC=C1C(OCCCCCCCCCC)=O,CCCCCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCCCCC,-6.22,32,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_287,O=C(OCCCCCCCCC)C1=CC=CC=C1C(OCCCC)=O,CCCCCCCCCOC(=O)c1ccccc1C(=O)OCCCC,-6.67,25,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_288,O=C(OCCCCCCCC)C1=CC=CC=C1C(OCCCC)=O,CCCCCCCCOC(=O)c1ccccc1C(=O)OCCCC,-6.83,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_289,O=C(OCCCCCCCC)C1=CC=CC=C1C(OCCCCCCCC)=O,CCCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCCC,-6.68,28,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_290,CCCCCCCCP(CCCCCCCC)(CCCCCCCC)=O,CCCCCCCCP(=O)(CCCCCCCC)CCCCCCCC,-15.48,26,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_291,CCCCCCCNCc1ccc(C)cc1,CCCCCCCNCc1ccc(C)cc1,-5.01,16,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_292,O=C(OCCCCCCC)C1=CC=CC=C1C(OCCCCC)=O,CCCCCCCOC(=O)c1ccccc1C(=O)OCCCCC,-6.78,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_293,O=C(OCCCCCCC)C1=CC=CC=C1C(OCCCCCC)=O,CCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCC,-6.67,25,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_294,O=C(OCCCCCCC)C1=CC=CC=C1C(OCCCCCCC)=O,CCCCCCCOC(=O)c1ccccc1C(=O)OCCCCCCC,-6.68,26,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_295,CCCCCCCOC(=O)C,CCCCCCCOC(C)=O,-2.07,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_296,CCCCCCNCc1ccc(C)cc1,CCCCCCNCc1ccc(C)cc1,-4.97,15,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_297,O=C(OCCCCCC)C1=CC=CC=C1C(OCCCCCC)=O,CCCCCCOC(=O)c1ccccc1C(=O)OCCCCCC,-6.78,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_298,CCCCCN(N=O)C,CCCCCN(C)N=O,-5.05,9,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_299,CCCCCNCc1ccc(C)cc1,CCCCCNCc1ccc(C)cc1,-5.21,14,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_300,CCCCCOC(=O)CCC,CCCCCOC(=O)CCC,-2.55,11,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=65963)']
+expdb_301,O=C(OCCCCC)C1=CC=CC=C1C(OCCCCC)=O,CCCCCOC(=O)c1ccccc1C(=O)OCCCCC,-6.96,22,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_302,CCCCN(N=O)C,CCCCN(C)N=O,-5.37,8,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_303,CCCCN(N=O)CC,CCCCN(CC)N=O,-5.25,9,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_304,CCCN(N=O)CCCC,CCCCN(CCC)N=O,-5.12,10,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_305,CCCCN(CCCC)CCCC,CCCCN(CCCC)CCCC,-4.09,13,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=68126)']
+expdb_306,CCCCN(CCCC)N=O,CCCCN(CCCC)N=O,-4.91,11,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_307,CCCCNCc1ccc(C)cc1,CCCCNCc1ccc(C)cc1,-5.47,13,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_308,O=C(OC(CC)CCCC)C1=CC=CC=C1C(OCCCC)=O,CCCCOC(=O)c1ccccc1C(=O)OC(CC)CCCC,-6.71,23,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_309,O=C(OCC1=CC=CC=C1)C2=CC=CC=C2C(OCCCC)=O,CCCCOC(=O)c1ccccc1C(=O)OCc1ccccc1,-9.55,23,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_310,CCCCOC(=O)C1=CC=CC=C1O,CCCCOC(=O)c1ccccc1O,-3.51,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_312,O=C(OCCOCCCC)C1=CC=CC=C1C(OCCOCCCC)=O,CCCCOCCOC(=O)c1ccccc1C(=O)OCCOCCCC,-12.85,26,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_313,CCCCOP(=O)(OCCCC)OCCCC,CCCCOP(=O)(OCCCC)OCCCC,-6.73,17,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_314,CCCCP(=O)(CCCC)CCCC,CCCCP(=O)(CCCC)CCCC,-11.09,14,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_315,O=P(SCCCC)(SCCCC)O,CCCCSP(=O)(O)SCCCC,-8.03,13,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_316,CCCNCc1ccc(C)cc1,CCCNCc1ccc(C)cc1,-5.73,12,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_317,O=C(OCCC)C1=CC=CC=C1C(OCCC)=O,CCCOC(=O)c1ccccc1C(=O)OCCC,-7.56,18,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_318,CCCOC(=O)C1=CC=CC=C1O,CCCOC(=O)c1ccccc1O,-3.66,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_319,O=C(OCCOCCC)C1=CC=CC=C1C(OCCOCCC)=O,CCCOCCOC(=O)c1ccccc1C(=O)OCCOCCC,-13.16,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_320,CCCO[P](=O)(OCCC)OCCC,CCCOP(=O)(OCCC)OCCC,-6.1,14,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_321,CCF,CCF,0.41,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_322,CCN(N=O)C,CCN(C)N=O,-5.73,6,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_323,CCN(CC)N=O,CCN(CC)N=O,-5.46,7,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_324,CC(N(N=O)CC)C,CCN(N=O)C(C)C,-5.46,8,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_325,CCNCc1ccc(C)cc1,CCNCc1ccc(C)cc1,-6.02,11,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_326,CCNc1ccccc1,CCNc1ccccc1,-4.69,9,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.07
+expdb_327,CCNC1=NC(=NC(=N1)Cl)NC(C)(C)C#N,CCNc1nc(Cl)nc(NC(C)(C)C#N)n1,-13.23,16,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_328,CCNC1=NC(=NC(=N1)Cl)NC(C)(C)C,CCNc1nc(Cl)nc(NC(C)(C)C)n1,-8.66,15,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_329,CCNC1=NC(=NC(=N1)Cl)NC(C)C,CCNc1nc(Cl)nc(NC(C)C)n1,-9.69,14,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_330,CCNC1=NC(=NC(=N1)OC)NC(C)(C)C,CCNc1nc(NC(C)(C)C)nc(OC)n1,-9.0,16,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_331,CCNC1=NC(=NC(=N1)SC)NC(C)C(C)C,CCNc1nc(NC(C)C(C)C)nc(SC)n1,-8.73,17,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_332,CCNC1=NC(=NC(=N1)OC)NC(C)C,CCNc1nc(NC(C)C)nc(OC)n1,-10.16,15,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_333,CCC(C)NC1=NC(=NC(=N1)NCC)OC,CCNc1nc(NC(C)CC)nc(OC)n1,-9.89,16,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_334,CCNC1=NC(=NC(=N1)OC)NCC,CCNc1nc(NCC)nc(OC)n1,-10.64,14,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_335,CCNC1=NC(=NC(=N1)SC)NCC,CCNc1nc(NCC)nc(SC)n1,-10.09,14,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_336,CCOC(=O)OCC,CCOC(=O)OCC,-3.28,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=66194)']
+expdb_337,CCOC(=O)C1=CC=CC=C1O,CCOC(=O)c1ccccc1O,-3.82,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_338,CCOC(C)(C)C,CCOC(C)(C)C,-1.61,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=63765)']"
+expdb_339,CCC(C)(C)OCC,CCOC(C)(C)CC,-1.5,8,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63760)']
+expdb_340,CCOC(C)O,CCOC(C)O,-6.7,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_341,O=C(OCCOCC)C1=CC=CC=C1C(OCCOCC)=O,CCOCCOC(=O)c1ccccc1C(=O)OCCOCC,-13.42,22,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_342,CCOCOCC,CCOCOCC,-2.96,7,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61893)']
+expdb_343,CCOOCC,CCOOCC,-5.32,6,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_344,CCOc1ccc(cc1)C(=O)N(O)c2ccc(C)cc2,CCOc1ccc(C(=O)N(O)c2ccc(C)cc2)cc1,-12.43,20,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_345,CCOc1ccc(NC(C)=O)cc1,CCOc1ccc(NC(C)=O)cc1,-10.91,13,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_346,CC[S](CC)=[P]([O-])([O-])c1ccc(cc1)[N+]([O-])=O,CCS(CC)=P([O-])([O-])c1ccc([N+](=O)[O-])cc1,-6.27,17,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_347,CC[S](c1ccc(cc1)C#N)=[P]([O-])([O-])c2ccccc2,CCS(c1ccc(C#N)cc1)=P([O-])([O-])c1ccccc1,-5.1,20,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_348,CCSC1=NC(=NC(=N1)NC(C)C)NC(C)C,CCSc1nc(NC(C)C)nc(NC(C)C)n1,-9.0,17,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_349,CC[S](CC)(c1ccc(Cl)cc1Cl)=[P]([O-])([O-])[O-],CC[S](CC)(c1ccc(Cl)cc1Cl)=P([O-])([O-])[O-],-3.86,17,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_350,CCC1=CC2=C(C=C1)C(=O)C3=CC=CC=C3C2=O,CCc1ccc2c(c1)C(=O)c1ccccc1C2=O,-6.57,18,10.1016/j.cej.2021.129307,['Abraham Paper (A38)']
+expdb_351,CCC1=CC2=CC=CC=C2C=C1,CCc1ccc2ccccc2c1,-2.26,12,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63832)']
+expdb_352,CCC1=CC=CS1,CCc1cccs1,-0.93,7,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63833)']
+expdb_353,CCN1C=CC(=NC1=O)NS(=O)(=O)C2=CC=C(C=C2)N,CCn1ccc(NS(=O)(=O)c2ccc(N)cc2)nc1=O,-20.65,20,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_354,CN(C)C(=O)NC1=CC(=C(C=C1)Cl)Cl,CN(C)C(=O)Nc1ccc(Cl)c(Cl)c1,-10.89,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A6)', 'Abraham Paper (A9)']"
+expdb_355,CN(C)C(=O)NC1=CC=C(C=C1)Cl,CN(C)C(=O)Nc1ccc(Cl)cc1,-10.41,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A9)']"
+expdb_356,CN(C)C1CCCCC1,CN(C)C1CCCCC1,-4.12,9,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=68155)']
+expdb_357,CN(C)CC=C(C1=CC=C(C=C1)Br)C2=CN=CC=C2,CN(C)CC=C(c1ccc(Br)cc1)c1cccnc1,-11.9,19,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_358,CN(C)CCC(C1=CC=C(C=C1)Br)C2=CC=CC=N2,CN(C)CCC(c1ccc(Br)cc1)c1ccccn1,-11.6,19,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_359,CN(C)CCc1ccc(O)cc1,CN(C)CCc1ccc(O)cc1,-11.3,12,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_360,CN(C)CC1=CC=CC=C1,CN(C)Cc1ccccc1,-5.05,10,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_362,CN(C)N=O,CN(C)N=O,-6.02,5,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_363,CN(C)C1=CC=C(C=C1)C(=O)O,CN(C)c1ccc(C(=O)O)cc1,-9.28,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_364,CN(N=O)CC1=CC=CC=C1,CN(Cc1ccccc1)N=O,-7.03,11,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_365,CN1C2=C(C=C(C=C2)Cl)C(=NC(C1=O)O)C3=CC=CC=C3,CN1C(=O)C(O)N=C(c2ccccc2)c2cc(Cl)ccc21,-15.18,21,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)']"
+expdb_366,CN1C(=O)CN=C(C2=C1C=CC(=C2)Cl)C3=CC=CC=C3,CN1C(=O)CN=C(c2ccccc2)c2cc(Cl)ccc21,-12.58,20,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_367,CN1C(=C(C2=CC=CC=C2S1(=O)=O)O)C(=O)NC3=CC=CC=N3,CN1C(C(=O)Nc2ccccn2)=C(O)c2ccccc2S1(=O)=O,-15.8,23,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_368,CN1C2CCC1CC(C2)OC(=O)C(C3=CC=CC=C3)O,CN1C2CCC1CC(OC(=O)C(O)c1ccccc1)C2,-13.79,20,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_370,CN1CCCC1C2=CN=CC=C2,CN1CCCC1c1cccnc1,-7.98,12,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_371,CNC=O,CNC=O,-8.87,4,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A26)', 'Abraham Paper (A4)', 'Abraham Paper (A5)']"
+expdb_372,CNCCc1ccc(O)cc1,CNCCc1ccc(O)cc1,-11.87,11,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_373,CNCCc1ccc(OC)cc1,CNCCc1ccc(OC)cc1,-7.94,12,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_374,CC1=CC=C(C=C1)CNC,CNCc1ccc(C)cc1,-5.95,10,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_375,CNN,CNN,-5.31,3,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_376,CC(C)NC1=NC(=NC(=N1)NC)SC,CNc1nc(NC(C)C)nc(SC)n1,-10.5,14,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_377,COC(=O)OC,COC(=O)OC,-3.53,6,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=66200)']
+expdb_378,COC1=C(C(=CC(=C1)C(OC)=O)C2=C(C(=CC(=C2)C(OC)=O)OC)O)O,COC(=O)c1cc(OC)c(O)c(-c2cc(C(=O)OC)cc(OC)c2O)c1,-17.32,26,10.1016/j.cej.2021.129307,['Abraham Paper (A13)']
+expdb_379,COC(=O)C1=CC(=CC(=C1)[N+](=O)[O-])[N+](=O)[O-],COC(=O)c1cc([N+](=O)[O-])cc([N+](=O)[O-])c1,-8.92,16,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_380,COC(=O)C1=CC=C(C=C1)Br,COC(=O)c1ccc(Br)cc1,-4.26,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_381,COC(=O)C1=CC(=C(C=C1)Cl)Cl,COC(=O)c1ccc(Cl)c(Cl)c1,-3.75,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_382,COC(=O)C1=CC(=C(C=C1)Cl)[N+](=O)[O-],COC(=O)c1ccc(Cl)c([N+](=O)[O-])c1,-6.89,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_383,COC(=O)C1=CC=C(C=C1)I,COC(=O)c1ccc(I)cc1,-5.09,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_384,CN(C)C1=CC=C(C=C1)C(=O)OC,COC(=O)c1ccc(N(C)C)cc1,-7.01,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_385,COC(=O)C1=CC(=CC=C1)[N+](=O)[O-],COC(=O)c1cccc([N+](=O)[O-])c1,-6.79,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_386,CC(OC)OC,COC(C)OC,-3.26,6,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62136)']
+expdb_387,CC(C)NC1=NC(=NC(=N1)NCCCOC)SC,COCCCNc1nc(NC(C)C)nc(SC)n1,-11.87,18,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_388,O=C(OCCOC)C1=CC=CC=C1C(OCCOC)=O,COCCOC(=O)c1ccccc1C(=O)OCCOC,-13.48,20,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_389,COCc1ccc(cc1)C(O)=O,COCc1ccc(C(=O)O)cc1,-9.89,12,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_390,COOC,COOC,-5.28,4,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_391,CC(=O)C1=CC(=C(C(=C1)OC)O)C2=C(C(=CC(=C2)C(=O)C)OC)O,COc1cc(C(C)=O)cc(-c2cc(C(C)=O)cc(OC)c2O)c1O,-19.21,24,10.1016/j.cej.2021.129307,"['Abraham Paper (A13)', 'Abraham Paper (A13)']"
+expdb_392,COC1=C(C=CC(=C1)C=O)O,COc1cc(C=O)ccc1O,-8.76,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_393,COC1=CC(=C(C(=C1Cl)Cl)Cl)Cl,COc1cc(Cl)c(Cl)c(Cl)c1Cl,-2.55,12,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_394,COC1=NC(=NC(=C1)NS(=O)(=O)C2=CC=C(C=C2)N)OC,COc1cc(NS(=O)(=O)c2ccc(N)cc2)nc(OC)n1,-18.91,21,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_395,O=C(N(C1=CC=CC(Cl)=C1)O)C2=CC=C(OC)C=C2,COc1ccc(C(=O)N(O)c2cccc(Cl)c2)cc1,-12.8,19,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_396,COc1ccc(cc1)C(O)=O,COc1ccc(C(=O)O)cc1,-9.145,11,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.00
+expdb_397,COC1=CC=C(C=C1)C(C2=CC=C(C=C2)OC)C(Cl)(Cl)Cl,COc1ccc(C(c2ccc(OC)cc2)C(Cl)(Cl)Cl)cc1,-6.93,21,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61889)']
+expdb_398,COC1=C(C=C(C=C1)C=O)O,COc1ccc(C=O)cc1O,-9.04,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_399,COc1ccc(CCN)cc1,COc1ccc(CCN)cc1,-8.51,11,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_400,COC1=NN=C(C=C1)NS(=O)(=O)C2=CC=C(C=C2)N,COc1ccc(NS(=O)(=O)c2ccc(N)cc2)nn1,-21.12,19,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_401,CC1=C(C2=C(N1C(=O)C3=CC=C(C=C3)Cl)C=CC(=C2)OC)CC(=O)O,COc1ccc2c(c1)c(CC(=O)O)c(C)n2C(=O)c1ccc(Cl)cc1,-15.1,25,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_403,COc1cccc(c1)C(O)=O,COc1cccc(C(=O)O)c1,-8.93,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_404,COC1=CC=CC(=C1O)C=O,COc1cccc(C=O)c1O,-6.89,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_405,COc1ccccc1C(O)=O,COc1ccccc1C(=O)O,-10.32,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_406,CC(C)NC1=NC(=NC(=N1)OC)NC(C)C,COc1nc(NC(C)C)nc(NC(C)C)n1,-9.69,16,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_407,COC1=C(N=CN=C1OC)NS(=O)(=O)C2=CC=C(C=C2)N,COc1ncnc(NS(=O)(=O)c2ccc(N)cc2)c1OC,-19.58,21,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_408,CC(C)NC1=NC(=NC(=N1)SC)N=[N+]=[N-],CSc1nc(N=[N+]=[N-])nc(NC(C)C)n1,-8.19,15,10.1016/j.cej.2021.129307,['Abraham Paper (A23)']
+expdb_409,C[S](C)(c1cc(Cl)c(Br)cc1Cl)=[P]([O-])([O-])[O-],C[S](C)(c1cc(Cl)c(Br)cc1Cl)=P([O-])([O-])[O-],-5.7,16,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_410,C[S](C)(c1cc(Cl)c(Cl)cc1Cl)=[P]([O-])([O-])[O-],C[S](C)(c1cc(Cl)c(Cl)cc1Cl)=P([O-])([O-])[O-],-5.06,16,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_411,C[S](C)(c1ccc(cc1)[N+]([O-])=O)=[P]([O-])([O-])[O-],C[S](C)(c1ccc([N+](=O)[O-])cc1)=P([O-])([O-])[O-],-7.62,16,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_412,CC1=C(C(=O)N(N1)c2ccccc2)C(=O)c3ccccc3,Cc1[nH]n(-c2ccccc2)c(=O)c1C(=O)c1ccccc1,-11.57,21,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_413,CC1=C(C=C(C=C1[N+](=O)[O-])[N+](=O)[O-])C(=O)O,Cc1c(C(=O)O)cc([N+](=O)[O-])cc1[N+](=O)[O-],-13.58,16,10.1016/j.cej.2021.129307,['Abraham Paper (A37)']
+expdb_414,CC1=C(C(=C(C(=C1C)C)C)C)C,Cc1c(C)c(C)c(C)c(C)c1C,-1.95,12,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_415,CC1=C(C(=C(C(=C1Cl)Cl)Cl)Cl)Cl,Cc1c(Cl)c(Cl)c(Cl)c(Cl)c1Cl,-2.02,12,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_416,CC1=CC(=O)N(N1C)C2=CC=CC=C2,Cc1cc(=O)n(-c2ccccc2)n1C,-13.29,14,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_417,CC1=CC(=C(C=C1C)C)C,Cc1cc(C)c(C)cc1C,-0.72,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_418,CC1=CC(=NC(=N1)NS(=O)(=O)C2=CC=C(C=C2)N)C,Cc1cc(C)nc(NS(=O)(=O)c2ccc(N)cc2)n1,-19.96,19,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_419,CC1=CC(=C(C=C1Cl)Cl)Cl,Cc1cc(Cl)c(Cl)cc1Cl,-1.05,10,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_420,CC1=CC(=NC(=N1)C)NS(=O)(=O)C2=CC=C(C=C2)N,Cc1cc(NS(=O)(=O)c2ccc(N)cc2)nc(C)n1,-21.85,19,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_421,CC1=CC(=NO1)NS(=O)(=O)C2=CC=C(C=C2)N,Cc1cc(NS(=O)(=O)c2ccc(N)cc2)no1,-17.78,17,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_422,CC1=C(C=CC(=C1)O)[N+](=O)[O-],Cc1cc(O)ccc1[N+](=O)[O-],-9.89,11,10.1016/j.cej.2021.129307,['Abraham Paper (A9)']
+expdb_423,CC1=CC=C(C=C1)C(=O)O,Cc1ccc(C(=O)O)cc1,-7.35,10,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_424,CC1=C(C=C(C=C1)C(=O)O)C,Cc1ccc(C(=O)O)cc1C,-6.55,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_425,CC1=CC(=C(C=C1)C(C)C)O,Cc1ccc(C(C)C)c(O)c1,-5.81,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_426,CC1=CC=C(C=C1)C2(CCCC2(C)C)C,Cc1ccc(C2(C)CCCC2(C)C)cc1,-0.61,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_427,CC1=CC=C(O1)C=O,Cc1ccc(C=O)o1,-5.5,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_428,CC1=CC=C(C=C1)CN,Cc1ccc(CN)cc1,-6.07,9,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_429,CC1=CC=C(C=C1)CO,Cc1ccc(CO)cc1,-7.12,9,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_430,Cc1ccc(cc1)N(O)C(=O)COc2ccccc2,Cc1ccc(N(O)C(=O)COc2ccccc2)cc1,-12.77,19,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_431,Cc1ccc(cc1)N(O)C(=O)c2ccccc2C,Cc1ccc(N(O)C(=O)c2ccccc2C)cc1,-11.46,18,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_432,CC1=CC=C(C=C1)[N+](=O)[O-],Cc1ccc([N+](=O)[O-])cc1,-4.96,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63083)']
+expdb_433,CC1=C(C=C(C=C1)[N+](=O)[O-])[N+](=O)[O-],Cc1ccc([N+](=O)[O-])cc1[N+](=O)[O-],-7.72,13,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63048)']
+expdb_434,CC1=CC2=C(C=CC(=C2C=C1)C)C(C)C,Cc1ccc2c(C)ccc(C(C)C)c2c1,-2.5,15,10.1016/j.cej.2021.129307,['Abraham Paper (A28)']
+expdb_435,CC1=CC2=CC=CC=C2C=C1,Cc1ccc2ccccc2c1,-2.18,11,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=64154)']
+expdb_436,CC1=CC(=CC=C1)C(=O)O,Cc1cccc(C(=O)O)c1,-6.79,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)']"
+expdb_437,CC1=CC(=CC=C1)C(C)C,Cc1cccc(C(C)C)c1,-0.72,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63072)']
+expdb_438,Cc1cccc(N)c1,Cc1cccc(N)c1,-5.68,8,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.01
+expdb_439,CC1=C2C=CC=C(C2=CC=C1)C,Cc1cccc2c(C)cccc12,-2.78,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_440,Cc1ccccc1Br,Cc1ccccc1Br,-2.37,8,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_441,Cc1ccccc1C(=O)N(O)c2ccccc2,Cc1ccccc1C(=O)N(O)c1ccccc1,-11.51,17,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_442,Cc1ccccc1N(O)C(=O)c2ccccc2C,Cc1ccccc1C(=O)N(O)c1ccccc1C,-11.21,18,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_443,CC1=CC=CC=C1C(=O)O,Cc1ccccc1C(=O)O,-5.87,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)']"
+expdb_444,CC1=CC=CC=C1C(C)C,Cc1ccccc1C(C)C,-0.82,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63047)']
+expdb_445,Cc1ccccc1N(O)C(=O)c2ccc(Cl)cc2,Cc1ccccc1N(O)C(=O)c1ccc(Cl)cc1,-10.78,18,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_446,CN1C=C(C)C(=O)NC1=O,Cc1cn(C)c(=O)[nH]c1=O,-10.4,10,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_447,CC1=C(OC(=N1)NS(=O)(=O)C2=CC=C(C=C2)N)C,Cc1nc(NS(=O)(=O)c2ccc(N)cc2)oc1C,-17.73,18,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_448,CC1=NN=C(S1)NS(=O)(=O)C2=CC=C(C=C2)N,Cc1nnc(NS(=O)(=O)c2ccc(N)cc2)s1,-19.28,17,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_449,ClC(Cl)(Cl)Br,ClC(Cl)(Cl)Br,-0.93,5,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_450,C(=C(Cl)Cl)(C(=C(Cl)Cl)Cl)Cl,ClC(Cl)=C(Cl)C(Cl)=C(Cl)Cl,-0.46,10,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_451,C1=CC(=CC=C1C(=C(Cl)Cl)C2=CC=C(C=C2)Cl)Cl,ClC(Cl)=C(c1ccc(Cl)cc1)c1ccc(Cl)cc1,-3.78,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'CompSol Binary (entry number=61891)']"
+expdb_454,C1C2C=CC1C3C2C4(C(=C(C3(C4(Cl)Cl)Cl)Cl)Cl)Cl,ClC1=C(Cl)C2(Cl)C3C4C=CC(C4)C3C1(Cl)C2(Cl)Cl,-3.75,18,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61770)']
+expdb_455,C1CCC(CC1)Cl,ClC1CCCCC1,-0.93,7,10.1016/j.cej.2021.129307,"['CompSol Binary (entry number=66266)', 'CompSol Binary (entry number=66274)', 'CompSol Binary (entry number=66281)']"
+expdb_456,ClCCSCCCl,ClCCSCCCl,-3.92,7,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_457,C1=CC=C2C(=C1)C(=C(C(=C2Cl)Cl)Cl)Cl,Clc1c(Cl)c(Cl)c2ccccc2c1Cl,-2.69,14,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_458,C1=C(C=C(C(=C1Cl)Cl)Cl)C2=CC(=C(C(=C2)Cl)Cl)Cl,Clc1cc(-c2cc(Cl)c(Cl)c(Cl)c2)cc(Cl)c1Cl,-4.11,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_459,C1=C(C(=C(C(=C1Cl)Cl)Cl)Cl)C2=CC(=C(C(=C2Cl)Cl)Cl)Cl,Clc1cc(-c2cc(Cl)c(Cl)c(Cl)c2Cl)c(Cl)c(Cl)c1Cl,-3.77,20,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_460,C1=C(C(=CC(=C1Cl)Cl)Cl)C2=C(C(=CC(=C2Cl)Cl)Cl)Cl,Clc1cc(Cl)c(-c2c(Cl)c(Cl)cc(Cl)c2Cl)cc1Cl,-2.77,19,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_461,C1=C(C=C(C(=C1Cl)C2=C(C=C(C=C2Cl)Cl)Cl)Cl)Cl,Clc1cc(Cl)c(-c2c(Cl)cc(Cl)cc2Cl)c(Cl)c1,-1.96,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_462,C1=C(C(=CC(=C1Cl)Cl)Cl)C2=CC(=C(C(=C2Cl)Cl)Cl)Cl,Clc1cc(Cl)c(-c2cc(Cl)c(Cl)c(Cl)c2Cl)cc1Cl,-3.53,19,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_463,C1=C(C(=CC(=C1Cl)Cl)Cl)C2=CC(=C(C=C2Cl)Cl)Cl,Clc1cc(Cl)c(-c2cc(Cl)c(Cl)cc2Cl)cc1Cl,-3.1,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_464,C1=CC(=C(C=C1Cl)C2=C(C=C(C=C2Cl)Cl)Cl)Cl,Clc1cc(Cl)c(-c2cc(Cl)ccc2Cl)c(Cl)c1,-2.25,17,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_465,C1=CC(=C(C(=C1C2=CC(=C(C=C2Cl)Cl)Cl)Cl)Cl)Cl,Clc1cc(Cl)c(-c2ccc(Cl)c(Cl)c2Cl)cc1Cl,-3.34,18,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_466,C1=C(C(=C(C(=C1Cl)Cl)Cl)Cl)Cl,Clc1cc(Cl)c(Cl)c(Cl)c1Cl,-1.69,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_467,C1=CC(=C(C=C1Cl)C2=CC(=CC(=C2)Cl)Cl)Cl,Clc1cc(Cl)cc(-c2cc(Cl)ccc2Cl)c1,-2.73,16,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_468,C1=CC(=C(C=C1C2=CC(=C(C(=C2)Cl)Cl)Cl)Cl)Cl,Clc1ccc(-c2cc(Cl)c(Cl)c(Cl)c2)cc1Cl,-3.79,17,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_469,C1=CC(=C(C=C1C2=CC(=C(C=C2Cl)Cl)Cl)Cl)Cl,Clc1ccc(-c2cc(Cl)c(Cl)cc2Cl)cc1Cl,-3.36,17,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_470,C1=CC(=C(C=C1C2=C(C=C(C=C2)Cl)Cl)Cl)Cl,Clc1ccc(-c2ccc(Cl)c(Cl)c2)c(Cl)c1,-3.15,16,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_471,C1=CC(=C(C=C1C2=CC(=C(C=C2)Cl)Cl)Cl)Cl,Clc1ccc(-c2ccc(Cl)c(Cl)c2)cc1Cl,-3.62,16,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_472,C1=CC(=C(C(=C1C2=C(C(=C(C=C2)Cl)Cl)Cl)Cl)Cl)Cl,Clc1ccc(-c2ccc(Cl)c(Cl)c2Cl)c(Cl)c1Cl,-3.6,18,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_473,C1=CC(=CC=C1C2=CC=C(C=C2)Cl)Cl,Clc1ccc(-c2ccc(Cl)cc2)cc1,-2.91,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_474,C1=CC(=CC=C1C2=C(C=C(C=C2)Cl)Cl)Cl,Clc1ccc(-c2ccc(Cl)cc2Cl)cc1,-2.77,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_475,C1=CC=C(C=C1)C2=CC=C(C=C2)Cl,Clc1ccc(-c2ccccc2)cc1,-2.44,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_476,C1=CC=C(C(=C1)C2=CC=C(C=C2)Cl)Cl,Clc1ccc(-c2ccccc2Cl)cc1,-2.58,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_477,C1=CC(=CC=C1Cl)Br,Clc1ccc(Br)cc1,-1.61,8,10.1016/j.cej.2021.129307,['Abraham Paper (A9)']
+expdb_478,C1=CC(=CC=C1C(C2=CC=C(C=C2)Cl)C(Cl)(Cl)Cl)Cl,Clc1ccc(C(c2ccc(Cl)cc2)C(Cl)(Cl)Cl)cc1,-4.61,19,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)', 'CompSol Binary (entry number=61888)']"
+expdb_479,C1=CC(=CC=C1C(C2=CC=C(C=C2)Cl)C(Cl)Cl)Cl,Clc1ccc(C(c2ccc(Cl)cc2)C(Cl)Cl)cc1,-4.88,18,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=61890)']
+expdb_481,C1=CC(=C(C=C1Cl)C2=CC(=C(C=C2Cl)Cl)Cl)Cl,Clc1ccc(Cl)c(-c2cc(Cl)c(Cl)cc2Cl)c1,-2.82,17,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_482,C1=CC(=C(C=C1Cl)C2=C(C=CC(=C2)Cl)Cl)Cl,Clc1ccc(Cl)c(-c2cc(Cl)ccc2Cl)c1,-2.55,16,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_483,C1=CC=C(C(=C1)C2=C(C=CC(=C2)Cl)Cl)Cl,Clc1ccc(Cl)c(-c2ccccc2Cl)c1,-2.37,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_484,Clc1cccc(c2ccccc2)c1Cl,Clc1cccc(-c2ccccc2)c1Cl,-2.45,14,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_485,Clc1cccc(c1Cl)c2ccccc2Cl,Clc1ccccc1-c1cccc(Cl)c1Cl,-1.99,15,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_486,Clc1ccccc1c2ccccc2Cl,Clc1ccccc1-c1ccccc1Cl,-2.73,14,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_487,Cn1cnc2c(N)ncnc12,Cn1cnc2c(N)ncnc21,-13.6,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_489,C(C(F)(F)F)(C(F)(F)F)F,FC(C(F)(F)F)C(F)(F)F,2.01,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_490,C(C(F)(Cl)Cl)(F)(Cl)Cl,FC(Cl)(Cl)C(F)(Cl)Cl,0.87,8,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
+expdb_491,FC(Cl)(Cl)Cl,FC(Cl)(Cl)Cl,0.735,5,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.08
+expdb_492,C(C(F)(F)F)(F)Cl,FC(Cl)C(F)(F)F,0.79,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=63713)']"
+expdb_493,C(F)(Cl)Cl,FC(Cl)Cl,1.54,4,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_494,C(C(F)(F)Cl)(F)(F)Cl,FC(F)(Cl)C(F)(F)Cl,2.25,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_495,FC(F)(Cl)Cl,FC(F)(Cl)Cl,1.69,5,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_497,FC(F)(F)C(F)(F)C(F)(F)F,FC(F)(F)C(F)(F)C(F)(F)F,4.28,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_498,FC(F)(F)C(F)(F)Cl,FC(F)(F)C(F)(F)Cl,2.89,8,10.1016/j.cej.2021.129307,"["" 'Abraham Paper (A20)'"", "" 'Abraham Paper (A20)'"", "" 'Abraham Paper (A5)'"", "" 'Abraham Paper (A5)'""]"
+expdb_499,FC(F)(F)C(F)(F)F,FC(F)(F)C(F)(F)F,3.94,8,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_500,C(F)(F)(F)Cl,FC(F)(F)Cl,2.31,5,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=66317)', 'CompSol Binary (entry number=66318)', 'CompSol Binary (entry number=66319)']"
+expdb_501,ClC=C(F)(F),FC(F)=CCl,0.52,5,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=63721)']"
+expdb_502,C(C(F)(F)F)(F)F,FC(F)C(F)(F)F,1.45,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_504,C(F)(F)F,FC(F)F,0.7,4,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=69138)']"
+expdb_505,C(C(F)(F)F)F,FCC(F)(F)F,0.56,6,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=61925)']"
+expdb_506,C(F)F,FCF,-0.33,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=66526)']"
+expdb_507,FS(F)(F)(F)(F)F,FS(F)(F)(F)(F)F,3.04,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A26)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'CompSol Binary (entry number=61857)']"
+expdb_508,C1(=C(C(=C(C(=C1F)F)F)F)F)F,Fc1c(F)c(F)c(F)c(F)c1F,0.1,12,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_509,II,II,-2.54,2,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_510,OC(=O)c1ccc(CC#N)cc1,N#CCc1ccc(C(=O)O)cc1,-12.91,12,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_511,C1=CC=C(C=C1)CC#N,N#CCc1ccccc1,-5.05,9,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_512,Oc1c(Br)cc(cc1Br)C#N,N#Cc1cc(Br)c(O)c(Br)c1,-9.0,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_513,N#N,N#N,2.46,2,10.1016/j.cej.2021.129307,"['Abraham Paper (A11)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A8)', 'Abraham Paper (A9)', 'CompSol Binary (entry number=68349)', 'CompSol Binary (entry number=68350)']"
+expdb_514,C1=CC=C(C(=C1)C(=O)N)O,NC(=O)c1ccccc1O,-10.39,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A6)']"
+expdb_515,NC(=S)c1c(Cl)cccc1Cl,NC(=S)c1c(Cl)cccc1Cl,-10.81,11,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_516,NC(N)=O,NC(N)=O,-13.72,4,10.13020/3eks-j059 10.1016/j.cej.2021.129307,Averaged - std : 0.08
+expdb_517,C(=O)N,NC=O,-10.19,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A26)', 'Abraham Paper (A5)']"
+expdb_519,NCCc1ccc(O)cc1,NCCc1ccc(O)cc1,-11.85,10,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_520,C1=CC=C(C=C1)CCN,NCCc1ccccc1,-6.56,9,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_522,Nc1c(Cl)c(Cl)nc(C(O)=O)c1Cl,Nc1c(Cl)c(Cl)nc(C(=O)O)c1Cl,-11.96,13,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_523,C1=C(C=C(C(=C1N)O)Cl)[N+](=O)[O-],Nc1cc([N+](=O)[O-])cc(Cl)c1O,-10.15,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_524,C1=C(C=C(C(=C1N)O)[N+](=O)[O-])[N+](=O)[O-],Nc1cc([N+](=O)[O-])cc([N+](=O)[O-])c1O,-11.39,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_525,C1=CC(=CC=C1CC2=CC=C(C=C2)N)N,Nc1ccc(Cc2ccc(N)cc2)cc1,-16.26,15,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_526,Nc1ccc(N)c2C(=O)c3c(N)ccc(N)c3C(=O)c12,Nc1ccc(N)c2c1C(=O)c1c(N)ccc(N)c1C2=O,-8.9,20,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_527,Nc1ccc(cc1)N=Nc2ccc(cc2)[N+]([O-])=O,Nc1ccc(N=Nc2ccc([N+](=O)[O-])cc2)cc1,-11.2,18,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_528,Nc1ccc(Nc2ccccc2)c3C(=O)c4ccccc4C(=O)c13,Nc1ccc(Nc2ccccc2)c2c1C(=O)c1ccccc1C2=O,-7.4,24,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_529,C1=CC=C(C=C1)C(=O)NS(=O)(=O)C2=CC=C(C=C2)N,Nc1ccc(S(=O)(=O)NC(=O)c2ccccc2)cc1,-18.12,19,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_530,C1=CC=NC(=C1)NS(=O)(=O)C2=CC=C(C=C2)N,Nc1ccc(S(=O)(=O)Nc2ccccn2)cc1,-18.74,17,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_531,C1=CC=C(C=C1)N2C(=CC=N2)NS(=O)(=O)C3=CC=C(C=C3)N,Nc1ccc(S(=O)(=O)Nc2ccnn2-c2ccccc2)cc1,-21.21,22,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_532,C1=CC(=CC=C1N)S(=O)(=O)NC2=NC=CS2,Nc1ccc(S(=O)(=O)Nc2nccs2)cc1,-18.25,16,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_533,C1=CC(=CC=C1N)S(=O)(=O)N,Nc1ccc(S(N)(=O)=O)cc1,-14.75,11,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_534,C1=CC(=C(C=C1[N+](=O)[O-])Cl)N,Nc1ccc([N+](=O)[O-])cc1Cl,-8.74,11,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63725)']
+expdb_535,C1=CC=C(C=C1)C2=CC=CC=C2N,Nc1ccccc1-c1ccccc1,-7.27,13,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_536,C1C(C(OC1N2C=NC3=C(N=CN=C32)N)CO)O,Nc1ncnc2c1ncn2C1CC(O)C(CO)O1,-24.28,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_537,NC1=NC=NC2=C1N=CN2C3CCC(CO)O3,Nc1ncnc2c1ncn2C1CCC(CO)O1,-20.54,17,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_538,C1=NC2=NC=NC(=C2N1)N,Nc1ncnc2nc[nH]c12,-17.35,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_539,O,O,-6.315,1,10.13020/3eks-j059 Compsol pure,Averaged - std : 0.01
+expdb_540,C1=CC=C(C=C1)C(=O)C(=O)C2=CC=CC=C2,O=C(C(=O)c1ccccc1)c1ccccc1,-6.64,16,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A8)']"
+expdb_541,C(C(=O)C(F)(F)F)C(=O)C(F)(F)F,O=C(CC(=O)C(F)(F)F)C(F)(F)F,-4.56,13,10.1016/j.cej.2021.129307,['Abraham Paper (A15)']
+expdb_542,C1=CSC(=C1)C(=O)CC(=O)C(F)(F)F,O=C(CC(=O)C(F)(F)F)c1cccs1,-6.15,14,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_543,C1CN(CCC1(C2=CC=C(C=C2)Cl)O)CCCC(=O)C3=CC=C(C=C3)F,O=C(CCCN1CCC(O)(c2ccc(Cl)cc2)CC1)c1ccc(F)cc1,-15.42,26,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
+expdb_544,C1=CC=C(C=C1)C(C(=O)O)O,O=C(O)C(O)c1ccccc1,-13.71,11,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_545,C(=CC(=O)O)C(=O)O,O=C(O)C=CC(=O)O,-9.96,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_546,C1=CC=C(C=C1)C=CC(=O)O,O=C(O)C=Cc1ccccc1,-8.38,11,10.1016/j.cej.2021.129307,['Abraham Paper (A21)']
+expdb_547,C(CC(=O)O)C(=O)O,O=C(O)CCC(=O)O,-12.59,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_548,OC(=O)CCC(=O)c1ccc(cc1)c2ccccc2,O=C(O)CCC(=O)c1ccc(-c2ccccc2)cc1,-12.75,19,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_549,C(CC(=O)O)CC(=O)O,O=C(O)CCCC(=O)O,-12.71,9,10.1016/j.cej.2021.129307,"['Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_550,C(CCC(=O)O)CC(=O)O,O=C(O)CCCCC(=O)O,-12.86,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_551,C1=CC=C(C=C1)CCCCCCCC(=O)O,O=C(O)CCCCCCCc1ccccc1,-8.98,16,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_552,C1=CC=C(C=C1)CCCCCCC(=O)O,O=C(O)CCCCCCc1ccccc1,-8.72,15,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_553,C1=CC=C(C=C1)CCCCC(=O)O,O=C(O)CCCCc1ccccc1,-8.68,13,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_555,C1=CC=C(C=C1)CCC(=O)O,O=C(O)CCc1ccccc1,-9.0,11,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_556,OC(=O)Cc1ccc(cc1)C(O)=O,O=C(O)Cc1ccc(C(=O)O)cc1,-16.47,13,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_557,C1=CC(=CC=C1CC(=O)O)O,O=C(O)Cc1ccc(O)cc1,-12.97,11,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
+expdb_558,C1=CC(=CC(=C1)Cl)CC(=O)O,O=C(O)Cc1cccc(Cl)c1,-8.39,11,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_559,C1=CC=C(C=C1)CC(=O)O,O=C(O)Cc1ccccc1,-8.74,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A27)', 'Abraham Paper (A3)', 'Abraham Paper (A8)']"
+expdb_560,C1=C(C=C(C=C1[N+](=O)[O-])[N+](=O)[O-])C(=O)O,O=C(O)c1cc([N+](=O)[O-])cc([N+](=O)[O-])c1,-11.32,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A5)']"
+expdb_561,C1=CC(=C(C=C1[N+](=O)[O-])C(=O)O)Cl,O=C(O)c1cc([N+](=O)[O-])ccc1Cl,-9.48,13,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
+expdb_562,O=C(O)C1=CC=C(Br)C=C1,O=C(O)c1ccc(Br)cc1,-6.67,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_563,C1=CC(=CC=C1C(=O)O)C(=O)O,O=C(O)c1ccc(C(=O)O)cc1,-11.39,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_564,OC(=O)c1ccc(CCl)cc1,O=C(O)c1ccc(CCl)cc1,-9.22,11,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_565,OCc1ccc(cc1)C(O)=O,O=C(O)c1ccc(CO)cc1,-13.34,11,10.1016/j.cej.2021.129307,['Abraham Paper (A27)']
+expdb_566,C1=CC(=C(C=C1C(=O)O)[N+](=O)[O-])Cl,O=C(O)c1ccc(Cl)c([N+](=O)[O-])c1,-9.84,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A5)']"
+expdb_567,C1=CC(=CC=C1C(=O)O)Cl,O=C(O)c1ccc(Cl)cc1,-6.55,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A8)']"
+expdb_568,C1=CC(=CC=C1C(=O)O)I,O=C(O)c1ccc(I)cc1,-7.96,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A13)', 'Abraham Paper (A16)', 'Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_569,C1=CC(=CC=C1C(=O)O)O,O=C(O)c1ccc(O)cc1,-9.25,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_570,C1=CC(=CC=C1C(=O)O)[N+](=O)[O-],O=C(O)c1ccc([N+](=O)[O-])cc1,-9.44,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A5)']"
+expdb_571,C1=CC=C2C=C(C=CC2=C1)C(=O)O,O=C(O)c1ccc2ccccc2c1,-8.54,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_572,C1=CC(=CC(=C1)C(=O)O)C(=O)O,O=C(O)c1cccc(C(=O)O)c1,-11.27,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_573,C1=CC(=CC(=C1)Cl)C(=O)O,O=C(O)c1cccc(Cl)c1,-7.03,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A3)', 'Abraham Paper (A3)']"
+expdb_574,C1=CC(=CC(=C1)O)C(=O)O,O=C(O)c1cccc(O)c1,-9.55,10,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_575,C1=CC(=CC(=C1)[N+](=O)[O-])C(=O)O,O=C(O)c1cccc([N+](=O)[O-])c1,-9.45,12,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)']"
+expdb_577,C1=CC=C2C(=C1)C=CC=C2C(=O)O,O=C(O)c1cccc2ccccc12,-9.04,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A27)', 'Abraham Paper (A27)']"
+expdb_578,C1=CC=C(C=C1)C(=O)O,O=C(O)c1ccccc1,-6.96,9,10.1016/j.cej.2021.129307,"['Abraham Paper (A16)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A21)', 'Abraham Paper (A27)', 'Abraham Paper (A27)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_579,C1=CC=C(C(=C1)C(=O)O)Cl,O=C(O)c1ccccc1Cl,-7.53,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A8)']"
+expdb_580,C1=CC=C(C(=C1)C(=O)O)O,O=C(O)c1ccccc1O,-7.35,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_581,C1=CC(=CC(=C1)NC2=C(C=CC=N2)C(=O)O)C(F)(F)F,O=C(O)c1cccnc1Nc1cccc(C(F)(F)F)c1,-12.84,20,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)']"
+expdb_582,O=C(OC1CCCCC1)C2=CC=CC=C2C(OC3CCCCC3)=O,O=C(OC1CCCCC1)c1ccccc1C(=O)OC1CCCCC1,-9.07,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_583,O=C(OC1CCCCCC1)C2=CC=CC=C2C(OC3CCCCCC3)=O,O=C(OC1CCCCCC1)c1ccccc1C(=O)OC1CCCCCC1,-8.87,26,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_584,O=C(OCC1=CC=CC=C1)C2=CC=CC=C2C(OCC3=CC=CC=C3)=O,O=C(OCc1ccccc1)c1ccccc1C(=O)OCc1ccccc1,-11.31,26,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_585,O=C(OC1=CC=CC=C1)C2=CC=CC=C2C(OC3=CC=CC=C3)=O,O=C(Oc1ccccc1)c1ccccc1C(=O)Oc1ccccc1,-11.6,24,10.1016/j.cej.2021.129307,['Abraham Paper (A18)']
+expdb_586,[O-]C(=O)c1ccccc1,O=C([O-])c1ccccc1,-3.82,9,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_587,ON(c1ccccc1)C(=O)c2cc(cc(c2)[N+]([O-])=O)[N+]([O-])=O,O=C(c1cc([N+](=O)[O-])cc([N+](=O)[O-])c1)N(O)c1ccccc1,-15.63,22,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_588,ON(C(=O)c1ccc(Br)cc1)c2ccc(Cl)cc2,O=C(c1ccc(Br)cc1)N(O)c1ccc(Cl)cc1,-11.55,18,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_589,C1=CC=C(C=C1)C(C(=O)C2=CC=CC=C2)O,O=C(c1ccccc1)C(O)c1ccccc1,-11.91,16,10.1016/j.cej.2021.129307,['Abraham Paper (A36)']
+expdb_590,ON(c1cccc(Cl)c1)C(=O)c2ccccc2,O=C(c1ccccc1)N(O)c1cccc(Cl)c1,-10.89,17,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_591,C1=CC=C(C=C1)C(=O)N(C2=CC=CC=C2)O,O=C(c1ccccc1)N(O)c1ccccc1,-11.34,16,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_592,C1=CC=C(C=C1)N(C(=O)C2=CC=CC=C2[N+](=O)[O-])O,O=C(c1ccccc1[N+](=O)[O-])N(O)c1ccccc1,-14.49,19,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_593,C1=CC=C(C=C1)C2(C(=O)NC(=O)N2)C3=CC=CC=C3,O=C1NC(=O)C(c2ccccc2)(c2ccccc2)N1,-16.67,19,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_594,C1=CC=C2C(=C1)C3=CC=CC=C3C2=O,O=C1c2ccccc2-c2ccccc21,-5.78,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A6)']"
+expdb_595,C1=CC=C2C(=C1)C(=O)C3=C(C2=O)C(=CC=C3)Cl,O=C1c2ccccc2C(=O)c2c(Cl)cccc21,-8.23,17,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A5)', 'Abraham Paper (A6)']"
+expdb_596,C(=O)=O,O=C=O,0.11,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A10)', 'Abraham Paper (A11)', 'Abraham Paper (A11)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'CompSol Binary (entry number=66016)', 'CompSol Binary (entry number=66026)', 'CompSol Binary (entry number=66031)', 'CompSol Binary (entry number=66033)', 'CompSol Binary (entry number=66061)', 'CompSol Binary (entry number=66086)', 'CompSol Binary (entry number=66106)', 'CompSol Binary (entry number=66109)', 'CompSol Binary (entry number=66127)']"
+expdb_597,C(=O)=S,O=C=S,0.41,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_598,C1COCCN1C=O,O=CN1CCOCC1,-9.41,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_599,C1=CC(=CC=C1C=O)C(=O)O,O=Cc1ccc(C(=O)O)cc1,-8.94,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_600,C1=COC(=C1)C=O,O=Cc1ccco1,-5.28,7,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A8)', 'CompSol Binary (entry number=63835)']"
+expdb_601,C1CCN(CC1)N=O,O=NN1CCCCC1,-6.34,8,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_602,C1COCCN1N=O,O=NN1CCOCC1,-7.78,8,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_603,C1=CC=C2C(=C1)C=CC(=C2N=O)O,O=Nc1c(O)ccc2ccccc12,-7.31,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_604,C1=CC=C2C(=C1)C=CC(=C2O)N=O,O=Nc1ccc2ccccc2c1O,-8.79,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_605,O=O,O=O,2.06,2,10.1016/j.cej.2021.129307,"['Abraham Paper (A11)', 'Abraham Paper (A11)', 'Abraham Paper (A20)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A8)', 'Abraham Paper (A9)', 'CompSol Binary (entry number=68520)', 'CompSol Binary (entry number=68525)', 'CompSol Binary (entry number=68571)', 'CompSol Binary (entry number=68572)', 'CompSol Binary (entry number=68573)', 'CompSol Binary (entry number=68574)']"
+expdb_606,C1=CC=C(C=C1)P(=O)(C2=CC=CC=C2)C3=CC=CC=C3,O=P(c1ccccc1)(c1ccccc1)c1ccccc1,-17.04,20,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_607,C1=CC=C(C=C1)S(=O)(=O)C2=CC=CC=C2,O=S(=O)(c1ccccc1)c1ccccc1,-10.08,15,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_609,O=S=O,O=S=O,-2.07,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A26)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=68874)']"
+expdb_610,C1=C(C(=C(C(=C1Cl)Cl)[N+](=O)[O-])Cl)Cl,O=[N+]([O-])c1c(Cl)c(Cl)cc(Cl)c1Cl,-3.77,13,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_611,C1=CC(=CC=C1CCl)[N+](=O)[O-],O=[N+]([O-])c1ccc(CCl)cc1,-5.14,11,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A6)', 'Abraham Paper (A8)']"
+expdb_612,C1=CC(=C(C(=C1[N+](=O)[O-])Cl)Cl)Cl,O=[N+]([O-])c1ccc(Cl)c(Cl)c1Cl,-4.07,12,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_613,C1=CC(=CC=C1[N+](=O)[O-])Cl,O=[N+]([O-])c1ccc(Cl)cc1,-5.05,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62811)']
+expdb_614,C1=CC(=C(C=C1[N+](=O)[O-])[N+](=O)[O-])O,O=[N+]([O-])c1ccc(O)c([N+](=O)[O-])c1,-7.61,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_615,C1=CC(=C(C(=C1[N+](=O)[O-])O)[N+](=O)[O-])O,O=[N+]([O-])c1ccc(O)c([N+](=O)[O-])c1O,-9.51,14,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_616,C1=CC(=CC(=C1)[N+](=O)[O-])CO,O=[N+]([O-])c1cccc(CO)c1,-9.19,11,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_617,C1=CC(=CC(=C1)Cl)[N+](=O)[O-],O=[N+]([O-])c1cccc(Cl)c1,-4.45,10,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62810)']
+expdb_618,C1=CC(=C(C(=C1)Cl)Cl)[N+](=O)[O-],O=[N+]([O-])c1cccc(Cl)c1Cl,-4.22,11,10.1016/j.cej.2021.129307,['Abraham Paper (A29)']
+expdb_619,C1=CC(=CC(=C1)[N+](=O)[O-])[N+](=O)[O-],O=[N+]([O-])c1cccc([N+](=O)[O-])c1,-7.77,12,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62561)']
+expdb_620,C1=CC=C2C(=C1)C=CC=C2[N+](=O)[O-],O=[N+]([O-])c1cccc2ccccc12,-5.65,13,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=63092)']
+expdb_621,[O-][O+]=O,O=[O+][O-],0.82,3,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
+expdb_622,C1=CC=C2C(=C1)C(=O)C3=CC=CC=C3S2,O=c1c2ccccc2sc2ccccc12,-6.9,15,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_623,O=C1NC=CC(=O)N1,O=c1cc[nH]c(=O)[nH]1,-16.59,8,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_624,OC(C(F)(F)F)C(F)(F)F,OC(C(F)(F)F)C(F)(F)F,-3.77,10,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_625,C1CCCCCC(CCCCC1)O,OC1CCCCCCCCCCC1,-5.35,13,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=66339)']
+expdb_628,OCC(O)C(O)C(O)CO,OCC(O)C(O)C(O)CO,-16.55,10,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A5)']"
+expdb_630,C(CO)CO,OCCCO,-9.96,5,10.1016/j.cej.2021.129307,['CompSol Binary (entry number=62565)']
+expdb_631,C(CCl)O,OCCCl,-6.28,4,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_632,C1=CC=C(C(=C1)CO)O,OCc1ccccc1O,-10.22,9,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_633,OO,OO,-8.58,2,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_634,C1(=C(C(=C(C(=C1Cl)Cl)Cl)Cl)Cl)O,Oc1c(Cl)c(Cl)c(Cl)c(Cl)c1Cl,-4.99,12,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_635,C1=C(C=C(C(=C1Cl)O)Cl)Cl,Oc1c(Cl)cc(Cl)cc1Cl,-4.95,10,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_636,C1=C(C=C(C(=C1I)O)I)I,Oc1c(I)cc(I)cc1I,-7.16,10,10.1016/j.cej.2021.129307,['Abraham Paper (A9)']
+expdb_637,C1=CC=C(C=C1)C2=CC=C(C=C2)O,Oc1ccc(-c2ccccc2)cc1,-8.89,13,10.1016/j.cej.2021.129307,['Abraham Paper (A9)']
+expdb_638,C1=CC(=C(C=C1Br)Br)O,Oc1ccc(Br)cc1Br,-5.69,9,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_639,C1=CC(=C(C=C1Cl)Cl)O,Oc1ccc(Cl)cc1Cl,-4.98,9,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_640,C1=CC(=CC=C1O)I,Oc1ccc(I)cc1,-7.61,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_641,C1=CC(=CC=C1O)O,Oc1ccc(O)cc1,-12.08,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A8)']"
+expdb_642,C1=CC(=CC(=C1)O)O,Oc1cccc(O)c1,-11.39,8,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_643,C1=CC2=C(C(=C1)O)N=CC=C2,Oc1cccc2cccnc12,-6.06,11,10.1016/j.cej.2021.129307,['Abraham Paper (A6)']
+expdb_644,C1=CC=C(C(=C1)O)Br,Oc1ccccc1Br,-5.06,8,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_645,C1=CC=C(C(=C1)O)O,Oc1ccccc1O,-9.82,8,10.1016/j.cej.2021.129307,['Abraham Paper (A8)']
+expdb_646,P,P,0.6,1,10.13020/3eks-j059,From Minnesota Solvation Database (MNSOL) version 2012
+expdb_647,C(=S)=S,S=C=S,0.16,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A26)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A5)', 'CompSol Binary (entry number=66142)', 'CompSol Binary (entry number=66156)']"
+expdb_648,[N-]=[N+]=O,[N-]=[N+]=O,0.31,3,10.1016/j.cej.2021.129307,"['Abraham Paper (A11)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A6)', 'CompSol Binary (entry number=68365)']"
+expdb_649,C1=CC2=C3C(=C1)C4=CC=CC5=C4C6=C(C=C5)C=CC(=C36)C=C2,c1cc2ccc3ccc4ccc5cccc6c(c1)c2c3c4c56,-8.98,22,10.1016/j.cej.2021.129307,"['Abraham Paper (A4)', 'Abraham Paper (A4)', 'Abraham Paper (A4)']"
+expdb_650,C1=CC2=C3C(=C1)C4=CC=CC5=C4C(=CC=C5)C3=CC=C2,c1cc2cccc3c4cccc5cccc(c(c1)c23)c54,-7.83,20,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_651,C1=CC=C(C=C1)N=NC2=CC=CC=C2,c1ccc(N=Nc2ccccc2)cc1,-4.82,14,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_652,C1=CC=C2C(=C1)C3=CC=CC4=C3C2=CC=C4,c1ccc2c(c1)-c1cccc3cccc-2c13,-4.69,16,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A25)', 'Abraham Paper (A3)', 'Abraham Paper (A3)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A8)', 'Abraham Paper (A9)']"
+expdb_653,C1COCCOC2=CC=CC=C2OCCOCCO1,c1ccc2c(c1)OCCOCCOCCOCCO2,-14.39,19,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_654,C1COCCOCCOC2=CC=CC=C2OCCOCCO1,c1ccc2c(c1)OCCOCCOCCOCCOCCO2,-17.88,22,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_655,C1COCCOC2=CC=CC=C2OCCOCCOCCOC3=CC=CC=C3OCCO1,c1ccc2c(c1)OCCOCCOCCOc1ccccc1OCCOCCOCCO2,-23.63,32,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_656,C1COC2=CC=CC=C2OCCOCCOC3=CC=CC=C3OCCO1,c1ccc2c(c1)OCCOCCOc1ccccc1OCCOCCO2,-18.25,26,10.1016/j.cej.2021.129307,"['Abraham Paper (A6)', 'Abraham Paper (A6)']"
+expdb_657,C1=CC=C2C(=C1)C3=CC=CC=C3N2,c1ccc2c(c1)[nH]c1ccccc12,-7.18,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_658,C1=CC=C2C(=C1)C=CC3=C2C=CC4=CC=CC=C43,c1ccc2c(c1)ccc1c3ccccc3ccc21,-6.53,18,10.1016/j.cej.2021.129307,"['Abraham Paper (A25)', 'Abraham Paper (A25)']"
+expdb_659,C1=CC=C2C(=C1)C3=CC=CC=C3O2,c1ccc2c(c1)oc1ccccc12,-3.31,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_660,C1=CC=C2C(=C1)C3=CC=CC=C3S2,c1ccc2c(c1)sc1ccccc12,-4.05,13,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A25)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_661,C1=CC=C2C(=C1)C=CC3=CC4=CC=CC=C4C=C32,c1ccc2cc3c(ccc4ccccc43)cc2c1,-6.26,18,10.1016/j.cej.2021.129307,['Abraham Paper (A25)']
+expdb_662,C1=CC=C2C(=C1)C=C3C=CC=CC3=N2,c1ccc2nc3ccccc3cc2c1,-6.75,14,10.1016/j.cej.2021.129307,['Abraham Paper (A16)']
+expdb_663,C1=COC=C1,c1ccoc1,-0.9,5,10.1016/j.cej.2021.129307,"['Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A20)', 'Abraham Paper (A5)', 'Abraham Paper (A5)', 'Abraham Paper (A5)']"
+expdb_664,C1=NC=NN1,c1nc[nH]n1,-11.62,5,10.1016/j.cej.2021.129307,['Abraham Paper (A3)']
