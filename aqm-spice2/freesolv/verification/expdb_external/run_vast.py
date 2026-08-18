@@ -46,6 +46,9 @@ RECORDED_MD5 = "c0ef2933417413f7d9837987421e7ceb"
 RECORDED_FOLD_MEANS = [-3.872, -3.821, -3.819, -3.767, -3.736]
 
 sys.path.insert(0, BUNDLE)
+_repo = _repo_root()
+if _repo:
+    sys.path.insert(0, os.path.join(_repo, "aqm-spice2"))
 
 import numpy as np
 import torch
