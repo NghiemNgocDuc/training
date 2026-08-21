@@ -88,7 +88,7 @@ def main():
             for j, mid in enumerate(train_ids):
                 g = f[mid]
                 P_train[mid] = cio.per_atom_predict(
-                    model, g["atNUM"][...], g["atXYZ"][0], device).astype(np.float64)
+                    model, g["atNUM"][...], g["atXYZ"][...], device).astype(np.float64)
                 if (j + 1) % 100 == 0 or (j + 1) == len(train_ids):
                     print(f"[infer seed {seed}] freesolv-train "
                           f"{j+1}/{len(train_ids)}", flush=True)
