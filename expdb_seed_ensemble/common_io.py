@@ -86,6 +86,18 @@ def add_vast_to_path():
     return src
 
 
+def one_hot_x(z_tensor, device):
+    """One-hot atom features via ELEMENT_TO_IDX (raw Z values are NOT indices;
+    e.g. Br Z=35, I Z=53 map to columns 15/16 of a 17-column vocab)."""
+    import torch
+    from element_vocab import ELEMENT_TO_IDX, NUM_ELEMENTS
+    x = torch.zeros(z_tensor.shape[0], NUM_ELEMENTS, device=device)
+    idx = torch.tensor([ELEMENT_TO_IDX[int(zz)] for zz in z_tensor],
+                       dtype=torch.long, device=device)
+    x[torch.arange(z_tensor.shape[0], device=device), idx] = 1.0
+    return x
+
+
 def set_all_seeds(seed):
     random.seed(seed)
     np.random.seed(seed)
@@ -157,12 +169,10 @@ def per_atom_predict(model, z, pos, device):
     """
     import torch
     from torch_geometric.data import Data
-    from element_vocab import NUM_ELEMENTS
     with torch.no_grad():
         data = Data(z=torch.tensor(z, dtype=torch.long),
                     pos=torch.tensor(pos, dtype=torch.float)).to(device)
-        x = torch.zeros(data.z.shape[0], NUM_ELEMENTS, device=device)
-        x[torch.arange(data.z.shape[0], device=device), data.z] = 1.0
+        x = one_hot_x(data.z, device)
         was = model.is_energy
         model.is_energy = False
         P = model(x, data.pos, None)            # (n_atoms,) in eV
@@ -174,11 +184,9 @@ def energy_predict(model, z, pos, device):
     """Scalar molecular energy (kcal/mol), the pipeline's normal path."""
     import torch
     from torch_geometric.data import Data
-    from element_vocab import NUM_ELEMENTS
     with torch.no_grad():
         data = Data(z=torch.tensor(z, dtype=torch.long),
                     pos=torch.tensor(pos, dtype=torch.float)).to(device)
-        x = torch.zeros(data.z.shape[0], NUM_ELEMENTS, device=device)
-        x[torch.arange(data.z.shape[0], device=device), data.z] = 1.0
+        x = one_hot_x(data.z, device)
         e = model(x, data.pos, None)
     return float(e.item()) * EV_TO_KCAL

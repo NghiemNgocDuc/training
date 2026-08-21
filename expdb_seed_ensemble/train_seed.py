@@ -94,9 +94,7 @@ def main():
         with torch.no_grad():
             for data in loader:
                 data = data.to(device)
-                from element_vocab import NUM_ELEMENTS
-                x = torch.zeros(data.z.shape[0], NUM_ELEMENTS, device=device)
-                x[torch.arange(data.z.shape[0], device=device), data.z] = 1.0
+                x = cio.one_hot_x(data.z, device)
                 pred = model(x, data.pos, data.batch).view(-1) * cio.EV_TO_KCAL
                 y = data.y_dG.view(-1).to(device)
                 ok = ~torch.isnan(y)
@@ -115,9 +113,7 @@ def main():
         n_batches = 0
         for data in train_loader:
             data = data.to(device)
-            from element_vocab import NUM_ELEMENTS
-            x = torch.zeros(data.z.shape[0], NUM_ELEMENTS, device=device)
-            x[torch.arange(data.z.shape[0], device=device), data.z] = 1.0
+            x = cio.one_hot_x(data.z, device)
             pred = model(x, data.pos, data.batch).view(-1)
             y = data.y_dG.view(-1).to(device) / cio.EV_TO_KCAL
             ok = ~torch.isnan(y)
