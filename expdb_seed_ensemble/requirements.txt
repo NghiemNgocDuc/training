@@ -1,0 +1,11 @@
+# Exp-DB Vast bundle - pinned environment (surviving regime).
+# Install on the box (Python 3.12):
+#   pip install torch==2.12.0 --index-url https://download.pytorch.org/whl/cu130
+#   pip install -r requirements.txt
+torch_geometric==2.8.0
+rdkit==2026.03.5
+numpy==2.5.0
+h5py==3.16.0
+pandas==3.0.3
+scipy==1.18.0
+tqdm
