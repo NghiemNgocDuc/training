@@ -1,0 +1,240 @@
+{
+  "label": "Plain affine control for Exp-DB GIMS-affine",
+  "runtime_s": 0.28,
+  "sandbox": "node_refinement/plain_affine_control only; read-only reuse of peratom_seed{42,123,999}.pkl and predictions_ensemble.csv",
+  "params": {
+    "tau_star": 0.0004725394227550238,
+    "seeds": [
+      42,
+      123,
+      999
+    ],
+    "n_boot": 10000,
+    "rng_seed": 20260815,
+    "cv": "KFold n_splits=5 shuffle=True random_state=42",
+    "optimizer": "scipy.optimize.minimize Nelder-Mead maxiter=500 xatol=1e-6 fatol=1e-6",
+    "init": "MSE lstsq (plain: [E,1]->y; gims: [L*E,L]->y-E) then Nelder-Mead on validation-MAE (train folds)"
+  },
+  "folds": [
+    [
+      496,
+      124
+    ],
+    [
+      496,
+      124
+    ],
+    [
+      496,
+      124
+    ],
+    [
+      496,
+      124
+    ],
+    [
+      496,
+      124
+    ]
+  ],
+  "populations": {
+    "all620": 620,
+    "Q_spread": 155,
+    "WDec10": 62
+  },
+  "per_fold_ab": [
+    {
+      "fold": 1,
+      "n_train": 496,
+      "n_test": 124,
+      "a_gims": 1.123323168470089,
+      "b_gims": 0.0812357444841915,
+      "a_plain": 1.083015997937932,
+      "b_plain": -0.051470177460438714,
+      "delta_gims_vs_raw_fold": -0.09631320005956587,
+      "delta_plain_vs_raw_fold": -0.09592863206190282,
+      "delta_gims_vs_plain_fold": -0.0003845679976630495,
+      "mae_raw_fold": 1.4950215786230823,
+      "mae_gims_fold": 1.3987083785635164,
+      "mae_plain_fold": 1.399092946561179
+    },
+    {
+      "fold": 2,
+      "n_train": 496,
+      "n_test": 124,
+      "a_gims": 1.117652002364675,
+      "b_gims": 0.10693334925735623,
+      "a_plain": 1.0891842310286537,
+      "b_plain": 0.012803621335301467,
+      "delta_gims_vs_raw_fold": -0.11371815086890222,
+      "delta_plain_vs_raw_fold": -0.11379030525123487,
+      "delta_gims_vs_plain_fold": 7.215438233266364e-05,
+      "mae_raw_fold": 1.32656941265028,
+      "mae_gims_fold": 1.212851261781378,
+      "mae_plain_fold": 1.2127791073990453
+    },
+    {
+      "fold": 3,
+      "n_train": 496,
+      "n_test": 124,
+      "a_gims": 1.1144487158187437,
+      "b_gims": 0.12856936975712824,
+      "a_plain": 1.0840559375850547,
+      "b_plain": 6.918595447071656e-06,
+      "delta_gims_vs_raw_fold": -0.14192314081238433,
+      "delta_plain_vs_raw_fold": -0.14438437786884975,
+      "delta_gims_vs_plain_fold": 0.0024612370564654445,
+      "mae_raw_fold": 1.5052123290226267,
+      "mae_gims_fold": 1.3632891882102423,
+      "mae_plain_fold": 1.3608279511537769
+    },
+    {
+      "fold": 4,
+      "n_train": 496,
+      "n_test": 124,
+      "a_gims": 1.1140613992525141,
+      "b_gims": 0.0416446470025084,
+      "a_plain": 1.0939943821470672,
+      "b_plain": 0.0026496881905820144,
+      "delta_gims_vs_raw_fold": -0.09392866288674052,
+      "delta_plain_vs_raw_fold": -0.07732136772142825,
+      "delta_gims_vs_plain_fold": -0.01660729516531227,
+      "mae_raw_fold": 1.57454422974939,
+      "mae_gims_fold": 1.4806155668626493,
+      "mae_plain_fold": 1.4972228620279617
+    },
+    {
+      "fold": 5,
+      "n_train": 496,
+      "n_test": 124,
+      "a_gims": 1.137140445783388,
+      "b_gims": 0.15973768123955767,
+      "a_plain": 1.0997109582462818,
+      "b_plain": 0.022362362937533534,
+      "delta_gims_vs_raw_fold": -0.013021853411644614,
+      "delta_plain_vs_raw_fold": -0.01497138960894908,
+      "delta_gims_vs_plain_fold": 0.0019495361973044644,
+      "mae_raw_fold": 1.513174164018003,
+      "mae_gims_fold": 1.5001523106063581,
+      "mae_plain_fold": 1.4982027744090534
+    }
+  ],
+  "results": [
+    {
+      "population": "all620",
+      "arm": "gims_affine_vs_raw",
+      "n": 620,
+      "delta_mae": -0.0917810016078475,
+      "before_mae": 1.482904342812676,
+      "after_mae": 1.3911233412048287,
+      "ci_lo": -0.13805164829417296,
+      "ci_hi": -0.04425637195134193,
+      "p_improves": 0.9998,
+      "kind": "gims_minus_raw"
+    },
+    {
+      "population": "all620",
+      "arm": "plain_affine_vs_raw",
+      "n": 620,
+      "delta_mae": -0.08927921450247295,
+      "before_mae": 1.482904342812676,
+      "after_mae": 1.3936251283102032,
+      "ci_lo": -0.13509803492283268,
+      "ci_hi": -0.044894431565495586,
+      "p_improves": 0.9999,
+      "kind": "plain_minus_raw"
+    },
+    {
+      "population": "all620",
+      "arm": "gims_minus_plain",
+      "n": 620,
+      "delta_mae": -0.00250178710537455,
+      "before_mae": 1.3936251283102032,
+      "after_mae": 1.3911233412048287,
+      "ci_lo": -0.010600207482173895,
+      "ci_hi": 0.005529820276463597,
+      "p_improves": 0.7234,
+      "kind": "head_to_head"
+    },
+    {
+      "population": "Q_spread",
+      "arm": "gims_affine_vs_raw",
+      "n": 155,
+      "delta_mae": -0.11880673012377665,
+      "before_mae": 2.3261151810956577,
+      "after_mae": 2.207308450971881,
+      "ci_lo": -0.2398205346679966,
+      "ci_hi": 0.0037631500509081933,
+      "p_improves": 0.971,
+      "kind": "gims_minus_raw"
+    },
+    {
+      "population": "Q_spread",
+      "arm": "plain_affine_vs_raw",
+      "n": 155,
+      "delta_mae": -0.11855864092066733,
+      "before_mae": 2.3261151810956577,
+      "after_mae": 2.2075565401749904,
+      "ci_lo": -0.23059237210222042,
+      "ci_hi": -0.004903983986584727,
+      "p_improves": 0.9798,
+      "kind": "plain_minus_raw"
+    },
+    {
+      "population": "Q_spread",
+      "arm": "gims_minus_plain",
+      "n": 155,
+      "delta_mae": -0.00024808920310933946,
+      "before_mae": 2.2075565401749904,
+      "after_mae": 2.207308450971881,
+      "ci_lo": -0.018300359984547557,
+      "ci_hi": 0.01833279443264327,
+      "p_improves": 0.5128,
+      "kind": "head_to_head"
+    },
+    {
+      "population": "WDec10",
+      "arm": "gims_affine_vs_raw",
+      "n": 62,
+      "delta_mae": -0.5051001594893257,
+      "before_mae": 5.381226184438635,
+      "after_mae": 4.876126024949308,
+      "ci_lo": -0.6942055381582483,
+      "ci_hi": -0.3025761421065733,
+      "p_improves": 1.0,
+      "kind": "gims_minus_raw"
+    },
+    {
+      "population": "WDec10",
+      "arm": "plain_affine_vs_raw",
+      "n": 62,
+      "delta_mae": -0.4889433432215427,
+      "before_mae": 5.381226184438635,
+      "after_mae": 4.8922828412170904,
+      "ci_lo": -0.658520889421495,
+      "ci_hi": -0.306702852993339,
+      "p_improves": 1.0,
+      "kind": "plain_minus_raw"
+    },
+    {
+      "population": "WDec10",
+      "arm": "gims_minus_plain",
+      "n": 62,
+      "delta_mae": -0.016156816267783054,
+      "before_mae": 4.8922828412170904,
+      "after_mae": 4.876126024949308,
+      "ci_lo": -0.04975262476112624,
+      "ci_hi": 0.017263838273868858,
+      "p_improves": 0.8316,
+      "kind": "head_to_head"
+    }
+  ],
+  "sanity_gate": {
+    "folds_identical": true,
+    "optimizer_identical": true,
+    "validation_objective_identical": "mean |pred - y| on train folds (4/5); only pred form differs by Lambda",
+    "data_identical": "same E_m (ensemble mean of seeds 42,123,999), same y, same splits, same N_BOOT=10k",
+    "only_difference": "presence of Lambda_m in GIMS-affine pred = (1-L)E + L(aE+b) vs plain pred = aE+b"
+  },
+  "notes": "Every number in PLAIN_AFFINE_CONTROL_RESULTS.md is %VERIFIED against plain_affine_results.csv / plain_affine_per_fold.csv in this directory."
+}
