@@ -684,7 +684,7 @@ ensembles~\cite{lakshminarayanan2017} remain the default uncertainty
 estimator for neural potentials and property models, and disagreement-based
 calibration is standard practice. Our confidently-wrong result documents this failure mode concretely. Our audit shows atom-level refinements are capped by the gauge; GIMS passes stronger controls.
 
-\paragraph{Shrinkage and pooling.} Shrinking toward a common mean is classical~\cite{efron1977}. We show it transfers to held-out molecules. GIMS is the molecular-level, gauge-invariant version.
+\paragraph{Shrinkage and pooling.} Shrinking toward a common mean is classical~\cite{efron1977}. We show it transfers to held-out molecules. GIMS is the molecular-level, gauge-invariant version for in-domain correction and CAAT is the extensive, element-aware version for cross-domain transfer — both exactly gauge-invariant (GIMS via $\Lambda_m$, CAAT via $N_e$).
 
 \section{Conclusion}
 
