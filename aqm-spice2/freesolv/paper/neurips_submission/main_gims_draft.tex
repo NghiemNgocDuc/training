@@ -363,8 +363,8 @@ The fold-0 five-seed ensemble mean achieves a test MAE of 0.5059 kcal/mol
 (RMSE 0.7696, R$^2$ 0.9646) on the 129 test molecules. The five-fold
 headline is $0.549 \pm 0.024$ kcal/mol (per-fold
 0.515/0.537/0.581/0.570/0.540; pooled RMSE 0.921, R$^2$ 0.9427) and is fully
-regenerable from \texttt{cv\_results\_full/fold\_\{0..4\}/finetuned.pt} and
-\texttt{ft\_test\_predictions.csv}. All correction
+regenerable from the archived per-fold checkpoints and predictions
+(supplementary material). All correction
 arms below are three-seed (\{42,123,999\}) and scored vs the three-seed
 uncorrected mean (Table~\ref{tab:arms} baseline, around 4.8 on all129); the
 five-seed headline above is a separate, pathology-free overall number. The
@@ -609,7 +609,7 @@ Retrospective evaluation. Splits, hyperparameters, and populations were frozen
 after the fact. Gates limit drift. md5 match and checkpoint chain. (iii) No
 per-molecule experimental uncertainties in FreeSolv. All uncertainty numbers
 are model-derived. Intervals cover model variation only. (iv) Folds 1--4 are fully regenerable from
-\texttt{cv\_results\_full/fold\_\{1..4\}/finetuned.pt} (same as fold-0);
+the archived per-fold checkpoints (same as fold-0);
 all five folds are sha256-verifiable. Same-run anchor 0.5934 vs recorded
 0.549 $\pm$ 0.024 is disclosed. (v) gradient-12
 $n=12$. Statements on it are fragile. (vi) Populations are nested, not
