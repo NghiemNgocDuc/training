@@ -242,9 +242,7 @@ high-RMSE quadrant. They are confidently wrong. Members agree. Predictions
 are inaccurate. Six (isolated-6) are structurally isolated. They have the
 lowest max Tanimoto similarity to any other molecule. The remaining twelve
 (gradient-12) are not explained by isolation or feature density. Their
-per-atom features lie in the typical region of the training Gaussian mixture model (GMM). Atom-level
-checks show their gated atoms sit near the pool mean. Rewriting them moves
-values without information. A cutoff-radius explanation is also ruled out.
+per-atom features lie in the typical region of the training Gaussian mixture model (GMM). A cutoff-radius explanation is also ruled out.
 Bias magnitude is uncorrelated with heavy-atom count, diameter, radius of
 gyration, or fraction of pairs beyond 6.0~\AA{}. Confidently-wrong molecules
 are not enriched for large structures.
@@ -273,11 +271,9 @@ Variance-weighted (VW) uses per-atom variance.
 with scale hyperparameter $\tau^2$ calibrated on the 102-molecule validation
 split. The optimum is
 $\tau^{2*}=4.725\times10^{-4}$, and it is interior. Its realized mean is
-$\bar\lambda=0.8014$, and as ablations we keep constant $\lambda=1.0$ on the top
-quartile of $\sigma_{mi}$ (2{,}904 atoms, $\sigma_{mi}\ge0.097158$),
-trust-weighted replacement of gated atoms, a naive pool-mean shift, and a
-random-shift placebo. This whole family is atom-level, and it is the naive
-approach. The next subsection shows why it is structurally capped.
+$\bar\lambda=0.8014$ (ablations: $\lambda{=}1.0$ on top-quartile $\sigma_{mi}$,
+trust-weighted, pool-mean shift, random placebo; all atom-level). The next
+subsection shows why it is structurally capped.
 
 \subsection{The atomic decomposition is not unique}
 
@@ -422,9 +418,8 @@ $E_m^{(k)}$, every $\sigma_{mi}^2$, and the training target unchanged and
 spans the null space of the molecular observable. VW moves, shifting by
 $-\sum_i\lambda_{mi}g_{mi}$ with mean absolute magnitude 3.26~kcal/mol on
 the 129 test molecules, while GIMS does not, with max shift
-$2.49\times10^{-14}$~kcal/mol. The analytic formula matches the observed VW
-shift to $2.49\times10^{-14}$, so the invariance is exact, not only
-empirically small, and follows analytically from Methods.
+$2.49\times10^{-14}$~kcal/mol. The analytic formula matches the observed shift to $2.49\times10^{-14}$, so
+invariance is exact.
 % VERIFIED. gauge stress = node_refinement/gauge_invariant_shrinkage/gims_report.json:gauge_stress (GIMS max 2.49e-14, VW mean |shift| 3.26 on 129 test, formula diff 2.49e-14) and GAUGE_INVARIANT_SHRINKAGE_RESULTS.md.
 
 The 3.26~kcal/mol shift is comparable to the MAE gains themselves, while
@@ -500,17 +495,7 @@ Appendix~\ref{app:bias-var}.
 
 \subsection{GBn2 physics baseline}
 
-As physics reference we score GBn2 (Gasteiger/mbondi3/Still GB,
-$\varepsilon_{\text{in}}=1/78.5$) on the 642 conformers (deterministic,
-bit-identical). Raw MAE is unusable (slope $\approx$0.11--0.16, $6$--$9\times$
-overestimate), so we apply \emph{in-sample affine calibration} favoring the baseline,
-\[
-\hat{y}_{\mathrm{cal}} = a\, y_{\mathrm{GBn2}} + b ,
-\]
-with $(a, b)$ least-squares fitted on the same fold's test molecules. Even
-so, fold-0 scaled MAE is 2.13 kcal/mol, and this is $4.21\times$ worse than the
-fold-0 model MAE of 0.5059 ($36.1\times$ raw). The scaling is stable across
-folds (Table~\ref{tab:gbn2} in Appendix~\ref{app:gbn2}), and GBn2 remains useful for rank-ordering (Kendall $\tau \approx 0.54$).
+As physics reference we score GBn2 ($\varepsilon_{\text{in}}=1/78.5$, Gasteiger/mbondi3/Still GB) on 642 conformers. Raw MAE is unusable (slope $\approx$0.11--0.16, $6$--$9\times$), so we apply \emph{in-sample affine calibration} $\hat y_{\rm cal}=a y_{\rm GBn2}+b$ fitted on the same fold's test molecules. Fold-0 scaled MAE 2.13 is $4.21\times$ worse than the model (0.5059; $36.1\times$ raw, stable across folds, $\tau\approx0.54$).
 
 \subsection{External generalization}
 
@@ -523,9 +508,7 @@ from FreeSolv. Of 623 attempted, three lack MMFF parameters and are excluded.
 External conformers follow the identical ETKDGv3 (seed 42, MMFF94, $\le5$ per
 molecule) protocol, yielding 1{,}853 conformers.
 
-Two caveats. (1) retrained anchor 0.5934 vs recorded 0.549 $\pm$0.024
-(+0.044 systematic, run-to-run/settings drift), we compare vs same-run anchor;
-(2) external labels have no per-molecule uncertainties (literature compilations).
+Caveats: (1) retrained anchor 0.5934 vs recorded 0.549 $\pm$0.024 (+0.044 drift), we compare vs same-run anchor; (2) external labels have no per-molecule uncertainties.
 
 \textbf{Does GIMS transfer?} We fine-tuned five independent stage-3 seeds
 $\{42,123,7,2024,999\}$ from the frozen stage-2 checkpoint on the archived
@@ -631,14 +614,7 @@ all five folds are sha256-verifiable. Same-run anchor 0.5934 vs recorded
 0.549 $\pm$ 0.024 is disclosed. (v) gradient-12
 $n=12$. Statements on it are fragile. (vi) Populations are nested, not
 independent. Consistency across five is about two to three independent checks.
-No family-wise correction across 25 comparisons. (vii) Atom-level target
-search. six designs were tested (variance-moderated, element-conditional,
-two-stage, magnitude-adaptive, hierarchical, correlation-aware). All operate
-at atom level. They are now understood through the gauge lens. Each reduces
-to VW or underperforms it. The one validation win (hierarchical, $-0.03$)
-reversed on test ($+0.04$ to $+0.08$) and did not survive H1. This is
-convergent evidence that atom-level correction is capped. No correction
-beyond H2 was applied. (viii) GIMS reference mean is train-only (411/7{,}389).
+No family-wise correction across 25 comparisons. (vii) Six atom-level designs were tested; each reduces to VW or underperforms (one val win $-0.03$ reversed on test). Convergent evidence atom-level is capped. (viii) GIMS reference mean is train-only (411/7{,}389).
 This is stricter than the pooled 11{,}613-atom mean used elsewhere. It is
 intentional for inductive validity. The shift is $\le0.08$~kcal/mol on all129.
 Both comparisons are reported.
