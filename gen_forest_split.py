@@ -4,7 +4,7 @@ import numpy as np
 
 # Data from JSONs - precise values
 # Order: trust, uniform, variance-weighted, gated
-pops = ["Disagree33", "Atypical33", "UNION", "all129", "gradient12"]
+pops = ["Disagree33", "Atypical33", "Union50", "all129", "gradient12"]
 data = {
     "Disagree33": {
         "trust": (-3.807008838665606, -8.38804768887748, -0.3584467238301816),
@@ -18,7 +18,7 @@ data = {
         "vw": (-6.728896691634713, -12.779346289684995, -2.3047276091900235),
         "gated": (-6.065322364594745, -12.295845548407405, -1.5329343468831491),
     },
-    "UNION": {
+    "Union50": {
         "trust": (-2.3594557942022134, -5.563247801006055, -0.0480901102901716),
         "uniform": (-4.0936421510886705, -7.624332172806342, -1.5802879749356715),
         "vw": (-4.605718475491099, -8.792880960844258, -1.6128852993502094),
@@ -54,9 +54,9 @@ colors = {
 
 # Create figure with 2 rows - same size for all panels, bottom 2 centered, more vertical space between rows and legend
 # Use 2x3 grid and shift bottom row to center while keeping same panel size as top
-fig = plt.figure(figsize=(9, 4.6))
+fig = plt.figure(figsize=(10.5, 5.4))
 gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.70, wspace=0.38,
-                       left=0.07, right=0.97, top=0.92, bottom=0.22)
+                       left=0.06, right=0.98, top=0.92, bottom=0.20)
 axes = []
 for i, pop in enumerate(["Disagree33", "Atypical33", "UNION"]):
     ax = fig.add_subplot(gs[0, i])
