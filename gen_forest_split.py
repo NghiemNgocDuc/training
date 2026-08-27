@@ -58,7 +58,7 @@ fig = plt.figure(figsize=(10.5, 5.4))
 gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.70, wspace=0.38,
                        left=0.06, right=0.98, top=0.92, bottom=0.20)
 axes = []
-for i, pop in enumerate(["Disagree33", "Atypical33", "UNION"]):
+for i, pop in enumerate(["Disagree33", "Atypical33", "Union50"]):
     ax = fig.add_subplot(gs[0, i])
     axes.append(ax)
 ax4 = fig.add_subplot(gs[1, 0])
@@ -84,7 +84,7 @@ for ax, pop in zip(axes, pops):
     ax.set_xlabel("delta-MAE (kcal/mol)", fontsize=9)
     # X limits: choose per pop to fit data but keep consistent for readability
     # Use -13 to 2 for Q_std/Q_nll/UNION, -4 to 2 for all129, -2 to 2 for gradient12? But keep same for top row for comparability, but bottom row needs narrower
-    if pop in ["Disagree33", "Atypical33", "UNION"]:
+    if pop in ["Disagree33", "Atypical33", "Union50"]:
         ax.set_xlim(-13.5, 2.5)
         ax.set_xticks([-10, -5, 0])
     elif pop == "all129":
