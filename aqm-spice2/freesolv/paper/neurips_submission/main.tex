@@ -92,16 +92,15 @@
 \maketitle
 
 \begin{abstract}
-  Graph Neural Networks can now predict molecular properties, such as hydration free energy, with high average accuracy, but knowing when a prediction is wrong for a specific molecule remains an open problem. The standard approach, ensemble disagreement, misses a systematic class of failures: molecules where the ensemble members agree with each other yet are still far from the true value. We propose correcting these failures directly, by shrinking each atom's predicted contribution toward a population mean at test time, weighted by ensemble uncertainty. This has a basic identifiability problem: a molecule's total predicted property is well-defined, but its decomposition into atomic contributions is not, so two decompositions can agree on every observable quantity and still imply different corrections. We introduce Gauge-Invariant Molecular Shrinkage (GIMS), which resolves this by aggregating atom-level reliability into a one correction strength per molecule, making the result provably invariant to this ambiguity. Despite discarding atom-level detail, GIMS matches or exceeds a variance-weighted atomic baseline and significantly outperforms a strength-matched uniform baseline. We also show that the correction does not transfer as-is to an out-of-domain test set, but a lightweight recalibration recovers a consistent gain, suggesting the approach generalizes with modest adaptation.
+  Graph Neural Networks have been able to predict molecular properties, such as hydration free energy, with high average accuracy almost from the beginning, but knowing when a prediction is wrong for a specific molecule remains an open problem. The standard approach, ensemble disagreement, misses a systematic class of failures: molecules where the ensemble members agree with each other yet are still far from the true value. We propose correcting these failures directly, by shrinking each atom's predicted contribution toward a population mean at test time, weighted by ensemble uncertainty. This has a basic identifiability problem: a molecule's total predicted property is well-defined, but its decomposition into atomic contributions is not, so two decompositions can agree on every observable quantity and still imply different corrections. We introduce Gauge-Invariant Molecular Shrinkage (GIMS), which resolves this by aggregating atom-level reliability into a one correction strength per molecule, making the result provably invariant to this ambiguity. Despite discarding atom-level detail, GIMS matches or exceeds a variance-weighted atomic baseline and significantly outperforms a strength-matched uniform baseline. We also show that the correction does not transfer as-is to an out-of-domain test set, but a lightweight recalibration recovers a consistent gain, suggesting the approach generalizes with modest adaptation.
 \end{abstract}
 % VERIFIED. 18/129=14\% quadrant split = deep_ensemble/rmse_analysis/analyze_std_vs_rmse.py; ext. MAE 1.475 R2 0.854 = verification/expdb_external/results/expdb_conformers.hdf5 run; GIMS vs uniform significant on 4/5 (see Results); Gauge VW 3.26 vs GIMS 2.49e-14 = node_refinement/Gauge_invariant_shrinkage/gims_report.json:Gauge_stress and Gauge_INVARIANT_SHRINKAGE_RESULTS.md.
 
 \section{Introduction}
 \label{sec:intro}
 
-Hydration free energy — the energy of moving a molecule from vacuum into
-water — is central to drug discovery~\cite{mobley2014freesolv}. Graph Neural Networks now predict it to within an error of a few tenths of a kcal/mol on
-FreeSolv~\cite{zhang2022}, but average accuracy is not enough: a model
+Hydration free energy, the energy of moving a molecule from vacuum into
+water, is central to drug discovery~\cite{mobley2014freesolv}. Graph Neural Networks have predicted it to within an error of a few tenths of a kcal/mol on FreeSolv almost since their introduction~\cite{zhang2022}, but average accuracy is not enough: a model
 right on average can still be confidently wrong on a specific molecule.
 
 The standard fix is ensemble disagreement -- training several models that
@@ -125,7 +124,12 @@ predicting energy as a sum over atoms (DimeNet, SchNet, PaiNN, NequIP,
 MACE) shares this ambiguity. We also test whether the correction transfers to an external, out-of-domain set of molecules: the flat correction does not transfer as-is, but a simple recalibration of it does.
 
 
-
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=1\columnwidth]{figure1.png}
+  \caption{\textbf{0}, Five seeds on the same molecule give slightly different per-atom predictions. \textbf{1}, Hydration free energy is the energy change when a molecule moves from gas into water. \textbf{2}, For many molecules, the ensemble agrees but is the prediction is still wrong. \textbf{3}, Darker atoms mean the ensemble disagrees more and need more correction. \textbf{4}, The same molecule can have different valid atomic splits with identical total energy. \textbf{5a}, VW shrinks each atom then sums, the two splits give different results. \textbf{5b}, GIMS averages reliability to one strength then shrinks once, the two splits give the same result. \textbf{6}, GIMS beats uniform on most cases, the flat prior fails on new data, and composition-aware correction rescues the worst cases.}
+  \label{fig:gims-overview}
+\end{figure}
 
 
 \section{Method}
@@ -146,13 +150,13 @@ Given an ensemble of $K$ models, we compute the mean and sample variance of each
 \]
 
 
-\textbf{Confidently Wrong Molecules:} For each test molecule, we quantify ensemble uncertainty using the cross-member standard deviation of the molecular predictions, $\hat{\sigma}_m$, and prediction error using RMSE against the experimental target. We define confidently wrong molecules as those with below-median ensemble spread and above-median prediction error.
+\paragraph{Confidently Wrong Molecules} For each test molecule, we quantify ensemble uncertainty using the cross-member standard deviation of the molecular predictions, $\hat{\sigma}_m$, and prediction error using RMSE against the experimental target. We define confidently wrong molecules as those with below-median ensemble spread and above-median prediction error.
 
 % VERIFIED. cutoff-radius null = node_refinement/cutoff_bias_check/cutoff_bias_check.py on 129 test mols ($|$rho$| < 0.07$ vs n\_heavy/diameter/Rg/frac6A, within-tercile $p > 0.2$; wrong-18/gradient-12 MWU $p > 0.06$, medians smaller); docs/progress/CUTOFF_BIAS_CHECK_RESULTS.md.
 % VERIFIED. quadrant split = deep_ensemble/rmse_analysis/analyze_std_vs_rmse.py on aggregate/per_molecule.csv (ensemble_std == std across the 5 per-molecule seed preds, max diff 4.9e-7); 18/129 = 13.95%.
-% VERIFIED. Disagree33 = top quartile (33/129) of the three-seed per-molecule ensemble std std3 = t[[pred_seed42, pred_seed123, pred_seed999]].std(axis=1, ddof=1), build_populations() in deep_ensemble/repair_data/test_time_repair.py:107-121 (replicated v1_verify.py:100-113); NOT gated-atom-based (the node gate is separate, 2,904/11,613 atoms).
+% VERIFIED. disagree33 = top quartile (33/129) of the three-seed per-molecule ensemble std std3 = t[[pred_seed42, pred_seed123, pred_seed999]].std(axis=1, ddof=1), build_populations() in deep_ensemble/repair_data/test_time_repair.py:107-121 (replicated v1_verify.py:100-113); NOT gated-atom-based (the node gate is separate, 2,904/11,613 atoms).
 
-\textbf{Atom-Level Shrinkage:}
+\paragraph{Atom-Level Shrinkage}
 We first consider a direct atom-level correction that shrinks each atomic contribution toward a reference mean. For ensemble member $k$,
 \begin{equation}\label{eq:atom_shrink}
     \hat{P}_{mi}^{(k)}
@@ -175,12 +179,11 @@ $\bar{\lambda}$ to the mean shrinkage strength of the VW estimator.
 
 \subsection{Non-identifiability of Atomic Decomposition}
 The molecular prediction is well-defined, but its decomposition into atomic contributions is not unique. Consider a shift $g_{mi}$ that is shared across ensemble members and satisfies
-$$
-\sum_{i \in m} g_{mi} = 0.
-$$
-Define a new atomic decomposition by
+$
+\sum_{i =1}^{N_m} g_{mi} = 0
+$. Define a new atomic decomposition by
 \begin{equation}\label{eq:add_Gauge}
-    P_{mi}^{(k)\prime} = P_{mi}^{(k)} + g_{mi}, \qquad \sum_{i}g_{mi}=0
+    P_{mi}^{(k)\prime} = P_{mi}^{(k)} + g_{mi}
 \end{equation}
 Because the shift sums to zero within molecule $m$, the molecular prediction is unchanged. Moreover, since $g_{mi}$ is the same for every ensemble member, the cross-ensemble variance of each atomic contribution is unchanged, and therefore so is the shrinkage weight $\lambda_{mi}$.
 
@@ -191,7 +194,7 @@ $$
 \hat{E}_{m,\mathrm{VW}}^{(k)}
 =
 -
-\sum_{i \in m} \lambda_{mi} g_{mi}.
+\sum_{i=1}^{N_m} \lambda_{mi} g_{mi}.
 $$
 
 Thus, two atomic decompositions can produce the same molecular prediction and the same atom-level uncertainty estimates, yet yield different VW corrections. When the shrinkage weights are not identical across atoms, the magnitude of this difference can be made arbitrarily large by scaling an appropriate zero-sum shift.
@@ -205,7 +208,7 @@ Therefore, VW shrinkage depends on the particular atomic decomposition produced 
 % molecular correction we introduce in the next section. Then
 % \[
 % \hat{E}_{m,\mathrm{VW}}^{(k)} - \widetilde{E}_{m,\mathrm{GIMS}}^{(k)}
-% = -N_m \operatorname{Cov}_{i\in m}(\lambda_{mi},P_{mi}^{(k)}) .
+% = -N_m \operatorname{Cov}_{i=1,\dots,N_m}(\lambda_{mi},P_{mi}^{(k)}) .
 % \]
 % This covariance -- taken across the atoms of a single molecule $m$ -- is
 % not identifiable from data. It depends on the arbitrary alignment between
@@ -253,7 +256,7 @@ $$
 The relationship between VW and GIMS can be written explicitly as
 \begin{equation}
     \hat{E}_{m,\mathrm{VW}}^{(k)}-\widetilde{E}_m^{(k)}=
--N_m\operatorname{Cov}_{i\in m}\left(\lambda_{mi},P_{mi}^{(k)}\right)
+-N_m\operatorname{Cov}_{i=1,\dots,N_m}\left(\lambda_{mi},P_{mi}^{(k)}\right)
 \end{equation}
 
 Therefore, the difference between the two corrections is exactly a within-molecule covariance between the shrinkage weights and the atomic decomposition. This term is Gauge-dependent: it can change under a zero-sum reallocation of atomic contributions even when the molecular prediction and the shrinkage weights remain unchanged. GIMS removes this Gauge-dependent within-molecule term.
@@ -301,28 +304,16 @@ Therefore, the difference between the two corrections is exactly a within-molecu
 % pooled version using all 11{,}613 available atoms (Section~\ref{para:ref-reconciliation}), and find the
 % two versions differ by at most 0.08~kcal/mol on the full test set --
 % confirming this choice does not materially affect the result.
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=0.96\columnwidth]{image1.pdf}
-  \caption{The same five-seed ensemble produces per-atom reliability
-$\lambda_{mi}$. Variance-weighted (VW) shrinkage shrinks each atom
-individually, then sums the results — a Gauge-dependent operation, shifting
-by 3.26~kcal/mol under the null perturbation of Section~\ref{sec:method}.
-Gauge-Invariant Molecular Shrinkage (GIMS) instead averages $\lambda_{mi}$
-to a single molecular strength $\Lambda_m$ and shrinks once — a
-Gauge-invariant operation, shifting by only $\sim$0 kcal/mol under the same
-perturbation.}
-  \label{fig:gims-overview}
-\end{figure}
 
 
-% VERIFIED. Disagree33 = top quartile (33/129) of the three-seed per-molecule ensemble std std3 = t[[pred_seed42, pred_seed123, pred_seed999]].std(axis=1, ddof=1), build_populations() in deep_ensemble/repair_data/test_time_repair.py:107-121 (replicated v1_verify.py:100-113); NOT gated-atom-based (the node gate is separate, 2,904/11,613 atoms).
-% VERIFIED. Atypical33 = top quartile (33/129) of GMM NLL (negative log-likelihood, high = atypical/low density) from GMM on PCA of training latents, and Union50 = Disagree33 U Atypical33 (50 = 33+33-16 overlap), same build_populations() deep_ensemble/repair_data/test_time_repair.py:107-121; all129 and gradient12 are the full 129-molecule test set and its 12-molecule gradient-isolated subset.
+
+% VERIFIED. disagree33 = top quartile (33/129) of the three-seed per-molecule ensemble std std3 = t[[pred_seed42, pred_seed123, pred_seed999]].std(axis=1, ddof=1), build_populations() in deep_ensemble/repair_data/test_time_repair.py:107-121 (replicated v1_verify.py:100-113); NOT gated-atom-based (the node gate is separate, 2,904/11,613 atoms).
+% VERIFIED. atypical33 = top quartile (33/129) of GMM NLL (negative log-likelihood, high = atypical/low density) from GMM on PCA of training latents, and union50 = disagree33 U atypical33 (50 = 33+33-16 overlap), same build_populations() deep_ensemble/repair_data/test_time_repair.py:107-121; all129 and gradient12 are the full 129-molecule test set and its 12-molecule gradient-isolated subset.
 
 \section{Experimental Setup}
 \label{sec:setup}
 
-\textbf{Data:} We use experimental hydration free energies for 642 small
+\paragraph{Data} We use experimental hydration free energies for 642 small
 molecules from FreeSolv~\cite{mobley2014freesolv}. FreeSolv does not report
 per-molecule uncertainties, so we treat all labels as point values. Conformers
 are generated with RDKit (ETKDGv3, seed 42, MMFF94-optimized): one conformer
@@ -331,7 +322,7 @@ fresh conformers and average predictions across them (TTA-5),
 $\hat{y} = \frac{1}{5}\sum_{c=1}^{5} f(\mathbf{x}^{(c)})$. We apply the same
 protocol to the external set described in Section~\ref{sec:external}.
 
-\textbf{Model:} We use a DimeNet++-style architecture, specifically
+\paragraph{Model} We use a DimeNet++-style architecture, specifically
 DimeNetPlusSE with its self-interaction and multi-aggregate components
 disabled -- equivalent to plain DimeNet++ -- with 128 hidden units, 3
 interaction blocks, 7 spherical and 6 radial Bessel functions, a 6.0~\AA{}
@@ -342,7 +333,7 @@ E_{\mathrm{mol}} = \sum_{i=1}^{N_{\mathrm{atoms}}} P_i ,
 \]
 where $P_i$ is the contribution of atom $i$.
 
-\textbf{Training:} Training proceeds in three stages. Stage 1 pretrains the
+\paragraph{Training}  Training proceeds in three stages. Stage 1 pretrains the
 backbone on [N] Aquamarine conformers (59{,}783 conformers across 1{,}653
 molecules, PBE0+MBD level of theory) with a force-weighted loss. Stage 2
 trains a solvation head on top of the frozen backbone using paired
@@ -351,14 +342,14 @@ Stage 3 fine-tunes the full model on FreeSolv (learning rate $10^{-4}$,
 weight decay $10^{-5}$, batch size 8, up to 200 epochs with early stopping
 at patience 30).
 
-\textbf{Uncertainty:} To estimate node-level uncertainty, we train a
+\paragraph{Uncertainty} To estimate node-level uncertainty, we train a
 five-seed ensemble of the fold-0 model (seeds 42, 123, 7, 2024, 999), sharing
 Stages 1 and 2 across seeds and varying only the Stage 3 fine-tuning. Our
 primary analysis uses the three-seed subset $\{42, 123, 999\}$; the remaining
 two seeds show a documented pathology in one conformer regime, discussed in
 the Appendix.
 
-\textbf{Evaluation Protocol:} We use a frozen five-fold split: molecules are
+\paragraph{Evaluation Protocol} We use a frozen five-fold split: molecules are
 sorted by experimental value and assigned to folds round-robin, and each fold
 is further divided into train/validation/test (20\% test, then 20\% of the
 remainder for validation), giving 411/102/129 molecules in fold 0. We train
@@ -371,15 +362,15 @@ robustness check, we randomly split the fold-0 test set in half, into H1
 and H2 is used to score the resulting corrections, so that no correction is
 calibrated and evaluated on the same molecules. We test every correction on this 129-molecule fold-0 test set, and on five smaller subsets within it, chosen to check whether the correction helps most where it is needed.
 
-\textbf{Metrics and Test Populations:} We report MAE, RMSE, $R^2$, and Kendall $\tau$, along
+\paragraph{Metrics and Test Populations} We report MAE, RMSE, $R^2$, and Kendall $\tau$, along
 with $\Delta$MAE against the raw ensemble mean and 10{,}000-sample
 bootstrap 95\% confidence intervals. To see whether corrections help most
 where they're needed, we test on five populations of the fold-0 test set.
-\emph{Disagree33} contains the 33 of the 129 fold-0 test molecules where the three-seed
+\emph{disagree33} contains the 33 of the 129 fold-0 test molecules where the three-seed
 ensemble disagrees with itself the most, ranked by $\hat\sigma_m$.
-\emph{Atypical33} contains the 33 molecules that look most atypical to the
+\emph{atypical33} contains the 33 molecules that look most atypical to the
 model, ranked by negative log-likelihood under a Gaussian mixture model
-fit to training-set latents. \emph{Union50} is the two combined (50 molecules, of which 16 are flagged by both), and
+fit to training-set latents. \emph{union50} is the two combined (50 molecules, of which 16 are flagged by both), and
 \emph{all129} is the full test set. \emph{gradient12} is the twelve
 confidently-wrong molecules left over after ruling out isolation, feature
 density, and interaction cutoff (Section~\ref{sec:intro}). FreeSolv has no
@@ -397,7 +388,7 @@ The fold-0 five-seed ensemble mean achieves a test MAE of 0.5059 kcal/mol
 (RMSE 0.7696, $R^2$ 0.9646) on the 129 test molecules. The five-fold
 headline is $0.549 \pm 0.024$ kcal/mol (per-fold 0.515/0.537/0.581/0.570/0.540;
 pooled RMSE 0.921, $R^2$ 0.9427) and is fully regenerable from archived
-per-fold checkpoints. All correction arms below use the three-seed subset
+per-fold checkpoints. All correction methods below use the three-seed subset
 $\{42,123,999\}$ and are scored against the corresponding three-seed
 uncorrected mean (Table~\ref{tab:arms} baseline, around 4.8 on all129); the
 five-seed headline is a separate, pathology-free overall number. All
@@ -417,9 +408,9 @@ Section~\ref{sec:setup}.}
   \renewcommand{\arraystretch}{1.2}
   \setlength{\tabcolsep}{10pt}
   \small
-  \begin{tabular}{@{}lccccc@{}}
+  \begin{tabular}{@{}l@{\hspace{6pt}}ccccc@{}}
     \toprule
-    Method & Disagree33 & Atypical33 & Union50 & all129 & gradient12 \\
+    Method & disagree33 & atypical33 & union50 & all129 & gradient12 \\
     \midrule
     Baseline MAE & 10.46 & 10.28 & 8.29 & 4.84 & 2.91 \\
     \midrule
@@ -431,20 +422,17 @@ Section~\ref{sec:setup}.}
   \end{tabular}
 \end{table}
 
-Table~\ref{tab:arms} shows every shrinkage arm improves on the raw
+Table~\ref{tab:arms} shows every shrinkage method improves on the raw
 ensemble mean. Variance-weighted (VW) shrinkage is the best atom-level
-arm, with a 95\% CI excluding zero on four of five populations (full
-intervals in Appendix~\ref{app:protocol}); its gain on gradient-12 is not
-significant. The strength-matched uniform baseline ($\bar\lambda =
-0.8014$) recovers 87--89\% of VW's gain, and the difference between VW and
-uniform is small and not significant on any population. In other words,
-weighting the correction by per-atom variance adds little beyond what a
-single global shrinkage constant already achieves. Trust-weighted
-shrinkage is the exception, actively harming gradient-12, which the
-covariance identity from Section~\ref{sec:method} explains as the ceiling
-on atom-level sophistication. Naive and random controls show no effect, a
-randomized-neighbor control reproduces the trust result, and the pattern
-holds on the independent H2 holdout.
+method, significant on four of five populations (Appendix~\ref{app:protocol}),
+but not on gradient12. The strength-matched uniform baseline
+($\bar\lambda = 0.8014$) recovers 87--89\% of VW's gain, and the VW-uniform
+pair difference is small and not significant anywhere, so weighting by per-atom
+variance adds little beyond a single global constant. Trust-weighted
+shrinkage is the exception, harming gradient12; the covariance identity
+from Section~\ref{sec:method} explains this as the ceiling on atom-level
+sophistication. Naive, random, and randomized-neighbor controls confirm
+the pattern, which also holds on the independent H2 holdout.
 
 \subsection{Gauge-Stress Test}
 We construct a shift $g_{mi}$ that sums to zero within each molecule and is
@@ -490,9 +478,9 @@ non-identifiable within-molecule term.
   \renewcommand{\arraystretch}{1.2}
   \setlength{\tabcolsep}{10pt}
   \small
-  \begin{tabular}{@{}lccccc@{}}
+  \begin{tabular}{@{}l@{\hspace{6pt}}ccccc@{}}
     \toprule
-    Method & Disagree33 & Atypical33 & Union50 & all129 & gradient12 \\
+    Method & disagree33 & atypical33 & union50 & all129 & gradient12 \\
     \midrule
     GIMS (ours) & $-6.81$ & $-6.80$ & $-4.67$ & $-2.00$ & $-0.52$ \\
     Variance-weighted (VW) & $-6.65$ & $-6.68$ & $-4.55$ & $-1.92$ & $-0.51$ \\
@@ -501,7 +489,7 @@ non-identifiable within-molecule term.
   \end{tabular}
 \end{table}
 
-\textbf{Permutation Control:} We randomly shuffle the 129 $\Lambda_m$ values
+\paragraph{Permutation Control} We randomly shuffle the 129 $\Lambda_m$ values
 across molecules, keeping their overall distribution the same but breaking
 the link between each molecule and its correct shrinkage strength. On four
 of the five populations, GIMS beats every one of the 5000 shuffled versions
@@ -511,21 +499,21 @@ is the strongest evidence that GIMS's gain comes from matching the right
 strength to the right molecule, not just from shrinking by the right amount
 on average.
 
-\textbf{Holdout:} Recalibrating on H1 ($n=64$) and scoring on H2 ($n=65$)
+\paragraph{Holdout} Recalibrating on H1 ($n=64$) and scoring on H2 ($n=65$)
 reproduces the same pattern (GIMS$-$VW pair $-0.10$ [$-0.28,+0.07$], not
 significant; GIMS$-$uniform pair $-0.59$ [$-1.40,-0.08$], significant),
 indicating the uniform separation is not an artifact of the frozen split.
 
-\textbf{Reference Reconciliation:}\label{para:ref-reconciliation} We also tried computing the reference
+\paragraph{Reference Reconciliation}\label{para:ref-reconciliation} We also tried computing the reference
 mean from the pooled 11{,}613 atoms (training plus test) instead of just
 the 7{,}389 training atoms. The results barely change: VW gives
 $-6.72$/$-6.73$/$-4.61$/$-1.97$ and uniform gives
 $-5.87$/$-5.90$/$-4.09$/$-1.76$, within 0.08~kcal/mol of the train-only
-numbers on all129 for every arm. We still report the train-only version as
+numbers on all129 for every method. We still report the train-only version as
 our default, since it does not use any test-time information and is
 therefore safe to deploy.
 
-\textbf{Bias--Variance:} The covariance identity from Section~\ref{sec:method}
+\paragraph{Bias--Variance} The covariance identity from Section~\ref{sec:method}
 shows VW's small edge over uniform is variance-driven rather than
 bias-driven. GIMS removes exactly this term (Appendix~\ref{app:bias-var}).
 
@@ -541,7 +529,7 @@ calibration -- which is generous to GBn2, since it uses test-set information
 stable across all five folds (Kendall $\tau\approx0.54$).
 
 \subsection{External Generalization}
-\label{sec:external}
+\label{subsec:external}
 
 To test transfer beyond FreeSolv, we retrained on the same five-fold
 protocol and evaluated on 620 external molecules with literature hydration
@@ -551,7 +539,7 @@ as our reference.
 
 \textbf{Does GIMS Transfer?} The ensemble transfers well (raw MAE 1.483,
 matching the recorded value) and Gauge invariance still holds exactly. But
-the flat shrinkage prior does not: every correction arm makes predictions
+the flat shrinkage prior does not: every correction method makes predictions
 worse (GIMS $+2.14$, VW $+2.14$, uniform $+2.56$). The problem is the fixed
 target $N_m\mu_{\mathcal T}$, not $\Lambda_m$, and a simple affine fix
 $\hat\mu_m=aE_m+b$ restores a small, consistent gain ($-0.09$ across all
@@ -571,7 +559,7 @@ $-17$ — concentrated in classes (long-chain esters, polyfunctional
 steroids) that are thin or absent in the FreeSolv training corpus. We report on all 620 external molecules (all620) and two challenging subsets: top155 (155 molecules, top quartile ensemble spread) and worst62 (62 molecules, worst decile raw absolute error).
 
 \begin{table}[htbp]
-  \caption{External transfer of the correction arms, change in test MAE
+  \caption{External transfer of the correction methods, change in test MAE
   (kcal/mol) relative to the raw ensemble mean. Positive values indicate
   the correction makes predictions worse. Affine targets are fit per fold
   on validation by minimizing validation MAE. 95\% CIs from 10{,}000
@@ -596,7 +584,7 @@ steroids) that are thin or absent in the FreeSolv training corpus. We report on 
 
 \section{Discussion and Limitations}
 
-\paragraph{Any Additive Readout has a Gauge:} Because any quantity computed as a sum over atoms shares this same symmetry, the lesson extends beyond FreeSolv: adding a zero-sum, seed-independent shift to each atom's contribution leaves the molecule's predicted total unchanged. DimeNet,
+\paragraph{Any Additive Readout has a Gauge} Because any quantity computed as a sum over atoms shares this same symmetry, the lesson extends beyond FreeSolv: adding a zero-sum, seed-independent shift to each atom's contribution leaves the molecule's predicted total unchanged. DimeNet,
 SchNet, PaiNN, NequIP, and MACE all produce predictions in this additive
 form, so any test-time correction built on their atomic decomposition should
 avoid depending on an arbitrary choice of Gauge. GIMS achieves this by
@@ -606,7 +594,7 @@ implicitly relies on. Because the method uses only per-atom variances and the
 training-set mean, with no architecture-specific terms, the same $\Lambda_m$
 construction applies to any additive readout, not just this one.
 
-\paragraph{What survives is still Shrinkage:} The practical gain in this
+\paragraph{What survives is still Shrinkage} The practical gain in this
 paper is shrinkage toward the pool mean, and what Gauge invariance changes is
 how that shrinkage should be allocated. Uniform shrinkage flattens
 molecule-to-molecule heterogeneity, while variance-weighted shrinkage
@@ -618,7 +606,7 @@ unchanged: none of structural isolation, feature density, or interaction
 cutoff explains why the ensemble is confidently wrong on a meaningful
 fraction of test molecules, and the practical fix is to correct these predictions rather than try to detect them more reliably.
 
-\paragraph{Implications for practice:} When an ensemble is already available,
+\paragraph{Implications for practice} When an ensemble is already available,
 GIMS is inexpensive to apply: it needs only per-atom variances and the
 training-set mean, requires no additional training, and is inductive because it generalizes to new molecules without refitting. It also recovers
 value in cases that ensemble disagreement alone would miss, since the
@@ -627,7 +615,7 @@ still wrong. For applications such as active learning or filtering, we
 recommend calibrating its usefulness against downstream performance rather
 than relying on ranking metrics alone.
 
-\paragraph{Limitations:} Our core evaluation and all method development are
+\paragraph{Limitations} Our core evaluation and all method development are
 based on a single dataset (FreeSolv, 642 molecules) and a single backbone.
 The Gauge symmetry itself is general, but the reported magnitudes are not.
 We separately test transfer to an external, out-of-domain set
@@ -647,11 +635,11 @@ comparison uses an in-sample calibration favorable to the baseline.
 
 \section{Related Work}
 
-\paragraph{Equivariant Message Passing:} DimeNet/DimeNet++~\cite{klicpera2020} introduced directional message passing, using spherical Bessel and Fourier basis functions to represent bond angles and distances between atoms; later architectures such as PaiNN~\cite{schutt2021} and
+\paragraph{Equivariant Message Passing} DimeNet/DimeNet++~\cite{klicpera2020} introduced directional message passing, using spherical Bessel and Fourier basis functions to represent bond angles and distances between atoms; later architectures such as PaiNN~\cite{schutt2021} and
 MACE~\cite{batatia2022} moved to equivariant feature spaces and
 higher-order messages. Our contribution addresses a different axis entirely: we test on a single family member, but the Gauge freedom we address comes from the additive atomic decomposition shared by the whole family.
 
-\paragraph{Learning Solvation Free Energies:} FreeSolv~\cite{mobley2014freesolv}
+\paragraph{Learning Solvation Free Energies} FreeSolv~\cite{mobley2014freesolv}
 (642 molecules) is the standard benchmark; classical force fields reach
 $\approx$1.1 kcal/mol MAE, and recent ML methods converge on 0.4--0.6 MAE
 \cite{zhang2022,vermeire2021,lim2021,sencosgem2026,roeckens2024}. Our
@@ -659,14 +647,14 @@ recorded $0.549 \pm 0.024$ sits within this band, though our contribution is
 uncertainty and correction rather than raw accuracy. We additionally
 benchmark GBn2~\cite{mongan2007} as a physics-based floor.
 
-\paragraph{Uncertainty in Deep Learning and Molecular ML:} Deep
+\paragraph{Uncertainty in Deep Learning and Molecular ML} Deep
 ensembles~\cite{lakshminarayanan2017} remain the default uncertainty
 estimator for molecular property models. We document a concrete failure of
 this approach and show that atom-level refinements of it are structurally
 capped by the Gauge, while GIMS passes stronger controls.
 
-\paragraph{Shrinkage and Pooling:} Shrinking toward a common mean is
-classical~\cite{efron1977}. GIMS is its molecular-level, Gauge-invariant
+\paragraph{Shrinkage and Pooling} Shrinking toward a common mean is
+classical~\cite{efron1977}. GIMS is its molecular-level, Gauge-Invariant
 counterpart.
 
 \section{Conclusion}
@@ -799,8 +787,8 @@ for the baseline. We use it as such.
   deterministic, bit-identical rerun verified).}
   \label{tab:gbn2}
   \centering
-  \setlength{\tabcolsep}{4pt}
-  \begin{tabular}{lccccc}
+  \setlength{\tabcolsep}{5pt}
+  \begin{tabular}{l@{\hspace{6pt}}ccccc}
     \toprule
     fold & $n$ & raw MAE & scaled MAE$^\ast$ & slope$^\ast$ & Kendall $\tau$ \\
     \midrule
@@ -826,7 +814,7 @@ $\tau\approx0.54$).
 \section{Protocol Details}
 \label{app:protocol}
 
-\textbf{Atom Vocabulary:} Atoms are described by a 17-element one-hot
+\paragraph{Atom Vocabulary} Atoms are described by a 17-element one-hot
 vocabulary (H, C, N, O, F, P, S, Cl, Li, B, Na, Mg, Si, K, Ca, Br, I). It
 covers both the pretraining and fine-tuning corpora, and stage-1 pretraining
 used per-element atomic reference energies. The stage-2 correction head is a
@@ -834,14 +822,14 @@ three-block network, and it is trained atop the frozen stage-1 backbone. The ext
 which is present in the training vocabulary but only thinly represented in
 the training data.
 
-\textbf{Ensemble Seeds:} The primary analysis uses the three-seed subset
+\paragraph{Ensemble Seeds} The primary analysis uses the three-seed subset
 $\{42, 123, 999\}$. The two excluded seeds (7, 2024) exhibit a documented
 energy-spike pathology in one conformer regime, verified in the project
 audit records. A full five-seed ensemble mean is used for the recorded
 fold-0 baseline, where the pathology does not manifest on the archived
 conformer set.
 
-\textbf{Calibration Grid:} We calibrate $\tau^2$ on the validation split,
+\paragraph{Calibration Grid} We calibrate $\tau^2$ on the validation split,
 searching a grid of per-atom variance scales from $10^{-8}\cdot\mathrm{var}(\sigma^2)$
 to $100\cdot\mathrm{var}(\sigma^2)$. The optimum, $\tau^{2*} =
 4.725\times10^{-4}$, falls inside this range rather than at either edge.
@@ -850,20 +838,20 @@ $\lambda^*=1.0$ is a true interior optimum, not an artifact of the grid's
 boundary. A 2{,}000-draw bootstrap over validation molecules gives the same
 median $\tau^{2*}$, with a 90\% interval of roughly $3.66\times10^{-5}$ to
 $8.96\times10^{-4}$ -- stable in the median, though with some spread under
-resampling. The full 25-cell H1/H2 holdout table (5 arms $\times$ 5 H2
+resampling. The full 25-cell H1/H2 holdout table (5 methods $\times$ 5 H2
 populations) and the arithmetic audit are included in the supplementary
 verification records.
 
 
 
-\textbf{Conformer Protocol:} One stored MMFF94-optimized conformer per
+\paragraph{Conformer Protocol} One stored MMFF94-optimized conformer per
 molecule (ETKDGv3, seed 42) is used during training. Five fresh conformers
 are generated at test time, and predictions are averaged over them (TTA-5). The
 same protocol is applied to the external generalization set and the external run
 does not yet archive per-atom contributions. So mechanism-level transfer of
-the shrinkage arms remains an open item.
+the shrinkage methods remains an open item.
 
-\textbf{Confidence Intervals for Tables~\ref{tab:arms} and~\ref{tab:gims}:}
+\paragraph{Confidence Intervals for Tables~\ref{tab:arms} and~\ref{tab:gims}}
 Table~\ref{tab:arms-ci} and Table~\ref{tab:gims-ci} give the 95\% CIs
 (10{,}000 paired bootstrap draws) omitted from the main-text tables for
 readability.
@@ -878,9 +866,9 @@ readability.
   \renewcommand{\arraystretch}{1.2}
   \setlength{\tabcolsep}{2pt}
   \footnotesize
-  \begin{tabular}{@{}lccccc@{}}
+  \begin{tabular}{@{}l@{\hspace{6pt}}ccccc@{}}
     \toprule
-    Method & Disagree33 & Atypical33 & Union50 & all129 & gradient12 \\
+    Method & disagree33 & atypical33 & union50 & all129 & gradient12 \\
     \midrule
     Trust-weighted & [$-8.39,-0.36$] & [$-8.45,-0.34$] & [$-5.56,-0.05$] & [$-2.01,+0.16$] & [$0.00,+1.47$] \\
     Uniform (matched) & [$-10.88,-2.10$] & [$-11.01,-2.13$] & [$-7.62,-1.58$] & [$-3.16,-0.70$] & [$-1.62,+0.59$] \\
@@ -897,9 +885,9 @@ readability.
   \renewcommand{\arraystretch}{1.2}
   \setlength{\tabcolsep}{2pt}
   \footnotesize
-  \begin{tabular}{@{}lccccc@{}}
+  \begin{tabular}{@{}l@{\hspace{6pt}}ccccc@{}}
     \toprule
-    Method & Disagree33 & Atypical33 & Union50 & all129 & gradient12 \\
+    Method & disagree33 & atypical33 & union50 & all129 & gradient12 \\
     \midrule
     GIMS (ours) & [$-12.82,-2.35$] & [$-13.07,-2.36$] & [$-8.91,-1.62$] & [$-3.69,-0.77$] & [$-1.53,+0.44$] \\
     Variance-weighted (VW) & [$-12.87,-2.17$] & [$-12.77,-2.22$] & [$-8.70,-1.55$] & [$-3.63,-0.71$] & [$-1.68,+0.61$] \\
@@ -931,13 +919,13 @@ readability.
 
 \begin{figure}[htbp]
   \centering
-  \includegraphics[width=0.92\textwidth]{fig_arms_forest.pdf}
-  \caption{Forest plot of the four correction arms of
-  Table~\ref{tab:arms}. Per-arm $\Delta$MAE (kcal/mol) against the
+  \includegraphics[width=0.88\textwidth]{fig_arms_forest.pdf}
+  \caption{Forest plot of the four correction methods of
+  Table~\ref{tab:arms}. Per-method $\Delta$MAE (kcal/mol) against the
   uncorrected ensemble mean on the five fold-0 populations, with
   10{,}000 paired-bootstrap 95\% confidence intervals (vertical line at
   zero; negative values are improvements). Built directly from the archived
-  arm-level result records.}
+  method-level result records.}
   \label{fig:arms-forest}
 \end{figure}
 
@@ -946,31 +934,31 @@ readability.
 \label{app:shrinkage-search}
 
 We tested six alternative atom-level shrinkage designs, all more elaborate
-than the plain variance-weighted (VW) arm, which uses a fixed target (the
+than the plain variance-weighted (VW) method, which uses a fixed target (the
 global pool mean). Each was calibrated on the same 102-molecule validation
 set, evaluated on the same five fold-0 test populations with the same
 10{,}000-draw paired bootstrap, and re-checked on the H2 holdout. Through
 the Gauge lens, all six are still atom-level corrections, so they are
 structurally capped in the same way VW is.
 
-(1) \emph{Variance-Moderated:} shrinkage adds a per-atom cutoff $d_0$ to the
+(1) \emph{Variance-Moderated} shrinkage adds a per-atom cutoff $d_0$ to the
 VW formula. Its calibrated optimum is $d_0=0$, so it collapses back to VW. \par
-(2) \emph{Element-Conditional:} shrinkage replaces the global target with
+(2) \emph{Element-Conditional} shrinkage replaces the global target with
 per-element pool means. It underperforms VW on both validation and test. \par
-(3) \emph{Two-Stage within-Molecule:} shrinkage adds a second correction
+(3) \emph{Two-Stage within-Molecule} shrinkage adds a second correction
 using molecule-level variance; at its calibrated optimum this second stage
 does nothing, and any active use of it hurts validation performance. \par
 (4)
-\emph{Magnitude-Adaptive (James--Stein):} shrinkage lets large-deviation
+\emph{Magnitude-Adaptive (James--Stein)} shrinkage lets large-deviation
 atoms shrink less. Its validation optimum is the limit where it reduces
 exactly to VW, consistent with large-deviation atoms being no more reliable
 than the rest. \par
-(5) \emph{Hierarchical Element-Conditional:} shrinkage lets
+(5) \emph{Hierarchical Element-Conditional} shrinkage lets
 per-element means themselves shrink toward the global mean. This is the
 only design that beats VW on validation, but the improvement reverses sign
 on test and does not survive H1 recalibration -- evidence of overfitting to
 the small validation set. \par
-(6) \emph{Correlation-Aware Joint Shrinkage:} uses
+(6) \emph{Correlation-Aware Joint Shrinkage} uses
 a single calibrated scalar to regularize the full per-molecule covariance
 between atoms. Despite real cross-atom correlation in the raw predictions
 (median $|\text{corr}|=0.83$), its calibrated optimum reduces it exactly to
@@ -988,7 +976,7 @@ We test three follow-up GIMS variants to probe the limits of Gauge
 invariance. All three are negative or supporting ablations and none change
 the main headline result.
 
-\textbf{GIMS-Total:} This variant uses only the variance of the observable
+\paragraph{GIMS-Total} This variant uses only the variance of the observable
 molecular total, $\Lambda_m^{\mathrm{total}} = \dfrac{\operatorname{Var}_k(E_m^{(k)})}
 {\operatorname{Var}_k(E_m^{(k)})+\tau_E^2}$, with no atomic variances at
 all. This makes it invariant to an even wider class of atomic reallocations
@@ -999,7 +987,7 @@ its atomic variances give it a molecule-level coefficient with more signal
 in it.
 % VERIFIED. GIMS-total -1.9456 vs GIMS -2.0038 test all129 and H2 -2.85 vs -2.94 = gims_report.json gims_total vs gims_train and Gauge_INVARIANT_SHRINKAGE_RESULTS.md; diff +0.06 and +0.09 as above.
 
-\textbf{GIMS/VW blend:} We blend the two corrections,
+\paragraph{GIMS/VW blend} We blend the two corrections,
 $E_{\mathrm{blend}}=(1-\alpha)E_{\mathrm{GIMS}}+\alpha E_{\mathrm{VW}}$, with
 $\alpha$ chosen on validation ($\alpha=0.75$) and re-selected on H1
 ($\alpha=0.80$), leaning toward VW. The blend is not significantly
@@ -1007,7 +995,7 @@ different from either GIMS or VW alone, and its point estimate is worse
 than GIMS's, so we treat this as a negative ablation.
 % VERIFIED. blend alpha 0.75 val and 0.80 H1, blend vs VW -0.028 and -0.046, vs GIMS +0.052/+0.053 = node_refinement/Gauge_invariant_shrinkage/gims_vw_blend_report.json and gims_vw_blend_results.csv and Gauge_INVARIANT_SHRINKAGE_RESULTS.md Final Interpretation.
 
-\textbf{CAAT:} Composition-Aware Affine Transfer extends the external-set
+\paragraph{CAAT} Composition-Aware Affine Transfer extends the external-set
 affine fix with per-element terms, $\tilde E_m = aE_m + b_0 + \sum_e b_e
 N_e$, where $N_e$ counts atoms of element $e$. Because a zero-sum atomic
 shift leaves every $N_e$ unchanged, CAAT respects the same Gauge as GIMS.
@@ -1030,28 +1018,28 @@ reconciliation are included in the supplementary verification records.
 
 The shrinkage gain decomposes exactly, per molecule, into a bias-squared
 term and a variance term ($\mathrm{MSE}_m = b_m^2 + v_m$, exact to machine
-precision for every arm and molecule). This lets us explain the small gap
+precision for every method and molecule). This lets us explain the small gap
 between VW and uniform from Section~\ref{sec:method}'s covariance identity,
 \[
 \hat{E}_{m,\mathrm{VW}}^{(k)} - \widetilde{E}_{m,\mathrm{GIMS}}^{(k)}
-= -N_m \operatorname{Cov}_{i\in m}(\lambda_{mi},P_{mi}^{(k)}) .
+= -N_m \operatorname{Cov}_{i=1,\dots,N_m}(\lambda_{mi},P_{mi}^{(k)}) .
 \]It comes from
 variance, not bias.
 
-On the four main populations, about two-thirds of every arm's MSE reduction
-comes from bias-squared (0.65--0.67 across arms), so the arms mainly differ
-in the remaining third, the variance term. On all129, VW and the gated arm
+On the four main populations, about two-thirds of every method's MSE reduction
+comes from bias-squared (0.65--0.67 across methods), so the methods mainly differ
+in the remaining third, the variance term. On all129, VW and the gated method
 leave little residual variance ($v\approx0.3$--$0.7$ (kcal/mol)$^2$),
 uniform leaves more (2.6), and trust-weighted refinement leaves the most
 (6.1). Gradient-12 is the exception: bias-squared dominates so completely
 that uniform and VW's variance actually increases slightly, and the two
-gated arms increase MSE outright there. Table~\ref{tab:bias-var} gives the
-full per-arm, per-population breakdown. Note this decomposition is in MSE
+gated methods increase MSE outright there. Table~\ref{tab:bias-var} gives the
+full per-method, per-population breakdown. Note this decomposition is in MSE
 space and is therefore distinct from the MAE-space numbers in
 Table~\ref{tab:arms}.
 
 \begin{table}[htbp]
-  \caption{Bias--variance decomposition of the shrinkage gain, per arm and
+  \caption{Bias--variance decomposition of the shrinkage gain, per method and
   population, in (kcal/mol)$^2$. $b^2$ and $v$ are the post-correction
   bias-squared and variance; $\Delta$MSE is the change in mean squared
   error (negative means improvement); the last column is the fraction of
@@ -1062,31 +1050,31 @@ Table~\ref{tab:arms}.
   \renewcommand{\arraystretch}{1.30}
   \small
   \setlength{\tabcolsep}{11pt}
-  \begin{tabular}{llrrrrr}
+  \begin{tabular}{ll@{\hspace{6pt}}rrrrr}
     \toprule
     Method & Population & $n$ & $b^2$ & $v$ & $\Delta$MSE & $b^2$ frac \\
     \midrule
-    Trust-weighted & Disagree33 & 33 & 73.85 & 23.47 & $-408.73$ & 0.655 \\
-    Trust-weighted & Atypical33 & 33 & 80.01 & 23.32 & $-411.35$ & 0.659 \\
-    Trust-weighted & Union50 & 50 & 64.20 & 15.52 & $-269.64$ & 0.655 \\
+    Trust-weighted & disagree33 & 33 & 73.85 & 23.47 & $-408.73$ & 0.655 \\
+    Trust-weighted & atypical33 & 33 & 80.01 & 23.32 & $-411.35$ & 0.659 \\
+    Trust-weighted & union50 & 50 & 64.20 & 15.52 & $-269.64$ & 0.655 \\
     Trust-weighted & all129 & 129 & 32.86 & 6.10 & $-103.25$ & 0.650 \\
     Trust-weighted & gradient12 & 12 & 18.85 & 0.12 & $+2.90$ & -- \\
     \midrule
-    Uniform (matched) & Disagree33 & 33 & 38.16 & 8.18 & $-459.71$ & 0.660 \\
-    Uniform (matched) & Atypical33 & 33 & 45.07 & 7.82 & $-461.77$ & 0.663 \\
-    Uniform (matched) & Union50 & 50 & 37.58 & 5.55 & $-306.24$ & 0.664 \\
+    Uniform (matched) & disagree33 & 33 & 38.16 & 8.18 & $-459.71$ & 0.660 \\
+    Uniform (matched) & atypical33 & 33 & 45.07 & 7.82 & $-461.77$ & 0.663 \\
+    Uniform (matched) & union50 & 50 & 37.58 & 5.55 & $-306.24$ & 0.664 \\
     Uniform (matched) & all129 & 129 & 19.86 & 2.61 & $-119.75$ & 0.669 \\
     Uniform (matched) & gradient12 & 12 & 10.18 & 0.67 & $-5.21$ & 1.089 \\
     \midrule
-    Variance-weighted (VW) & Disagree33 & 33 & 27.17 & 0.87 & $-478.01$ & 0.658 \\
-    Variance-weighted (VW) & Atypical33 & 33 & 34.00 & 0.55 & $-480.12$ & 0.661 \\
-    Variance-weighted (VW) & Union50 & 50 & 30.11 & 0.74 & $-318.51$ & 0.662 \\
+    Variance-weighted (VW) & disagree33 & 33 & 27.17 & 0.87 & $-478.01$ & 0.658 \\
+    Variance-weighted (VW) & atypical33 & 33 & 34.00 & 0.55 & $-480.12$ & 0.661 \\
+    Variance-weighted (VW) & union50 & 50 & 30.11 & 0.74 & $-318.51$ & 0.662 \\
     Variance-weighted (VW) & all129 & 129 & 16.68 & 0.73 & $-124.81$ & 0.668 \\
     Variance-weighted (VW) & gradient12 & 12 & 9.61 & 0.62 & $-5.83$ & 1.071 \\
     \midrule
-    Gated (top-quartile) & Disagree33 & 33 & 29.51 & 0.45 & $-476.09$ & 0.656 \\
-    Gated (top-quartile) & Atypical33 & 33 & 38.43 & 0.29 & $-475.96$ & 0.657 \\
-    Gated (top-quartile) & Union50 & 50 & 34.15 & 0.38 & $-314.83$ & 0.656 \\
+    Gated (top-quartile) & disagree33 & 33 & 29.51 & 0.45 & $-476.09$ & 0.656 \\
+    Gated (top-quartile) & atypical33 & 33 & 38.43 & 0.29 & $-475.96$ & 0.657 \\
+    Gated (top-quartile) & union50 & 50 & 34.15 & 0.38 & $-314.83$ & 0.656 \\
     Gated (top-quartile) & all129 & 129 & 19.60 & 0.27 & $-122.35$ & 0.657 \\
     Gated (top-quartile) & gradient12 & 12 & 16.20 & 0.14 & $+0.28$ & -- \\
     \bottomrule
