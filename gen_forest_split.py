@@ -4,21 +4,21 @@ import numpy as np
 
 # Data from JSONs - precise values
 # Order: trust, uniform, variance-weighted, gated
-pops = ["Disagree33", "Atypical33", "Union50", "all129", "gradient12"]
+pops = ["disagree33", "atypical33", "union50", "all129", "gradient12"]
 data = {
-    "Disagree33": {
+    "disagree33": {
         "trust": (-3.807008838665606, -8.38804768887748, -0.3584467238301816),
         "uniform": (-5.871553699959086, -10.880803270335562, -2.103567584544595),
         "vw": (-6.724825507919499, -12.868039727163767, -2.2552923559497393),
         "gated": (-6.303690276155118, -12.476854230921072, -1.8380018234938569),
     },
-    "Atypical33": {
+    "atypical33": {
         "trust": (-3.818802627281642, -8.454302743562017, -0.3442685342082559),
         "uniform": (-5.900361251852803, -11.005958879081627, -2.1316269710080857),
         "vw": (-6.728896691634713, -12.779346289684995, -2.3047276091900235),
         "gated": (-6.065322364594745, -12.295845548407405, -1.5329343468831491),
     },
-    "Union50": {
+    "union50": {
         "trust": (-2.3594557942022134, -5.563247801006055, -0.0480901102901716),
         "uniform": (-4.0936421510886705, -7.624332172806342, -1.5802879749356715),
         "vw": (-4.605718475491099, -8.792880960844258, -1.6128852993502094),
@@ -58,7 +58,7 @@ fig = plt.figure(figsize=(10.5, 5.4))
 gs = gridspec.GridSpec(2, 3, figure=fig, hspace=0.70, wspace=0.38,
                        left=0.06, right=0.98, top=0.92, bottom=0.20)
 axes = []
-for i, pop in enumerate(["Disagree33", "Atypical33", "Union50"]):
+for i, pop in enumerate(["disagree33", "atypical33", "union50"]):
     ax = fig.add_subplot(gs[0, i])
     axes.append(ax)
 ax4 = fig.add_subplot(gs[1, 0])
@@ -84,7 +84,7 @@ for ax, pop in zip(axes, pops):
     ax.set_xlabel("delta-MAE (kcal/mol)", fontsize=9)
     # X limits: choose per pop to fit data but keep consistent for readability
     # Use -13 to 2 for Q_std/Q_nll/UNION, -4 to 2 for all129, -2 to 2 for gradient12? But keep same for top row for comparability, but bottom row needs narrower
-    if pop in ["Disagree33", "Atypical33", "Union50"]:
+    if pop in ["disagree33", "atypical33", "union50"]:
         ax.set_xlim(-13.5, 2.5)
         ax.set_xticks([-10, -5, 0])
     elif pop == "all129":
