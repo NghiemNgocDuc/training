@@ -36,6 +36,26 @@ scratch/
 # Logs
 *.log
 
+# LaTeX build artifacts
+*.aux
+*.out
+*.bbl
+*.blg
+*.toc
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+aqm-spice2/freesolv/paper/*/main.pdf
+
+# Venue template downloads (ICLR going forward; old NeurIPS/SIMBIOCHEM template removed)
+/*-template.zip
+/iclr-template.pdf
+/checklist.tex
+/paper.tex
+/paper.sty
+
 # Data files
 AQM-gas-eval/
 AQM-gas/
