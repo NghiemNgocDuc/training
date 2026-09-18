@@ -66,6 +66,15 @@ def load_split():
 
 
 def load_labels():
+    if not os.path.exists(DEFAULT_LABELS):
+        import urllib.request
+        os.makedirs(os.path.dirname(DEFAULT_LABELS), exist_ok=True)
+        print("[labels] database.json missing -> downloading from MobleyLab/FreeSolv",
+              flush=True)
+        urllib.request.urlretrieve(
+            "https://raw.githubusercontent.com/MobleyLab/FreeSolv/master/database.json",
+            DEFAULT_LABELS)
+        print("[labels] downloaded", flush=True)
     with open(DEFAULT_LABELS) as f:
         lab = json.load(f)
     return {m: float(v["expt"]) / EV_TO_KCAL for m, v in lab.items()
