@@ -70,7 +70,7 @@ def per_atom(pair, device, syms, xyz):
     try:
         P, E = decompose(model, store,
                          prep(calc, z,
-                              np.asarray(xyz, dtype=np.float32)), n)
+                              np.asarray(xyz, dtype=np.float32), device), n)
     except Exception:
         handle.remove()
         return None
