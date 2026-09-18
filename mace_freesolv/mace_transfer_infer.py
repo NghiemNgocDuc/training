@@ -147,7 +147,7 @@ def run_set(set_name, items, mols_store, models, device):
     with open(csv_path, "a" if done else "w", newline="") as f:
         w = csv.writer(f)
         if not done:
-            w.writerow(["id", "exp", "E_42", "E_123", "E_999", "N"])
+            w.writerow(["id", "exp"] + [f"E_{s}" for s in SEEDS] + ["N"])
         for _id, path, exp in tqdm([t for t in items if str(t[0]) not in done],
                                    desc=f"MACE {set_name}", unit="mol"):
             if path is not None:
@@ -181,9 +181,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sets", default="flexisol,guthrie")
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--seeds", default="42,123,7,2024,999")
     ap.add_argument("--base_dir", default=MACE_DIR,
                     help="Ensemble dir (fold0_ensemble or fold0_ensemble_off23)")
     a = ap.parse_args()
+    global SEEDS
+    SEEDS = [int(s) for s in a.seeds.split(",")]
+    print(f"[seeds] {SEEDS} (K={len(SEEDS)})", flush=True)
     MACE_DIR = a.base_dir
     OUT = os.path.join(MACE_DIR, "transfer")
     os.makedirs(OUT, exist_ok=True)

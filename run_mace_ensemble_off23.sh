@@ -6,7 +6,7 @@
 #  then dumps per-atom P_mi^k for all 642 FreeSolv molecules.
 #
 #  Vast GPU usage (repo root /workspace/training):
-#    bash run_mace_ensemble_off23.sh              # full 42,123,999 (self-detaches)
+#    bash run_mace_ensemble_off23.sh              # full 42,123,7,2024,999 (self-detaches)
 #    bash run_mace_ensemble_off23.sh quick        # 1 seed, 2 epochs, 20 mols (~15 min)
 #
 #  Monitor (new terminal, same dir):
@@ -17,7 +17,7 @@
 #    nvidia-smi -l 5                        # GPU util
 #
 #  Results:
-#    mace_freesolv/fold0_ensemble_off23/seed_{42,123,999}/model.pt + metrics.json
+#    mace_freesolv/fold0_ensemble_off23/seed_{42,123,7,2024,999}/model.pt + metrics.json
 #    mace_freesolv/fold0_ensemble_off23/peratom_mace_seed{S}.pkl
 #    mace_freesolv/fold0_ensemble_off23/mace_node_contributions.csv
 #    mace_freesolv/fold0_ensemble_off23/mace_seed_predictions_all642.csv
@@ -59,9 +59,9 @@ if [ "$MODE" = "quick" ]; then
   exit 0
 fi
 
-echo "=== FULL: seeds 42,123,999 ==="
+echo "=== FULL: seeds 42,123,7,2024,999 ==="
 python3 mace_freesolv/fold0_ensemble_off23.py \
-  --seeds 42,123,999 --device cuda \
+  --seeds 42,123,7,2024,999 --device cuda \
   --epochs 500 --patience 50 --lr 1e-4 --batch_size 32 --warmup_epochs 10 \
   --output_dir mace_freesolv/fold0_ensemble_off23 \
   2>&1 | tee mace_ensemble_off23.log

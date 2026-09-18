@@ -11,6 +11,7 @@ Usage: py -V:3.12 mace_freesolv/mace_gims_analysis.py
 """
 
 import argparse
+import glob
 import json
 import os
 import sys
@@ -38,6 +39,7 @@ H2_SPLIT = os.path.join(FREESOLV, "node_refinement", "holdout_validation",
                         "b8_split.json")
 
 SEEDS = [42, 123, 999]
+DSEEDS3 = [42, 123, 999]  # DimeNet paper-population columns (fixed)
 N_BOOT = 10_000
 RNG = 20260918
 POP_NAMES = ["Q_std", "Q_nll", "UNION", "all129", "gradient12"]
@@ -62,6 +64,14 @@ def main():
     MACE_DIR = a.base_dir
     OUT = os.path.join(MACE_DIR, "analysis")
     os.makedirs(OUT, exist_ok=True)
+    global SEEDS
+    found = sorted(int(os.path.basename(p).split("seed")[1].split(".pkl")[0])
+                   for p in glob.glob(os.path.join(
+                       MACE_DIR, "peratom_mace_seed*.pkl")))
+    if found:
+        SEEDS = found
+    K = len(SEEDS)
+    print(f"[seeds] MACE ensemble: {SEEDS} (K={K})", flush=True)
     t0 = time.time()
     nodes = pd.read_csv(os.path.join(MACE_DIR, "mace_node_contributions.csv"))
     pred = pd.read_csv(os.path.join(MACE_DIR,
@@ -85,7 +95,7 @@ def main():
         return pd.Series(v).groupby(pd.Series(pool)).mean().reindex(
             all_ids).to_numpy()
 
-    E3 = np.stack([gsum(P3[:, q]) for q in range(3)], axis=1)
+    E3 = np.stack([gsum(P3[:, q]) for q in range(K)], axis=1)
     P3pred = pred.set_index("mol_id")[[f"pred_seed{s}" for s in SEEDS]].reindex(
         all_ids).to_numpy()
     chk = float(np.abs(E3 - P3pred).max())
@@ -105,8 +115,8 @@ def main():
     # paper populations (DimeNet-defined molecule sets)
     dpred = pd.read_csv(D_PRED)
     t = dpred[dpred.mol_id.isin(te)].copy()
-    t["mean3"] = t[[f"pred_seed{s}" for s in SEEDS]].mean(axis=1)
-    t["std3"] = t[[f"pred_seed{s}" for s in SEEDS]].std(axis=1)
+    t["mean3"] = t[[f"pred_seed{s}" for s in DSEEDS3]].mean(axis=1)
+    t["std3"] = t[[f"pred_seed{s}" for s in DSEEDS3]].std(axis=1)
     nll = pd.read_csv(D_NLL)[["mol_id", "mean_nll"]]
     t = t.merge(nll, on="mol_id")
     q_std = set(t.loc[t["std3"] >= t["std3"].quantile(0.75), "mol_id"])
@@ -137,19 +147,19 @@ def main():
     def gims(lam, mu):
         Lm = gmean(lam)
         e = np.stack([(1 - Lm) * E3[:, q] + Lm * n_atoms * mu[q]
-                      for q in range(3)], axis=1)
+                      for q in range(K)], axis=1)
         return e.mean(axis=1), Lm
 
     def vw(lam, mu):
         e = np.stack([gsum(lam * mu[q] + (1 - lam) * P3[:, q])
-                      for q in range(3)], axis=1)
+                      for q in range(K)], axis=1)
         return e.mean(axis=1)
 
     def gtotal(tau2, mu):
         mv = np.var(E3, axis=1, ddof=1)
         Lm = np.zeros_like(mv) if np.isinf(tau2) else mv / (mv + tau2)
         e = np.stack([(1 - Lm) * E3[:, q] + Lm * n_atoms * mu[q]
-                      for q in range(3)], axis=1)
+                      for q in range(K)], axis=1)
         return e.mean(axis=1), Lm
 
     V = float(np.var(sigma2))
@@ -241,16 +251,16 @@ def main():
         return pd.Series(v).groupby(pd.Series(pool)).mean().reindex(
             all_ids).to_numpy()
 
-    Ep = np.stack([gsum_p(Pp[:, q]) for q in range(3)], axis=1)
+    Ep = np.stack([gsum_p(Pp[:, q]) for q in range(K)], axis=1)
     Lmp = gmean_p(lam)
     gims_p = ((1 - Lmp) * Ep.mean(axis=1)
               + Lmp * n_atoms * float(mu_p.mean()))
     gims_0 = ((1 - Lm) * E3.mean(axis=1)
               + Lm * n_atoms * float(mu_train.mean()))
     vw_p = np.stack([gsum_p(lam * mu_p[q] + (1 - lam) * Pp[:, q])
-                     for q in range(3)], axis=1).mean(axis=1)
+                     for q in range(K)], axis=1).mean(axis=1)
     vw_0 = np.stack([gsum(lam * mu_train[q] + (1 - lam) * P3[:, q])
-                     for q in range(3)], axis=1).mean(axis=1)
+                     for q in range(K)], axis=1).mean(axis=1)
     te_mask = np.isin(all_ids, te)
     print(f"[gauge] GIMS max shift={np.abs(gims_p-gims_0).max():.2e} | "
           f"VW mean|shift| test={np.abs(vw_p-vw_0)[te_mask].mean():.4f} "

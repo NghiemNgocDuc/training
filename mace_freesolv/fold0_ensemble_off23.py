@@ -16,7 +16,7 @@ Why this exists:
 
 What it does (every step has a tqdm progress bar):
   1. Load FROZEN fold-0 split (411 train / 102 val / 129 test). Never reshuffles.
-  2. For each seed in --seeds (default 42,123,999):
+  2. For each seed in --seeds (default 42,123,7,2024,999):
      a. Train from the SAME released OFF23 foundation (only seed changes).
      b. Save best-val checkpoint + metrics.json + test predictions.
   3. Probe the MACE output dict once to find node energies (logs all keys).
@@ -27,7 +27,7 @@ What it does (every step has a tqdm progress bar):
        mace_seed_predictions_all642.csv  (mol_id, pred_seed*, true_value)
 
 Usage (Vast GPU, see run_mace_ensemble_off23.sh):
-  python mace_freesolv/fold0_ensemble_off23.py --seeds 42,123,999 --device cuda
+  python mace_freesolv/fold0_ensemble_off23.py --seeds 42,123,7,2024,999 --device cuda
   python mace_freesolv/fold0_ensemble_off23.py --seeds 42 --quick_test --device cuda
 
 Outputs -> mace_freesolv/fold0_ensemble/ (seed_{S}/ + per-atom files).
@@ -454,7 +454,7 @@ def dump_per_atom(seeds, tr, va, te, device, out_root, hdf5_path, r_max, quick):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--seeds", default="42,123,999")
+    ap.add_argument("--seeds", default="42,123,7,2024,999")
     ap.add_argument("--device", default=None)
     ap.add_argument("--epochs", type=int, default=500)
     ap.add_argument("--patience", type=int, default=50)

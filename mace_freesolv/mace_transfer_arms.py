@@ -19,8 +19,12 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+import argparse
+import glob
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MACE_DIR = os.path.join(REPO, "mace_freesolv", "fold0_ensemble")
+DSEEDS3 = [42, 123, 999]  # DimeNet paper-population columns (fixed)
 TR = os.path.join(MACE_DIR, "transfer")
 SPLIT_DIR = os.path.join(REPO, "aqm-spice2", "aqm-spice2", "freesolv",
                          "cv_results_full", "fold_0")
@@ -38,7 +42,7 @@ def boot(d, off):
 
 
 def main():
-    global MACE_DIR, TR
+    global MACE_DIR, TR, SEEDS
     import argparse
     ap = argparse.ArgumentParser()
     ap.add_argument("--base_dir", default=MACE_DIR,
@@ -46,6 +50,12 @@ def main():
     a = ap.parse_args()
     MACE_DIR = a.base_dir
     TR = os.path.join(MACE_DIR, "transfer")
+    found = sorted(int(os.path.basename(p).split("seed")[1].split(".pkl")[0])
+                   for p in glob.glob(os.path.join(
+                       MACE_DIR, "peratom_mace_seed*.pkl")))
+    if found:
+        SEEDS = found
+    print(f"[seeds] MACE ensemble: {SEEDS} (K={len(SEEDS)})", flush=True)
     t0 = time.time()
     # ---- MACE FreeSolv pools
     pred = pd.read_csv(os.path.join(MACE_DIR, "mace_seed_predictions_all642.csv"))
@@ -64,7 +74,7 @@ def main():
     print("[mu] " + ", ".join(f"{s}:{mu[s]:+.4f}" for s in SEEDS), flush=True)
     E = {s: pred.set_index("mol_id")[f"pred_seed{s}"].to_dict() for s in SEEDS}
     truth = pred.set_index("mol_id")["true_value"].to_dict()
-    Nall = Ntr[42]
+    Nall = Ntr[SEEDS[0]]
 
     def Eraw(m):
         return float(np.mean([E[s][m] for s in SEEDS]))
@@ -109,7 +119,7 @@ def main():
     dp = pd.read_csv(os.path.join(FREESOLV, "deep_ensemble", "repair_data",
                                   "seed_predictions_all642.csv"))
     t = dp[dp.mol_id.isin(te)].copy()
-    t["std3"] = t[[f"pred_seed{s}" for s in SEEDS]].std(axis=1)
+    t["std3"] = t[[f"pred_seed{s}" for s in DSEEDS3]].std(axis=1)
     nll = pd.read_csv(os.path.join(
         FREESOLV, "deep_ensemble", "gmm_uncertainty_check",
         "per_molecule_gmm_nll.csv"))[["mol_id", "mean_nll"]]
@@ -139,7 +149,7 @@ def main():
         df = pd.read_csv(os.path.join(TR, fn))
         mols = df[idc].astype(str).tolist()
         exp = dict(zip(mols, df["exp"].astype(float)))
-        Emean = df[["E_42", "E_123", "E_999"]].mean(axis=1)
+        Emean = df[[f"E_{s}" for s in SEEDS]].mean(axis=1)
         Era = dict(zip(mols, Emean.astype(float)))
         N = dict(zip(mols, df["N"].astype(int)))
         # per-seed E for uniform: need seedwise; approx with mean + mu_mean
