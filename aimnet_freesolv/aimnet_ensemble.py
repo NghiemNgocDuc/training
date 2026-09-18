@@ -81,6 +81,32 @@ def load_labels():
             if isinstance(v.get("expt"), (int, float))}
 
 
+def fit_refs(model, device, train_mols, labels_ev, hdf5):
+    """Least-squares per-Z reference energies on train labels (MACE-style).
+
+    Overwrites outputs.atomic_shift.shifts.weight so initial predictions land
+    at hydration scale instead of total-energy scale. Train-only (no leakage).
+    """
+    import h5py as _h5
+    h5 = _h5.File(hdf5, "r")
+    A = np.zeros((len(train_mols), 64))
+    b = np.zeros(len(train_mols))
+    for i, m in enumerate(train_mols):
+        z = np.asarray(h5[m]["atNUM"]).reshape(-1).astype(int)
+        for v in z:
+            if 0 <= v < 64:
+                A[i, v] += 1.0
+        b[i] = labels_ev[m]
+    h5.close()
+    ref, *_ = np.linalg.lstsq(A, b, rcond=None)
+    w = model.outputs.atomic_shift.shifts.weight
+    with torch.no_grad():
+        w.copy_(torch.tensor(ref, dtype=w.dtype, device=device).reshape(-1, 1))
+    pred = A @ ref
+    mae = float(np.mean(np.abs(pred - b))) * EV_TO_KCAL
+    print(f"[refit] per-Z refs set; train MAE at init = {mae:.3f} kcal/mol",
+          flush=True)
+    return ref
 def build_model(device, member=0):
     from aimnet.calculators import AIMNet2Calculator
     calc = AIMNet2Calculator(MODEL_ID, ensemble_member=member,
@@ -124,8 +150,8 @@ def attach_hook(model, store):
     return model.outputs.atomic_shift.register_forward_hook(hook)
 
 
-def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
-                   quick):
+def train_one_seed(seed, tr, va, te, labels, center, hdf5, device, out_root,
+                   cfg, quick):
     seed_dir = os.path.join(out_root, f"seed_{seed}")
     os.makedirs(seed_dir, exist_ok=True)
     set_seed(seed)
@@ -133,6 +159,8 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
           f"\n{'='*64}", flush=True)
 
     calc, model = build_model(device)
+    # Fit refs to CENTERED labels (the scale the model is trained on).
+    fit_refs(model, device, tr, {m: labels[m] - center for m in tr}, hdf5)
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"],
                            weight_decay=cfg["wd"])
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -142,6 +170,7 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
     h5 = h5py.File(hdf5, "r")
 
     def batch_E(mols, train_mode):
+        # Returns FINAL-space kcal/mol (model predicts centered; add back here).
         model.train(train_mode)
         Es = {}
         ctx = torch.enable_grad() if train_mode else torch.no_grad()
@@ -153,7 +182,8 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
                 z = np.asarray(g["atNUM"]).reshape(-1)
                 xyz = np.asarray(g["atXYZ"], dtype=np.float32).reshape(-1, 3)
                 out = model(prep(calc, z, xyz, device))
-                Es[m] = float(out["energy"].view(-1)[0].detach()) * EV_TO_KCAL
+                Es[m] = (float(out["energy"].view(-1)[0].detach()) + center) \
+                    * EV_TO_KCAL
         return Es
 
     def mae(mols, Es):
@@ -175,8 +205,9 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
             z = np.asarray(g["atNUM"]).reshape(-1)
             xyz = np.asarray(g["atXYZ"], dtype=np.float32).reshape(-1, 3)
             out = model(prep(calc, z, xyz, device))
-            loss = loss_fn(out["energy"].view(-1).float(),
-                           torch.tensor([labels[m]], dtype=torch.float32,
+            loss = loss_fn(out["energy"].view(-1),
+                           torch.tensor([labels[m] - center],
+                                        dtype=torch.float32,
                                         device=device))
             opt.zero_grad()
             loss.backward()
@@ -221,7 +252,8 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
     return metrics
 
 
-def dump_per_atom(seeds, tr, va, te, labels, hdf5, device, out_root, quick):
+def dump_per_atom(seeds, tr, va, te, labels, center, hdf5, device, out_root,
+                  quick):
     all_ids = tr + va + te
     if quick:
         all_ids = all_ids[:20]
@@ -256,6 +288,9 @@ def dump_per_atom(seeds, tr, va, te, labels, hdf5, device, out_root, quick):
                     handle.remove()
                     break
                 handle.remove()
+                # Uncenter to final space (constant shift: gate unaffected).
+                P = P + center * EV_TO_KCAL / len(z)
+                E = E + center * EV_TO_KCAL
                 gate = abs(float(P.sum()) - E)
                 max_gate = max(max_gate, gate)
                 assert gate < 1e-3, f"gate failed {m} seed {s}: {gate:.2e}"
@@ -326,22 +361,30 @@ def main():
            "epochs": a.epochs, "patience": a.patience}
     tr, va, te = load_split()
     labels = load_labels()
+    # Center targets on the train mean (MACE's atomic-ref fit equivalent).
+    # Model learns hydration-scale variations; outputs are uncentered back at
+    # every boundary (metrics, dump, transfer). Gauge math is unaffected:
+    # the shift is seed- and atom-independent, so sigma2/Lambda are unchanged.
+    CENTER = float(np.mean([labels[m] for m in tr]))
+    print(f"[center] train-mean target = {CENTER:.6f} eV "
+          f"({CENTER*EV_TO_KCAL:.3f} kcal/mol)", flush=True)
     json.dump({"source": "frozen", "n_train": len(tr), "n_val": len(va),
-               "n_test": len(te)},
+               "n_test": len(te), "target_center_ev": CENTER},
               open(os.path.join(a.output_dir, "split_used.json"), "w"), indent=2)
     t0 = time.time()
     if not a.skip_train:
         summary = {}
         for s in tqdm(seeds, desc="OVERALL seeds", unit="seed"):
             summary[str(s)] = train_one_seed(
-                s, tr, va, te, labels, a.hdf5, device, a.output_dir, cfg,
-                a.quick_test)
+                s, tr, va, te, labels, CENTER, a.hdf5, device, a.output_dir,
+                cfg, a.quick_test)
+        summary["_target_center_ev"] = CENTER
         json.dump(summary, open(os.path.join(a.output_dir,
                                              "ensemble_summary.json"), "w"),
                   indent=2)
         print(f"[train] done in {(time.time()-t0)/60:.1f} min", flush=True)
     if not a.skip_dump:
-        dump_per_atom(seeds, tr, va, te, labels, a.hdf5, device,
+        dump_per_atom(seeds, tr, va, te, labels, CENTER, a.hdf5, device,
                       a.output_dir, a.quick_test)
     print(f"[done] total {(time.time()-t0)/3600:.2f} h -> {a.output_dir}",
           flush=True)
