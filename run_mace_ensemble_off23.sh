@@ -48,9 +48,9 @@ echo "OFF23-medium foundation auto-downloads to ~/.cache/mace on first use (ASL 
 ls aqm-spice2/aqm-spice2/freesolv/cv_results_full/fold_0/*_ids.json || echo "WARNING: frozen split missing -> script reconstructs"
 
 if [ "$MODE" = "quick" ]; then
-  echo "=== QUICK TEST: 1 seed, 2 epochs, 20 mols ==="
+  echo "=== QUICK TEST: 5 seeds, 2 epochs, 20 mols ==="
   python3 mace_freesolv/fold0_ensemble_off23.py \
-    --seeds 42 --quick_test --device cuda \
+    --seeds 42,123,7,2024,999 --quick_test --device cuda \
     --output_dir mace_freesolv/fold0_ensemble_off23_quick \
     2>&1 | tee mace_ensemble_off23_quick.log
   echo "=== QUICK DONE ==="
