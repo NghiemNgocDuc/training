@@ -1,0 +1,11 @@
+{
+  "seed": 42,
+  "n_train": 411,
+  "n_val": 102,
+  "n_test": 129,
+  "best_epoch": 499,
+  "best_val_mae_kcal": 1.4187341697458178,
+  "test_mae_kcal": 1.368990182876587,
+  "test_rmse_kcal": 1.801727056503296,
+  "init_checkpoint": "foundation:OFF23"
+}
