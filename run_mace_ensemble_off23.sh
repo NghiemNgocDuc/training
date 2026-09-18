@@ -2,7 +2,7 @@
 # =============================================================================
 #  MACE fold-0 ENSEMBLE FROM RELEASED OFF23 FOUNDATION — 3-seed fine-tune + dump
 #  Fine-tunes the official MACE-OFF23-medium weights (ACEsuit/mace-off, ASL
-#  license; auto-downloaded to ~/.cache/mace) on fold-0 ONLY, seeds 42/123/999,
+#  license; auto-downloaded to ~/.cache/mace) on fold-0 ONLY, seeds 42/123/7/2024/999,
 #  then dumps per-atom P_mi^k for all 642 FreeSolv molecules.
 #
 #  Vast GPU usage (repo root /workspace/training):
