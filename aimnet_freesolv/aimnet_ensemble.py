@@ -159,8 +159,27 @@ def train_one_seed(seed, tr, va, te, labels, center, hdf5, device, out_root,
           f"\n{'='*64}", flush=True)
 
     calc, model = build_model(device)
-    # Fit refs to CENTERED labels (the scale the model is trained on).
-    fit_refs(model, device, tr, {m: labels[m] - center for m in tr}, hdf5)
+    ckpt = os.path.join(seed_dir, "model.pt")
+    state_path = os.path.join(seed_dir, "train_state.json")
+    done_path = os.path.join(seed_dir, "metrics.json")
+    if os.path.exists(done_path) and os.path.exists(ckpt) and not quick:
+        print(f"[seed {seed}] DONE already, skipping train", flush=True)
+        return json.load(open(done_path))
+    resumed = False
+    start_ep, best, best_ep, stale = 1, float("inf"), -1, 0
+    if os.path.exists(ckpt) and os.path.exists(state_path) and not quick:
+        model.load_state_dict(torch.load(ckpt, map_location=device,
+                                         weights_only=True))
+        st = json.load(open(state_path))
+        best, best_ep, stale = st["best"], st["best_ep"], st["stale"]
+        start_ep = st["epoch"] + 1
+        resumed = True
+        print(f"[seed {seed}] RESUME from ep {start_ep} "
+              f"(best {best:.3f} @ ep {best_ep}, stale {stale})", flush=True)
+    else:
+        # Fresh start only: fit refs (would wipe resumed progress otherwise).
+        fit_refs(model, device, tr,
+                 {m: labels[m] - center for m in tr}, hdf5)
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"],
                            weight_decay=cfg["wd"])
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
@@ -191,10 +210,11 @@ def train_one_seed(seed, tr, va, te, labels, center, hdf5, device, out_root,
                               for m in mols]))
 
     epochs = 2 if quick else cfg["epochs"]
-    best, best_ep, stale = float("inf"), -1, 0
-    ckpt = os.path.join(seed_dir, "model.pt")
     rng = np.random.RandomState(seed)
-    pbar = tqdm(range(1, epochs + 1), desc=f"seed{seed} epochs", unit="ep")
+    for _ in range(1, start_ep):
+        rng.permutation(len(tr))  # fast-forward RNG past resumed epochs
+    pbar = tqdm(range(start_ep, epochs + 1), desc=f"seed{seed} epochs",
+                unit="ep", initial=start_ep - 1, total=epochs)
     for epoch in pbar:
         model.train()
         order = np.array(tr, dtype=object)[rng.permutation(len(tr))]
@@ -226,6 +246,8 @@ def train_one_seed(seed, tr, va, te, labels, center, hdf5, device, out_root,
             print(f"  [seed {seed}] * best checkpoint (val {vm:.3f})", flush=True)
         else:
             stale += 1
+        json.dump({"best": best, "best_ep": best_ep, "stale": stale,
+                   "epoch": epoch}, open(state_path, "w"))
         if stale >= cfg["patience"]:
             print(f"  [seed {seed}] early stop at ep {epoch}", flush=True)
             break
