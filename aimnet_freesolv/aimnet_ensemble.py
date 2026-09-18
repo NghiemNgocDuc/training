@@ -39,6 +39,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(SCRIPT_DIR)
 
 EV_TO_KCAL = 23.0605
+TRAINER_VERSION = "norefit-center-v1"  # printed first line of every run
 FROZEN_SPLIT_DIR = os.path.join(
     REPO_ROOT, "aqm-spice2", "aqm-spice2", "freesolv", "cv_results_full", "fold_0")
 DEFAULT_HDF5 = os.path.join(REPO_ROOT, "freesolv_conformers.hdf5")
@@ -377,6 +378,7 @@ def main():
     a = ap.parse_args()
     device = torch.device(
         a.device if a.device else ("cuda" if torch.cuda.is_available() else "cpu"))
+    print(f"[version] {TRAINER_VERSION}", flush=True)
     print(f"[run] device={device} torch={torch.__version__}", flush=True)
     seeds = [int(s) for s in a.seeds.split(",")]
     print(f"[seeds] {seeds} (K={len(seeds)})", flush=True)
@@ -385,6 +387,29 @@ def main():
            "epochs": a.epochs, "patience": a.patience}
     tr, va, te = load_split()
     labels = load_labels()
+    # Built-in micro-probe: proves forward+backward+step on THIS box before
+    # the 5-seed run. Any later failure is therefore in training, not setup.
+    try:
+        _calc, _model = build_model(device)
+        _model.train()
+        _opt = torch.optim.Adam(_model.parameters(), lr=1e-4)
+        _h5 = h5py.File(a.hdf5, "r")
+        _g = _h5["mobley_2310185"]
+        _out = _model(prep(
+            _calc, np.asarray(_g["atNUM"]).reshape(-1),
+            np.asarray(_g["atXYZ"], dtype=np.float32).reshape(-1, 3), device))
+        _loss = torch.nn.MSELoss()(
+            _out["energy"].view(-1).float(),
+            torch.tensor([-0.25], dtype=torch.float32, device=device))
+        _opt.zero_grad()
+        _loss.backward()
+        _opt.step()
+        del _calc, _model, _opt
+        _h5.close()
+        print("[microprobe] forward+backward+step OK", flush=True)
+    except Exception as e:
+        print(f"[microprobe] FAIL {type(e).__name__}: {e}", flush=True)
+        raise
     # Center targets on the train mean (MACE's atomic-ref fit equivalent).
     # Model learns hydration-scale variations; outputs are uncentered back at
     # every boundary (metrics, dump, transfer). Gauge math is unaffected:
