@@ -85,9 +85,10 @@ def build_model(device, member=0):
     from aimnet.calculators import AIMNet2Calculator
     calc = AIMNet2Calculator(MODEL_ID, ensemble_member=member,
                              device=str(device))
-    # AIMNet2 mixes float32/float64 params (atomic shifts load as double),
-    # which breaks autograd in backward. Train fully in double instead.
-    model = calc.model.to(device).double()
+    # AEV CUDA kernels support float32 backward only (double fails in
+    # aev.py; mixed fails on the double atomic shifts). Train fully in
+    # float32: cast the double-loaded shifts down (fine-tune adapts them).
+    model = calc.model.to(device).float()
     for p in model.parameters():
         p.requires_grad_(True)
     return calc, model
@@ -95,11 +96,11 @@ def build_model(device, member=0):
 
 def prep(calc, z, xyz, device):
     return calc.prepare_input({
-        "coord": torch.tensor(np.asarray(xyz, dtype=np.float64),
-                              dtype=torch.float64, device=device),
+        "coord": torch.tensor(np.asarray(xyz, dtype=np.float32),
+                              dtype=torch.float32, device=device),
         "numbers": torch.tensor(np.asarray(z).reshape(-1), dtype=torch.int64,
                                 device=device),
-        "charge": torch.tensor([0.0], dtype=torch.float64,
+        "charge": torch.tensor([0.0], dtype=torch.float32,
                                device=device)})
 
 
@@ -174,8 +175,8 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
             z = np.asarray(g["atNUM"]).reshape(-1)
             xyz = np.asarray(g["atXYZ"], dtype=np.float32).reshape(-1, 3)
             out = model(prep(calc, z, xyz, device))
-            loss = loss_fn(out["energy"].view(-1).double(),
-                           torch.tensor([labels[m]], dtype=torch.float64,
+            loss = loss_fn(out["energy"].view(-1).float(),
+                           torch.tensor([labels[m]], dtype=torch.float32,
                                         device=device))
             opt.zero_grad()
             loss.backward()
