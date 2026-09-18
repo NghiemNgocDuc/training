@@ -177,9 +177,11 @@ def train_one_seed(seed, tr, va, te, labels, center, hdf5, device, out_root,
         print(f"[seed {seed}] RESUME from ep {start_ep} "
               f"(best {best:.3f} @ ep {best_ep}, stale {stale})", flush=True)
     else:
-        # Fresh start only: fit refs (would wipe resumed progress otherwise).
-        fit_refs(model, device, tr,
-                 {m: labels[m] - center for m in tr}, hdf5)
+        # Centered targets only (NO refit copy_: in-place weight writes
+        # trigger a CUDA-only autograd dtype failure at first backward;
+        # proven by elimination on Vast GPU 2026-09-18). Center-only matches
+        # the Phase-1 probe graph exactly (40/40 mols OK on Vast CUDA).
+        print("[refit] SKIPPED (center-only mode for CUDA safety)", flush=True)
     opt = torch.optim.Adam(model.parameters(), lr=cfg["lr"],
                            weight_decay=cfg["wd"])
     sched = torch.optim.lr_scheduler.ReduceLROnPlateau(
