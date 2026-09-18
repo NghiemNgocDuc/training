@@ -85,17 +85,20 @@ def build_model(device, member=0):
     from aimnet.calculators import AIMNet2Calculator
     calc = AIMNet2Calculator(MODEL_ID, ensemble_member=member,
                              device=str(device))
-    model = calc.model
+    model = calc.model.to(device)
     for p in model.parameters():
         p.requires_grad_(True)
     return calc, model
 
 
-def prep(calc, z, xyz):
+def prep(calc, z, xyz, device):
     return calc.prepare_input({
-        "coord": torch.tensor(np.asarray(xyz, dtype=np.float32)),
-        "numbers": torch.tensor(np.asarray(z).reshape(-1), dtype=torch.int64),
-        "charge": torch.tensor([0.0], dtype=torch.float32)})
+        "coord": torch.tensor(np.asarray(xyz, dtype=np.float32),
+                              device=device),
+        "numbers": torch.tensor(np.asarray(z).reshape(-1), dtype=torch.int64,
+                                device=device),
+        "charge": torch.tensor([0.0], dtype=torch.float32,
+                               device=device)})
 
 
 def decompose(model, store, data, n_real):
@@ -146,7 +149,7 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
                 g = h5[m]
                 z = np.asarray(g["atNUM"]).reshape(-1)
                 xyz = np.asarray(g["atXYZ"], dtype=np.float32).reshape(-1, 3)
-                out = model(prep(calc, z, xyz))
+                out = model(prep(calc, z, xyz, device))
                 Es[m] = float(out["energy"].view(-1)[0].detach()) * EV_TO_KCAL
         return Es
 
@@ -168,9 +171,10 @@ def train_one_seed(seed, tr, va, te, labels, hdf5, device, out_root, cfg,
             g = h5[m]
             z = np.asarray(g["atNUM"]).reshape(-1)
             xyz = np.asarray(g["atXYZ"], dtype=np.float32).reshape(-1, 3)
-            out = model(prep(calc, z, xyz))
+            out = model(prep(calc, z, xyz, device))
             loss = loss_fn(out["energy"].view(-1),
-                           torch.tensor([labels[m]], dtype=torch.float32))
+                           torch.tensor([labels[m]], dtype=torch.float32,
+                                        device=device))
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 10.0)
@@ -243,7 +247,7 @@ def dump_per_atom(seeds, tr, va, te, labels, hdf5, device, out_root, quick):
                 handle = attach_hook(model, store)
                 try:
                     P, E = decompose(model, store,
-                                     prep(calc, z, xyz), len(z))
+                                     prep(calc, z, xyz, device), len(z))
                 except Exception:
                     ok = False
                     handle.remove()
