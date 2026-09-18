@@ -1,0 +1,11 @@
+{
+  "seed": 999,
+  "n_train": 411,
+  "n_val": 102,
+  "n_test": 129,
+  "best_epoch": 498,
+  "best_val_mae_kcal": 1.5610851698219776,
+  "test_mae_kcal": 1.6626276969909668,
+  "test_rmse_kcal": 2.158376932144165,
+  "init_checkpoint": "/workspace/training/mace_freesolv/results_stage_a_scratch/stage_a.pt"
+}
