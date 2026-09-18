@@ -70,7 +70,8 @@ def per_atom(pair, device, syms, xyz):
     try:
         P, E = decompose(model, store,
                          prep(calc, z,
-                              np.asarray(xyz, dtype=np.float32), device), n)
+                              np.asarray(xyz, dtype=np.float32),
+                              device), n)
     except Exception:
         handle.remove()
         return None
@@ -126,7 +127,7 @@ def guthrie_items():
     return items, mols
 
 
-def run_set(set_name, items, mols_store, models, device):
+def run_set(set_name, items, mols_store, models, device, center_ev=0.0):
     csv_path = os.path.join(OUT, f"aimnet_{set_name}_permol.csv")
     pkl_path = os.path.join(OUT, f"aimnet_{set_name}_peratom.pkl")
     done, peratom, skipped = {}, {}, []
@@ -158,6 +159,11 @@ def run_set(set_name, items, mols_store, models, device):
             if not ok:
                 skipped.append(str(_id))
                 continue
+            # Uncenter to final space (constant shift; variances unchanged).
+            c_kcal = center_ev * EV_TO_KCAL
+            for s in SEEDS:
+                Es[s] = Es[s] + c_kcal
+                Ps[s] = Ps[s] + c_kcal / len(syms)
             P = np.stack([Ps[s] for s in SEEDS], axis=1)
             peratom[str(_id)] = P
             w.writerow([_id, f"{exp:.4f}"] + [f"{Es[s]:.4f}" for s in SEEDS]
@@ -188,11 +194,18 @@ def main():
     device = torch.device(a.device)
     print(f"device={device}", flush=True)
     models = load_models(device)
+    try:
+        center_ev = float(json.load(open(os.path.join(
+            AIM_DIR, "ensemble_summary.json")))["_target_center_ev"])
+    except (KeyError, FileNotFoundError):
+        center_ev = 0.0
+        print("[warn] no target center found, using 0.0", flush=True)
+    print(f"[center] {center_ev:.6f} eV", flush=True)
     if "flexisol" in a.sets.split(","):
-        run_set("flexisol", flexi_items(), None, models, device)
+        run_set("flexisol", flexi_items(), None, models, device, center_ev)
     if "guthrie" in a.sets.split(","):
         items, store = guthrie_items()
-        run_set("guthrie", items, store, models, device)
+        run_set("guthrie", items, store, models, device, center_ev)
     print("[done]", flush=True)
 
 
