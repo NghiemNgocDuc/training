@@ -37,7 +37,9 @@ MACE_DIR = os.path.join(REPO, "mace_freesolv", "fold0_ensemble")
 FLEXI_GAS = os.path.join(REPO, "flexisol", "flexisol", "gas", "water")
 FLEXI_REF = os.path.join(REPO, "flexisol", "data", "references",
                          "dgsolv-references.csv")
-GUTH_PKL = r"C:\Users\User\AppData\Local\Temp\opencode\guthrie_run\guthrie_3d.pkl"
+GUTH_PKL_REPO = os.path.join(REPO, "guthrie_novel", "guthrie_3d.pkl")
+GUTH_PKL = (GUTH_PKL_REPO if os.path.exists(GUTH_PKL_REPO)
+            else r"C:\Users\User\AppData\Local\Temp\opencode\guthrie_run\guthrie_3d.pkl")
 
 SYM2Z = {"H": 1, "C": 6, "N": 7, "O": 8, "F": 9, "P": 15, "S": 16,
          "Cl": 17, "Br": 35, "I": 53, "Si": 14}
@@ -175,10 +177,16 @@ def run_set(set_name, items, mols_store, models, device):
 
 
 def main():
+    global MACE_DIR, OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("--sets", default="flexisol,guthrie")
     ap.add_argument("--device", default="cpu")
+    ap.add_argument("--base_dir", default=MACE_DIR,
+                    help="Ensemble dir (fold0_ensemble or fold0_ensemble_off23)")
     a = ap.parse_args()
+    MACE_DIR = a.base_dir
+    OUT = os.path.join(MACE_DIR, "transfer")
+    os.makedirs(OUT, exist_ok=True)
     device = torch.device(a.device)
     print(f"device={device}", flush=True)
     models = load_models(device)

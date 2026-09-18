@@ -10,6 +10,7 @@ Outputs -> mace_freesolv/fold0_ensemble/analysis/.
 Usage: py -V:3.12 mace_freesolv/mace_gims_analysis.py
 """
 
+import argparse
 import json
 import os
 import sys
@@ -53,6 +54,14 @@ def bootstrap(d, off):
 
 
 def main():
+    global MACE_DIR, OUT
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base_dir", default=MACE_DIR,
+                    help="Ensemble dir (fold0_ensemble or fold0_ensemble_off23)")
+    a = ap.parse_args()
+    MACE_DIR = a.base_dir
+    OUT = os.path.join(MACE_DIR, "analysis")
+    os.makedirs(OUT, exist_ok=True)
     t0 = time.time()
     nodes = pd.read_csv(os.path.join(MACE_DIR, "mace_node_contributions.csv"))
     pred = pd.read_csv(os.path.join(MACE_DIR,

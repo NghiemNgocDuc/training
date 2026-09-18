@@ -38,6 +38,14 @@ def boot(d, off):
 
 
 def main():
+    global MACE_DIR, TR
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--base_dir", default=MACE_DIR,
+                    help="Ensemble dir (fold0_ensemble or fold0_ensemble_off23)")
+    a = ap.parse_args()
+    MACE_DIR = a.base_dir
+    TR = os.path.join(MACE_DIR, "transfer")
     t0 = time.time()
     # ---- MACE FreeSolv pools
     pred = pd.read_csv(os.path.join(MACE_DIR, "mace_seed_predictions_all642.csv"))
