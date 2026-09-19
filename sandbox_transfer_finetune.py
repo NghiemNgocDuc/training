@@ -519,6 +519,8 @@ def main():
     ap.add_argument("--batch_size", type=int, default=8)
     ap.add_argument("--n_boot", type=int, default=10000)
     ap.add_argument("--sandbox", action="store_true", help="2 epochs smoke test")
+    ap.add_argument("--max_mols", type=int, default=None,
+                    help="cap molecules per dataset (smoke only, e.g. 20)")
     ap.add_argument("--make_splits_only", action="store_true")
     ap.add_argument("--retrain", action="store_true")
     args = ap.parse_args()
@@ -534,7 +536,13 @@ def main():
     loaders = {"flexisol": load_flexisol,
                "guthrie": lambda: load_guthrie(args.guthrie_csv)}
     for tag in tqdm(tags, desc="datasets", unit="dataset"):
-        run_dataset(tag, loaders[tag](), args, device)
+        recs = loaders[tag]()
+        if args.max_mols is not None and len(recs) > args.max_mols:
+            rng = np.random.RandomState(0)
+            keep = rng.choice(len(recs), args.max_mols, replace=False)
+            recs = [recs[i] for i in sorted(keep)]
+            print(f"  [{tag}] max_mols cap: n={len(recs)} (smoke only)")
+        run_dataset(tag, recs, args, device)
 
 
 if __name__ == "__main__":
