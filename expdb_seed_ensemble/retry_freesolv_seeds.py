@@ -36,6 +36,14 @@ from tqdm import tqdm
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO_ROOT = os.path.dirname(HERE)
 sys.path.insert(0, HERE)
+# common_io does "from freesolv_dataset import ..." at call time; make the
+# self-contained inputs/ copy (plus repo fallbacks) importable everywhere,
+# not just on machines with PYTHONPATH set.
+for _p in (os.path.join(HERE, "inputs"),
+           os.path.join(REPO_ROOT, "expdb_vast"),
+           os.path.join(REPO_ROOT, "aqm-spice2", "freesolv")):
+    if _p not in sys.path:
+        sys.path.append(_p)
 import common_io as cio
 
 OUT_SUBDIR = "results_seeds_retry"
