@@ -359,8 +359,18 @@ def run_dataset(tag, recs, args, device):
     # conformers
     h5 = os.path.join(outdir, f"{tag}_conformers.hdf5")
     build_hdf5(recs, h5)
-    # 2) fine-tune ensemble
-    for seed in tqdm(args.seeds, desc=f"{tag} seeds", unit="seed"):
+    # 2) fine-tune ensemble (add-on mode trains only the new seeds)
+    train_list = args.add_seeds if args.add_seeds else args.seeds
+    eval_list = (list(args.seeds) + list(args.add_seeds)) if args.add_seeds else list(args.seeds)
+    if args.add_seeds:
+        missing_base = [s for s in args.seeds
+                        if not os.path.exists(os.path.join(outdir, f"finetuned_seed{s}.pt"))]
+        if missing_base:
+            print(f"FATAL: base seed ckpts missing for {missing_base}; run the base --seeds first.",
+                  file=sys.stderr)
+            sys.exit(1)
+        print(f"  add-on mode: training {train_list}, evaluating {eval_list}")
+    for seed in tqdm(train_list, desc=f"{tag} seeds", unit="seed"):
         ckpt = os.path.join(outdir, f"finetuned_seed{seed}.pt")
         if os.path.exists(ckpt) and not args.retrain:
             print(f"  seed {seed}: ckpt exists, skipping (--retrain to force)")
@@ -370,7 +380,7 @@ def run_dataset(tag, recs, args, device):
                    args.lr, args.weight_decay, args.batch_size, args.sandbox)
     # 3) per-atom inference on val+test for mu_T + tau calibration
     models = {}
-    for seed in args.seeds:
+    for seed in eval_list:
         m = build_model(device)
         m.load_state_dict(torch.load(os.path.join(outdir, f"finetuned_seed{seed}.pt"),
                                      map_location=device), strict=False)
@@ -407,7 +417,7 @@ def run_dataset(tag, recs, args, device):
     # mu_T from TRAIN atoms only
     P_tr, _, _ = infer_ids(split_ids["train"], tta=False)
     mu_per_seed = []
-    for k, seed in enumerate(args.seeds):
+    for k, seed in enumerate(eval_list):
         mu_per_seed.append(float(np.mean([P_tr[m][:, k].mean() for m in P_tr])))
     mu_mean = float(np.mean(mu_per_seed))
     print(f"  mu_T per-seed {[f'{v:.4f}' for v in mu_per_seed]} mean {mu_mean:.4f} (train atoms only)")
@@ -481,7 +491,7 @@ def run_dataset(tag, recs, args, device):
 
     print(f"\n  [{tag} TEST n={len(df)}] tau*={tau_star:.3e} mu={mu_mean:.4f} lam_bar={lam_bar:.4f}")
     summary = {"tag": tag, "n_test": len(df), "tau_star": tau_star,
-               "mu_T": mu_mean, "lambda_bar": lam_bar, "seeds": args.seeds}
+               "mu_T": mu_mean, "lambda_bar": lam_bar, "seeds": eval_list}
     for arm in ("raw", "gims", "vw", "uniform"):
         mae, rmse, r2, tau = mets(df[arm], df["exp"])
         print(f"    {arm:8s} MAE {mae:.3f} RMSE {rmse:.3f} R2 {r2:.4f} tau {tau:.3f}")
@@ -512,6 +522,9 @@ def main():
     ap.add_argument("--correction_ckpt", default=os.path.join(REPO, "expdb_vast", "stage2_correction.pt"))
     ap.add_argument("--device", default=None)
     ap.add_argument("--seeds", nargs="+", type=int, default=SEEDS_DEFAULT)
+    ap.add_argument("--add_seeds", nargs="+", type=int, default=None,
+                    help="extra seeds to train (e.g. 7 2024); eval uses --seeds + --add_seeds, "
+                         "base --seeds checkpoints are reused, never retrained")
     ap.add_argument("--epochs", type=int, default=200)
     ap.add_argument("--patience", type=int, default=30)
     ap.add_argument("--lr", type=float, default=1e-4)
